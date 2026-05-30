@@ -1,0 +1,99 @@
+# [项目名称]
+
+这个文件是 Agent 进入本仓库时的工作入口。它只负责说明硬规则和阅读路由；
+详细规范放在 `coding-agent-harness/governance/standards/`，不要把操作手册全部塞进这里。
+
+## 项目概况
+
+- **项目名**：[项目名称]
+- **技术栈**：[语言 / 框架 / 运行时]
+- **仓库形态**：[单仓 / monorepo / 多仓协作]
+- **主要模块**：[模块列表]
+- **默认分支**：[main / master / 其他]
+
+## 不可违反的规则
+
+1. 遵守 `coding-agent-harness/governance/standards/engineering-standard.md` 中的架构边界。
+2. 不提交密钥、令牌、私有接口、用户隐私数据或生产凭据。
+3. 非平凡任务先用 Harness CLI 在 `coding-agent-harness/planning/tasks/` 下建立任务目录。
+4. 声称完成前必须记录证据。
+5. 保护无关工作区改动，不回滚任务范围外文件。
+6. 已验证的、有意义的工作切片要主动提交。除非用户明确暂停提交、检查失败、dirty 归属不清，或安全边界导致无法形成干净提交，否则不要把已完成工作只留在未提交文件里；不能提交时，必须在 progress、handoff 或 closeout 中写明 no-commit reason、owner 和下一步。不要把无关 dirty 改动混入本任务提交。
+7. 最终回复前检查当前任务 `visual_map.md` 的 gate 阶段。如果当前 `Exit Command` 的 `Actor` 是 `agent`，就执行它或记录 blocker。不得执行 `review-confirm` 这类 `human` gate，除非用户已经明确完成或委托了人工确认。
+
+## 任务阅读矩阵
+
+按任务类型读取最少但足够的上下文，不要一次性加载整套文档。
+
+| 任务类型 | 先读文件 |
+| --- | --- |
+| 架构、核心模块、跨模块改动 | `coding-agent-harness/governance/standards/engineering-standard.md` |
+| 系统地图、服务职责、外部系统关系 | `coding-agent-harness/context/architecture/README.md`、`coding-agent-harness/context/architecture/service-catalog.md` |
+| 本地开发、mock、stub、跨仓调试 | `coding-agent-harness/context/development/README.md`、`coding-agent-harness/context/development/codebase-map.md` |
+| API、event、webhook、SDK、第三方契约 | `coding-agent-harness/context/integrations/README.md` 和相关契约文件 |
+| 测试、冒烟、回归 | `coding-agent-harness/governance/standards/testing-standard.md`、`coding-agent-harness/governance/regression/Regression-SSoT.md` |
+| 开发执行、提交、PR、发布 | `coding-agent-harness/governance/standards/execution-workflow-standard.md`、`coding-agent-harness/governance/standards/repo-governance-standard.md`、`coding-agent-harness/governance/standards/pull-request-standard.md`、`coding-agent-harness/governance/standards/ci-cd-standard.md` |
+| 创建或推进任务 | `coding-agent-harness/planning/tasks/` 下的当前任务目录；如果本项目已配置 Harness CLI，使用 `harness new-task` / lifecycle 命令 |
+| Brief、Execution Strategy、Visual Map | 当前任务的 `brief.md`、`execution_strategy.md`、`visual_map.md` |
+| 长程任务 | 当前任务的 `long-running-task-contract.md`（如存在） |
+| reviewer、subagent、对抗性审查 | 当前任务 `review.md`、`coding-agent-harness/governance/standards/review-routing-standard.md` |
+| 多人协作、多仓交付、阶段性交付 | `coding-agent-harness/governance/standards/delivery-operating-model-standard.md`、`coding-agent-harness/planning/Delivery-SSoT.md` |
+| 模块并行 | `coding-agent-harness/harness.yaml`、生成的 `coding-agent-harness/planning/modules/Module-Registry.md`、模块 `brief.md` 和相关 `module_plan.md` |
+| 文档治理或 Harness 更新 | `coding-agent-harness/governance/standards/docs-library-standard.md`、`coding-agent-harness/harness.yaml` |
+| 外部资料摄取 | `coding-agent-harness/governance/standards/external-source-intake-standard.md` |
+| Regression SSoT 维护 | `coding-agent-harness/governance/standards/regression-ssot-governance.md` |
+| 收口、walkthrough、Lessons | `coding-agent-harness/governance/standards/walkthrough-standard.md`、当前任务 `walkthrough.md`、当前任务 `lesson_candidates.md`、`coding-agent-harness/governance/lessons/` |
+| Worktree、并行开发隔离 | `coding-agent-harness/governance/standards/worktree-standard.md` |
+
+## 标准执行流程
+
+1. 先确认请求、范围和受影响文件。
+2. 非平凡任务先创建或更新任务计划，再改代码。优先使用 `harness new-task`；CLI 不可用时必须在任务 `INDEX.md` 保留任务审计元数据，并把 `Created By` 设为 `manual-exception`，写清具体原因。
+3. 根据用户目标主动判断是否需要分工；用户不需要知道或主动要求 subagent。
+4. 只读取任务阅读矩阵要求的 reference 文档。
+5. 保留已有项目事实；新增上下文使用 merge / append，不覆盖历史。
+6. 需要隔离或并行时，使用独立 worktree 或分支。
+7. 只在确认范围内实现。
+8. 运行相关检查，并把证据写入任务记录。
+9. 按需触发 review，关闭阻塞发现。
+10. 按当前 `visual_map.md` lifecycle gate 的 `Exit Command` / `Actor` 收口。
+11. 写入或更新 walkthrough 与 closeout 记录。
+12. 只更新本任务实际触达的 SSoT / ledger；任务生命周期总账优先由 Harness CLI 生成，不手写任务行。
+
+## 协作规则
+
+- 任务开始时，先读取当前任务 `execution_strategy.md` 的 Subagent Authorization 和 Subagent Delegation Decision，并说明是否应该使用 reviewer 或 worker subagent；即使用户只说目标，也要主动判断。
+- reviewer subagent 默认允许，只能做当前任务的只读审查。
+- 如果 worker subagent 对任务有明显帮助但尚未授权，用白话主动向用户申请一次 task/scope/worktree 授权；可以直接说 worker subagent，但不要等用户知道或主动提醒你用 subagent。
+- 如果独立切片已经明显但精确文件路径还不清楚，先确认文件路径，然后在 implementation 前立刻申请独立执行助手授权。
+- worker subagent 需要用户授权一次，并记录到 `execution_strategy.md`；之后只可在同一任务、同一范围、同一 worktree/branch 内复用。
+- 共享 ledger、registry 和 SSoT 默认由 coordinator 维护，除非明确登记锁。
+- worker 交接必须包含分支或 worktree、改动文件、检查、证据和残余风险。
+- 模块注册以 `coding-agent-harness/harness.yaml` 的 `modules.items` 为准。`Module-Registry.md` 是生成视图，不要把它当作手写事实源。
+- 模块根目录默认只拥有 `brief.md` 和 `module_plan.md`。`execution_strategy.md`、`visual_map.md`、`review.md`、`walkthrough.md` 等执行合同属于具体任务目录，包括 `coding-agent-harness/planning/modules/<key>/tasks/<task-id>/`。
+
+## 单一事实源
+
+- Harness Ledger：`coding-agent-harness/governance/generated/Harness-Ledger.md`（任务生命周期总账，由 CLI 生成）
+- Delivery SSoT：`coding-agent-harness/planning/Delivery-SSoT.md`
+- Module Registry：`coding-agent-harness/harness.yaml` 的 `modules.items`；生成视图在 `coding-agent-harness/planning/modules/Module-Registry.md`
+- Regression SSoT：`coding-agent-harness/governance/regression/Regression-SSoT.md`
+- Cadence Ledger：`coding-agent-harness/governance/regression/Cadence-Ledger.md`
+- Lesson Candidates：当前任务 `lesson_candidates.md`
+- Lesson Detail Docs：`coding-agent-harness/governance/lessons/`
+- Generated Closeout Index：`coding-agent-harness/governance/generated/Closeout-Index.md`
+
+## 本地命令
+
+| 用途 | 命令 |
+| --- | --- |
+| 安装 | `[install command]` |
+| 测试 | `[test command]` |
+| Lint | `[lint command]` |
+| 构建 | `[build command]` |
+| 冒烟 | `[smoke command]` |
+
+## 完成标准
+
+只有当请求的改动已经实现、证据已经记录、必要审查已经处理、相关 SSoT 或
+ledger 已经更新时，任务才算完成。
