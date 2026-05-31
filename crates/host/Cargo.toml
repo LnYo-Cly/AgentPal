@@ -5,6 +5,7 @@ license.workspace = true
 version.workspace = true
 
 [dependencies]
+agentpal-protocol.workspace = true
 anyhow.workspace = true
 clap.workspace = true
 futures-util.workspace = true

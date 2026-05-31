@@ -26,6 +26,7 @@ struct CodexCommand {
 #[derive(Debug, Subcommand)]
 enum CodexSubcommand {
     Probe(codex::CodexProbeArgs),
+    Connect(codex::CodexConnectArgs),
 }
 
 #[tokio::main]
@@ -37,6 +38,9 @@ async fn main() -> Result<()> {
             CodexSubcommand::Probe(args) => {
                 let report = codex::probe(args).await;
                 println!("{}", serde_json::to_string_pretty(&report)?);
+            }
+            CodexSubcommand::Connect(args) => {
+                codex::connect(args).await?;
             }
         },
     }

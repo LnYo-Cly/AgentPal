@@ -7,6 +7,7 @@ pub type HostId = String;
 pub type SessionId = String;
 pub type CommandId = String;
 pub type ApprovalId = String;
+pub type ClientId = String;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -177,7 +178,7 @@ pub struct ClientCommand {
     pub payload: Value,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub enum ClientCommandKind {
     InputSubmit,
@@ -226,4 +227,111 @@ pub enum PickerExecuteMode {
     Insert,
     Submit,
     HostAction,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(
+    tag = "type",
+    rename_all = "kebab-case",
+    rename_all_fields = "camelCase"
+)]
+pub enum RelayClientMessage {
+    Register {
+        role: RelayClientRole,
+        client_id: ClientId,
+        host_id: Option<HostId>,
+    },
+    HostStatus {
+        status: HostStatus,
+    },
+    SessionEvent {
+        envelope: AgentPalEnvelope<SessionEvent>,
+    },
+    ClientCommand {
+        command: ClientCommand,
+    },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum RelayClientRole {
+    Host,
+    Mobile,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(
+    tag = "type",
+    rename_all = "kebab-case",
+    rename_all_fields = "camelCase"
+)]
+pub enum RelayServerMessage {
+    Snapshot {
+        hosts: Vec<HostStatus>,
+        sessions: Vec<SessionSummary>,
+    },
+    HostStatus {
+        status: HostStatus,
+    },
+    SessionEvent {
+        envelope: AgentPalEnvelope<SessionEvent>,
+    },
+    ClientCommand {
+        command: ClientCommand,
+    },
+    RelayNotice {
+        message: String,
+    },
+    Error {
+        message: String,
+    },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HostStatus {
+    pub host_id: HostId,
+    pub name: String,
+    pub online: bool,
+    pub agent_kinds: Vec<AgentKind>,
+    pub workspaces: Vec<String>,
+    pub active_sessions: u32,
+    #[serde(with = "time::serde::rfc3339")]
+    pub updated_at: OffsetDateTime,
+}
+
+impl HostStatus {
+    pub fn local_codex(
+        host_id: impl Into<HostId>,
+        name: impl Into<String>,
+        workspace: impl Into<String>,
+    ) -> Self {
+        Self {
+            host_id: host_id.into(),
+            name: name.into(),
+            online: true,
+            agent_kinds: vec![AgentKind::Codex],
+            workspaces: vec![workspace.into()],
+            active_sessions: 0,
+            updated_at: OffsetDateTime::now_utc(),
+        }
+    }
+}
+
+impl ClientCommand {
+    pub fn input_submit(
+        command_id: impl Into<CommandId>,
+        host_id: impl Into<HostId>,
+        session_id: impl Into<SessionId>,
+        text: impl Into<String>,
+    ) -> Self {
+        Self {
+            command_id: command_id.into(),
+            host_id: host_id.into(),
+            session_id: session_id.into(),
+            kind: ClientCommandKind::InputSubmit,
+            created_at: OffsetDateTime::now_utc(),
+            payload: serde_json::json!({ "text": text.into() }),
+        }
+    }
 }

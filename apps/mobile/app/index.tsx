@@ -1,6 +1,18 @@
 import { FlashList } from "@shopify/flash-list";
 import { ThemeProvider } from "@shopify/restyle";
-import { Wifi } from "lucide-react-native";
+import {
+  AlertCircle,
+  Bot,
+  CheckCircle2,
+  Clock3,
+  Code2,
+  FileDiff,
+  GitPullRequestArrow,
+  ShieldCheck,
+  TerminalSquare,
+  Wifi,
+  WifiOff
+} from "lucide-react-native";
 import { ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -8,12 +20,22 @@ import { Card } from "@/components/Card";
 import { EventCard } from "@/components/EventCard";
 import { InputBar } from "@/components/InputBar";
 import { SessionCard } from "@/components/SessionCard";
-import { feed, quickStats, sessions } from "@/data/sample";
+import { useAgentPalRelay } from "@/hooks/useAgentPalRelay";
+import { DiffSummary, SessionEvent, SessionState } from "@/lib/relay";
 import { Box, Text, theme } from "@/theme";
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const active = sessions[0];
+  const relay = useAgentPalRelay();
+  const active = relay.activeSession;
+  const changedFiles = latestChangedFiles(relay.timeline.map((item) => item.event));
+  const quickStats = [
+    { label: "在线 Host", value: String(relay.hosts.filter((host) => host.online).length), icon: Clock3 },
+    { label: "活跃会话", value: String(relay.sessions.length), icon: Bot },
+    { label: "待审批", value: String(relay.sessions.reduce((sum, item) => sum + item.pendingApprovals, 0)), icon: ShieldCheck }
+  ];
+  const feed = relay.timeline.map((item) => eventToFeedItem(item.event, item.createdAt));
+  const hostOnline = relay.connectionState === "online" && !!relay.activeHost?.online;
 
   return (
     <ThemeProvider theme={theme}>
@@ -34,15 +56,15 @@ export default function HomeScreen() {
             <Box
               minHeight={44}
               borderRadius="m"
-              backgroundColor="successSoft"
+              backgroundColor={hostOnline ? "successSoft" : "dangerSoft"}
               paddingHorizontal="m"
               flexDirection="row"
               alignItems="center"
               gap="s"
             >
-              <Wifi color={theme.colors.success} size={18} />
-              <Text variant="caption" color="success">
-                Host online
+              {hostOnline ? <Wifi color={theme.colors.success} size={18} /> : <WifiOff color={theme.colors.danger} size={18} />}
+              <Text variant="caption" color={hostOnline ? "success" : "danger"}>
+                {hostOnline ? "Host online" : relay.connectionState}
               </Text>
             </Box>
           </Box>
@@ -74,7 +96,19 @@ export default function HomeScreen() {
 
           <Box gap="s">
             <Text variant="section">当前会话</Text>
-            <SessionCard session={active} />
+            {active ? (
+              <SessionCard session={active} changedFiles={changedFiles} summary={latestSummary(relay.timeline.map((item) => item.event))} />
+            ) : (
+              <Card>
+                <Box gap="s">
+                  <Text variant="title">等待 Host 连接</Text>
+                  <Text variant="body" color="inkMuted">
+                    先启动本地 Relay 和 `agentpal-host codex connect`，App 会自动显示真实 Codex 会话。
+                  </Text>
+                  <Text variant="caption">{relay.relayUrl}</Text>
+                </Box>
+              </Card>
+            )}
           </Box>
 
           <Card muted>
@@ -105,20 +139,247 @@ export default function HomeScreen() {
 
           <Box gap="s">
             <Text variant="section">会话流</Text>
-            <Box height={feed.length * 124}>
-              <FlashList
-                data={feed}
-                scrollEnabled={false}
-                ItemSeparatorComponent={() => <Box height={8} />}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => <EventCard item={item} />}
-              />
-            </Box>
+            {feed.length > 0 ? (
+              <Box height={Math.max(feed.length * 124, 124)}>
+                <FlashList
+                  data={feed}
+                  scrollEnabled={false}
+                  ItemSeparatorComponent={() => <Box height={8} />}
+                  keyExtractor={(item) => item.id}
+                  renderItem={({ item }) => <EventCard item={item} />}
+                />
+              </Box>
+            ) : (
+              <Card muted>
+                <Box flexDirection="row" gap="m" alignItems="center">
+                  <AlertCircle color={theme.colors.inkMuted} size={22} />
+                  <Text variant="body" color="inkMuted" flex={1}>
+                    暂无会话事件。发送一条指令后，这里会出现用户消息、Codex 状态和 Agent 回复。
+                  </Text>
+                </Box>
+              </Card>
+            )}
           </Box>
 
-          <InputBar />
+          {relay.lastError ? (
+            <Text variant="caption" color="danger">
+              {relay.lastError}
+            </Text>
+          ) : null}
+          <InputBar disabled={!hostOnline} onSubmit={relay.submit} />
         </ScrollView>
       </Box>
     </ThemeProvider>
   );
+}
+
+type FeedItem = React.ComponentProps<typeof EventCard>["item"];
+
+function eventToFeedItem(event: SessionEvent, createdAt: string): FeedItem {
+  const id = `${createdAt}-${event.type}`;
+  switch (event.type) {
+    case "user-message":
+      return {
+        id,
+        kind: "message",
+        title: "你发出的指令",
+        body: event.text,
+        meta: timeLabel(createdAt),
+        tone: "neutral",
+        icon: Bot
+      };
+    case "agent-message":
+      return {
+        id,
+        kind: "message",
+        title: "Codex 回复",
+        body: event.text,
+        meta: timeLabel(createdAt),
+        tone: "green",
+        icon: Bot
+      };
+    case "state-changed":
+      return {
+        id,
+        kind: "tool",
+        title: stateTitle(event.state),
+        body: stateBody(event.state),
+        meta: timeLabel(createdAt),
+        tone: stateTone(event.state),
+        icon: stateIcon(event.state)
+      };
+    case "tool-started":
+      return {
+        id,
+        kind: "tool",
+        title: "工具开始",
+        body: event.name,
+        meta: timeLabel(createdAt),
+        tone: "blue",
+        icon: Code2
+      };
+    case "tool-finished":
+      return {
+        id,
+        kind: "tool",
+        title: event.ok ? "工具完成" : "工具失败",
+        body: event.summary,
+        meta: event.name,
+        tone: event.ok ? "green" : "amber",
+        icon: Code2
+      };
+    case "command-output":
+      return {
+        id,
+        kind: "command",
+        title: "命令输出",
+        body: event.summary,
+        meta: event.command,
+        tone: "neutral",
+        icon: TerminalSquare
+      };
+    case "diff-updated":
+      return {
+        id,
+        kind: "diff",
+        title: "Diff 摘要",
+        body: diffBody(event.summary),
+        meta: `+${event.summary.additions} / -${event.summary.deletions}`,
+        tone: "blue",
+        icon: GitPullRequestArrow
+      };
+    case "approval-requested":
+      return {
+        id,
+        kind: "approval",
+        title: "审批请求",
+        body: "Codex 请求你处理一次操作审批。",
+        meta: "pending",
+        tone: "amber",
+        icon: ShieldCheck
+      };
+    case "approval-resolved":
+      return {
+        id,
+        kind: "approval",
+        title: "审批已处理",
+        body: event.approved ? "你已批准该操作。" : "你已拒绝该操作。",
+        meta: event.approvalId,
+        tone: event.approved ? "green" : "amber",
+        icon: ShieldCheck
+      };
+    case "session-started":
+      return {
+        id,
+        kind: "done",
+        title: "会话已启动",
+        body: event.summary.workspace,
+        meta: event.summary.agentKind,
+        tone: "green",
+        icon: CheckCircle2
+      };
+    case "error":
+      return {
+        id,
+        kind: "command",
+        title: "运行错误",
+        body: event.message,
+        meta: event.phase ?? "error",
+        tone: "amber",
+        icon: AlertCircle
+      };
+  }
+}
+
+function latestChangedFiles(events: SessionEvent[]) {
+  return events.find((event) => event.type === "diff-updated")?.summary.filesChanged ?? 0;
+}
+
+function latestSummary(events: SessionEvent[]) {
+  const last = events.find((event) => event.type === "agent-message" || event.type === "state-changed");
+  if (!last) {
+    return undefined;
+  }
+  if (last.type === "agent-message") {
+    return last.text;
+  }
+  return stateBody(last.state);
+}
+
+function stateTitle(state: SessionState) {
+  switch (state) {
+    case "running":
+      return "Codex 正在运行";
+    case "completed":
+      return "任务完成";
+    case "failed":
+      return "任务失败";
+    case "waiting-approval":
+      return "等待审批";
+    case "offline":
+      return "Host 离线";
+    case "thinking":
+      return "Codex 思考中";
+    case "idle":
+    default:
+      return "会话空闲";
+  }
+}
+
+function stateBody(state: SessionState) {
+  switch (state) {
+    case "running":
+      return "Host 已把手机端指令转发给真实 Codex app-server。";
+    case "completed":
+      return "Codex 已完成最近一次 turn。";
+    case "failed":
+      return "Codex 最近一次 turn 失败。";
+    case "waiting-approval":
+      return "需要你在手机端处理审批请求。";
+    case "offline":
+      return "本地 Host 或 Codex app-server 已断开。";
+    case "thinking":
+      return "Codex 正在读取上下文并生成下一步。";
+    case "idle":
+    default:
+      return "连接已准备好，可以继续输入指令。";
+  }
+}
+
+function stateTone(state: SessionState): FeedItem["tone"] {
+  if (state === "waiting-approval") {
+    return "amber";
+  }
+  if (state === "completed") {
+    return "green";
+  }
+  if (state === "running" || state === "thinking") {
+    return "blue";
+  }
+  return "neutral";
+}
+
+function stateIcon(state: SessionState) {
+  if (state === "completed") {
+    return CheckCircle2;
+  }
+  if (state === "waiting-approval") {
+    return ShieldCheck;
+  }
+  if (state === "running" || state === "thinking") {
+    return TerminalSquare;
+  }
+  return Clock3;
+}
+
+function diffBody(summary: DiffSummary) {
+  return `${summary.filesChanged} 个文件发生变化，新增 ${summary.additions} 行，删除 ${summary.deletions} 行。`;
+}
+
+function timeLabel(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "now";
+  }
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }

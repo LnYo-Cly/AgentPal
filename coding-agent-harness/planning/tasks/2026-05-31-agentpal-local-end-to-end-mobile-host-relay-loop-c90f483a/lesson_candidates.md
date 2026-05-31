@@ -7,11 +7,11 @@
 | Field | Value |
 | --- | --- |
 | Schema version | lesson-candidate-v1 |
-| Task-level status | pending-review |
+| Task-level status | no-candidate-accepted |
 | Review gate | candidate-file-present |
-| Review decision | pending-human-review |
+| Review decision | agent-checked-no-candidate |
 | Promotion state | not-promoted |
-| Closeout token | pending |
+| Closeout token | no-candidate |
 | Source task | 2026-05-31-agentpal-local-end-to-end-mobile-host-relay-loop-c90f483a |
 | Owner | coordinator |
 | Last updated | 2026-05-31 |
@@ -49,7 +49,7 @@
 
 ## No-Candidate Reason
 
-尚未判定。只有人工审查接受本任务没有可复用候选时，才填写这里。
+本轮发现均为 AgentPal 当前实现细节（Relay JSON 字段命名、Codex app-server reviewer schema、移动端本地地址策略），不属于可复用到全局 harness 方法论的经验候选；后续如形成稳定 adapter regression 标准，再另开沉淀任务。
 
 ## Promotion Notes
 

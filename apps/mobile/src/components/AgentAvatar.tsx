@@ -3,14 +3,17 @@ import { Bot } from "lucide-react-native";
 import { Box, Text, theme } from "@/theme";
 
 type Props = {
-  status: "running" | "approval" | "complete";
+  status: "running" | "approval" | "complete" | "idle" | "failed" | "offline";
   agent: string;
 };
 
 const statusTone = {
+  idle: { bg: "surfaceMuted", fg: "inkMuted", label: "空闲" },
   running: { bg: "cobaltSoft", fg: "cobalt", label: "运行中" },
   approval: { bg: "amberSoft", fg: "amber", label: "待审批" },
-  complete: { bg: "successSoft", fg: "success", label: "完成" }
+  complete: { bg: "successSoft", fg: "success", label: "完成" },
+  failed: { bg: "dangerSoft", fg: "danger", label: "失败" },
+  offline: { bg: "surfaceMuted", fg: "inkMuted", label: "离线" }
 } as const;
 
 export function AgentAvatar({ status, agent }: Props) {
