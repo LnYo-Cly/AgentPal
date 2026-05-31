@@ -1,6 +1,6 @@
 # AgentPal local end-to-end mobile host relay loop - 进度
 
-## 状态：进行中
+## 状态：审查中
 
 ## 进度记录
 
@@ -50,3 +50,10 @@
 - 验证结果：`cargo fmt --all --check` 通过；`cargo check --workspace` 通过；`npm --prefix apps/mobile run typecheck` 通过；真实 Relay + Host + Node 模拟手机端命令冒烟通过，事件序列包含 `user-message`、`session-started`、`agent-message: OK`、`state-changed: completed`。
 - 下一步：补 review/walkthrough，提交本轮实现。
 - 证据：command:TARGET:.:cargo fmt/check/typecheck passed；command:TARGET:.:cargo run agentpal-relay + agentpal-host codex connect + Node WebSocket mobile smoke passed with Codex CLI 0.134.0。
+
+### [2026-05-31 11:29] - task-review
+
+- 做了什么：Local AgentPal Relay Host mobile Codex E2E loop ready for review
+- 验证结果：已记录
+- 下一步：继续执行
+- 证据：n/a
