@@ -13,7 +13,7 @@ Repo Governance / CI-CD changes remain routed through their reference standards 
 | ID | Scope | Module | Task | State | Queues | Plan | Review | Lessons Check | Closeout | Residual | Updated |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | HL-YYYY-MM-DD-001 | task | none | Short operational title | planned | none | {{paths.harnessRoot}}/planning/tasks/.../task_plan.md | pending | pending | pending | none | YYYY-MM-DD |
-| HL-2026-05-31-agentpal-foundation-product-architecture-and-sta-8c4cfcfe | task | none | AgentPal foundation product architecture and stack SSoT | planned | none | coding-agent-harness/planning/tasks/2026-05-31-agentpal-foundation-product-architecture-and-sta-8c4cfcfe/task_plan.md | pending | pending | pending | task registered by CLI | 2026-05-31 |
+| HL-2026-05-31-agentpal-foundation-product-architecture-and-sta-8c4cfcfe | task | none | AgentPal foundation product architecture and stack SSoT | active | none | coding-agent-harness/planning/tasks/2026-05-31-agentpal-foundation-product-architecture-and-sta-8c4cfcfe/task_plan.md | pending | pending | pending | Start AgentPal foundation SSoT sedimentation | 2026-05-31 |
 
 ## Field Rules
 
