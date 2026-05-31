@@ -26,7 +26,7 @@ flowchart LR
 | Phase ID | Kind | Depends On | State | Completion | Output | Required Evidence | Exit Command | Actor | Evidence Status | Blocking Risk | Owner / Handoff |
 | --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- |
 | INIT-01 | init | none | done | 100 | 任务计划和执行策略已确认 | `task_plan.md`; `execution_strategy.md` | `harness task-start 2026-05-31-agentpal-real-codex-vertical-slice-95a01ac2` | agent | present | none | coordinator |
-| EXEC-01 | execution | INIT-01 | in_progress | 80 | 真实 Codex 垂直切片设计和能力探测 | diff、commands、task package updates | `harness task-phase 2026-05-31-agentpal-real-codex-vertical-slice-95a01ac2 EXEC-01 --state done --completion 100 --evidence present` | agent | partial | final harness status pending | coordinator |
+| EXEC-01 | execution | INIT-01 | done | 100 | 真实 Codex 垂直切片设计和能力探测 | diff、commands、task package updates | `harness task-phase 2026-05-31-agentpal-real-codex-vertical-slice-95a01ac2 EXEC-01 --state done --completion 100 --evidence present` | agent | present | final harness status pending | coordinator |
 | GATE-01 | gate | EXEC-01 | planned | 0 | Agent Review Submission | `review.md`、progress update、lesson routing | `harness task-review 2026-05-31-agentpal-real-codex-vertical-slice-95a01ac2 --message "<summary>"` | agent | missing | waits for final validation | coordinator |
 | GATE-02 | gate | GATE-01 | planned | 0 | Human Review Confirmation | review packet 和人工确认 | `harness review-confirm 2026-05-31-agentpal-real-codex-vertical-slice-95a01ac2 --confirm 2026-05-31-agentpal-real-codex-vertical-slice-95a01ac2` | human | missing | Agent 不能代办人工确认 | human |
 
