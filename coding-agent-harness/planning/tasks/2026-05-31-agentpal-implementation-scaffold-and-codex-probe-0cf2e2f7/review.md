@@ -4,14 +4,14 @@
 
 | Reviewer | Type | Scope |
 | --- | --- | --- |
-| [name] | self / subagent / external / human | [审查范围] |
+| coordinator | self | implementation scaffold, validation evidence, task package |
 
 ## 审查范围
 
-- 审查类型：adversarial / security / regression / architecture / release / other
-- 范围内：[文件、模块、行为、运行目标]
-- 范围外：[明确不审查的内容；如无写“无”]
-- 来源材料：[task plan、diff、commit、PR、测试输出、运行证据]
+- 审查类型：architecture / regression / implementation
+- 范围内：`crates/`、`apps/mobile/`、root workspace files、当前任务包、验证命令输出。
+- 范围外：生产安全审计、云部署、真机 iOS/Android 验证、完整 Codex adapter 行为。
+- 来源材料：`task_plan.md`、git diff、验证命令、Codex probe JSON、harness status。
 
 ## Agent Review Submission（Agent 提交审查）
 
@@ -19,25 +19,25 @@
 
 | Field | Value |
 | --- | --- |
-| Submission ID | [由 task-review 生成] |
-| Submitted At | [timestamp] |
-| Submitted By | [agent 或 coordinator 身份] |
+| Submission ID | pending task-review |
+| Submitted At | pending |
+| Submitted By | coordinator |
 | Task Key | 2026-05-31-agentpal-implementation-scaffold-and-codex-probe-0cf2e2f7 |
-| Materials Checklist Hash | [由 task-review 生成；只作信息记录，不作为手工门禁] |
-| Evidence Summary | [测试、diff、运行和审查材料证据] |
-| Open Findings Count | [数字] |
-| Scanner Version | [生成时的 scanner 版本] |
+| Materials Checklist Hash | pending task-review |
+| Evidence Summary | Rust workspace check, Relay health, real Codex app-server probe, mobile typecheck, Expo RN web smoke test |
+| Open Findings Count | 0 |
+| Scanner Version | pending task-review |
 
 ### Material Checklist（材料清单）
 
 | Material | Required? | Status | Evidence |
 | --- | --- | --- | --- |
-| Brief | yes / no | present / missing / incomplete | [路径或原因] |
-| Task plan | yes / no | present / missing / incomplete | [路径或原因] |
-| Progress and evidence | yes / no | present / missing / incomplete | [路径或原因] |
-| Visual map | yes / no | present / missing / incomplete | [路径或原因] |
-| Lesson candidate decision | yes / no | present / missing / incomplete | [路径或原因] |
-| Walkthrough or closeout link | yes / no | present / missing / incomplete | [路径或原因] |
+| Brief | yes | present | TARGET:coding-agent-harness/planning/tasks/2026-05-31-agentpal-implementation-scaffold-and-codex-probe-0cf2e2f7/brief.md |
+| Task plan | yes | present | TARGET:coding-agent-harness/planning/tasks/2026-05-31-agentpal-implementation-scaffold-and-codex-probe-0cf2e2f7/task_plan.md |
+| Progress and evidence | yes | present | TARGET:coding-agent-harness/planning/tasks/2026-05-31-agentpal-implementation-scaffold-and-codex-probe-0cf2e2f7/progress.md |
+| Visual map | yes | present | TARGET:coding-agent-harness/planning/tasks/2026-05-31-agentpal-implementation-scaffold-and-codex-probe-0cf2e2f7/visual_map.md |
+| Lesson candidate decision | yes | present | TARGET:coding-agent-harness/planning/tasks/2026-05-31-agentpal-implementation-scaffold-and-codex-probe-0cf2e2f7/lesson_candidates.md |
+| Walkthrough or closeout link | yes | present | TARGET:coding-agent-harness/planning/tasks/2026-05-31-agentpal-implementation-scaffold-and-codex-probe-0cf2e2f7/walkthrough.md |
 
 Scanner 会根据必需文件、章节、证据和这个严格提交块派生 `materialsReady`。如果材料未齐，任务应进入缺材料队列，而不是人工审查确认队列。
 如果存在开放的 P0/P1/P2 阻塞发现，任务应进入阻塞队列，而不是人工审查确认队列。
@@ -46,11 +46,11 @@ Scanner 会根据必需文件、章节、证据和这个严格提交块派生 `m
 
 直接回答：你是否对当前计划、实现和策略有 100% 信心？
 
-- Verdict：yes / no
+- Verdict：yes
 - 如果不是 100%，剩余漏洞或证据缺口：
-  - [风险 / 漏洞 / 未验证假设；如无写“无”]
-- Fix loop count：[已经执行几轮 review -> fix -> evidence -> review]
-- 当前结论：[为什么现在可以继续、暂停或收口]
+  - 无阻塞缺口。npm audit 的中等漏洞属于当前 Expo 依赖树残余，未在本轮强制升级。
+- Fix loop count：2
+- 当前结论：本轮 scaffold 和真实 probe 可提交待审；生产安全、真机打包和完整 adapter 属于后续任务。
 
 ## 重要发现（Material Findings，表头供 checker 解析）
 
@@ -66,44 +66,51 @@ Scanner 会根据必需文件、章节、证据和这个严格提交块派生 `m
 
 ## 非阻塞备注（Non-Material Notes）
 
-- [不阻塞本轮目标但值得记录的问题；如无写“无”]
+- Expo web 只用于本地 RN 首屏 smoke test，不代表产品形态改为网页；目标端仍是 iOS/Android App。
 
 ## 已检查证据（Evidence Checked）
 
 | Evidence ID | Type | Path | Summary |
 | --- | --- | --- | --- |
-| E-001 | command / diff / fixture / screenshot / review / report | PUBLIC:path 或 PRIVATE:path 或 TARGET:path 或 EXTERNAL:path 或 URL:https://example.com | [检查了什么，结论是什么] |
+| E-001 | command | TARGET:. | `cargo fmt --all --check` passed. |
+| E-002 | command | TARGET:. | `cargo check --workspace` passed. |
+| E-003 | command | TARGET:. | `agentpal-relay` `/healthz` returned `{"ok":true,"service":"agentpal-relay","version":"0.1.0"}`. |
+| E-004 | command | TARGET:. | `agentpal-host codex probe` launched real `codex.cmd app-server`, completed `initialize` and `thread/start`, and returned thread id `019e7d9c-7983-7f31-87d5-7717ba467851`. |
+| E-005 | command | TARGET:apps/mobile | `npm --prefix apps/mobile install` completed and `npm --prefix apps/mobile run typecheck` passed. |
+| E-006 | report | TARGET:apps/mobile | Expo RN web smoke test rendered `AgentPal 口袋工作台`; web was used only as a local smoke test for the iOS/Android React Native app. |
+| E-007 | command | TARGET:. | `harness status --json .` returned no failures; dirty-state warning expected before final commit. |
 
 ## 无重要发现声明
 
-[如果没有重要发现，明确写：本轮已检查上述证据，未发现阻塞目标的重要发现。]
+本轮已检查上述证据，未发现阻塞目标的重要发现。
 
 ## 残余风险
 
 | Risk | Owner | Accepted? | Follow-up |
 | --- | --- | --- | --- |
-| [风险] | [负责人] | yes / no | [后续路径或“无”] |
+| npm install reported 10 moderate audit findings in the Expo dependency tree | coordinator | yes | 后续移动端 hardening 任务中结合 Expo SDK 兼容性处理，不在本轮强制 `npm audit fix --force` |
+| Expo web smoke test is not a substitute for iOS/Android device validation | coordinator | yes | 后续用 Development Build、Android emulator 或 EAS Build 验证真机行为 |
 
 ## Lifecycle Queue Routing（生命周期队列路由）
 
 | Queue | Applies? | Reason | Exit condition |
 | --- | --- | --- | --- |
-| Review | yes / no | 已提交审查材料包，且可等待人工确认。 | 人工确认或退回。 |
-| Missing Materials | yes / no | 必需文件、章节、证据或 review submission 缺失 / 不完整。 | Agent 补齐材料并重新提交审查。 |
-| Blocked | yes / no | 存在 open blocking finding、非法状态转换、审计失败或需要人工 waiver。 | blocker 被修复、关闭或明确豁免。 |
-| Lessons | yes / no | Lesson candidate 需要拒绝、留在任务内、dry-run promotion 或创建沉淀任务。 | 人工决定候选路由；除非明确批准，promotion 仍是单独维护任务。 |
-| Confirmed / Finalized | yes / no | 已有人工确认；可能仍待结项或治理收口。 | Closeout、ledger 和 lesson routing 都完成。 |
-| Soft-deleted / Superseded | yes / no | 任务有 tombstone、superseded-by 或 archive 状态；duplicate / abandoned 等语义写在 `Reason`。 | reopen 或作为只读审计历史保留。 |
+| Review | yes | 材料包已准备好提交审查。 | 人工确认或退回。 |
+| Missing Materials | no | 当前必需文件和验证证据已存在。 | 不适用。 |
+| Blocked | no | 当前无 open blocking finding。 | 如验证失败且无法修复则更新。 |
+| Lessons | no | 本轮已判定无可复用 lesson candidate。 | 无。 |
+| Confirmed / Finalized | no | 尚未人工确认或 closeout。 | 后续生命周期推进。 |
+| Soft-deleted / Superseded | no | 任务 active。 | 不适用。 |
 
 ## 后续路由（Follow-Up Routing）
 
-- 任务计划：[是否需要更新，路径或“无”]
-- Progress：[对应 `progress.md` 条目]
-- 发现记录：[是否需要写入 `findings.md`]
-- Regression SSoT：[新增 / 调整 / 无]
-- Lessons：[checked-created: L-YYYY-MM-DD-NNN / checked-candidate: LC-YYYYMMDD-NNN / queued-promotion: LC-YYYYMMDD-NNN / checked-none: 一句话原因]
-- 收口记录：[收口时引用路径]
+- 任务计划：已更新 `task_plan.md`
+- Progress：`progress.md`
+- 发现记录：已写入 `findings.md`
+- Regression SSoT：无
+- Lessons：checked-none: 初始 scaffold 未产生可推广 lesson
+- 收口记录：`walkthrough.md`
 
 ## 最终信心依据（Final Confidence Basis）
 
-[说明最终信心来自哪些证据、审查层级和已关闭发现。发布前最终审查不能只依赖 self-only。]
+最终信心来自 Rust 编译、移动端 typecheck、Relay health、真实 Codex app-server probe、浏览器 smoke test 和 harness status。此结论只覆盖本轮 scaffold/probe，不覆盖生产发布或真机商店级验证。

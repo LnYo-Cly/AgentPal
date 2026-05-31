@@ -7,11 +7,11 @@
 | Field | Value |
 | --- | --- |
 | Schema version | lesson-candidate-v1 |
-| Task-level status | pending-review |
-| Review gate | candidate-file-present |
-| Review decision | pending-human-review |
+| Task-level status | no-candidate-accepted |
+| Review gate | agent-reviewed |
+| Review decision | agent-checked-no-candidate |
 | Promotion state | not-promoted |
-| Closeout token | pending |
+| Closeout token | no-candidate |
 | Source task | 2026-05-31-agentpal-implementation-scaffold-and-codex-probe-0cf2e2f7 |
 | Owner | coordinator |
 | Last updated | 2026-05-31 |
@@ -49,7 +49,7 @@
 
 ## No-Candidate Reason
 
-尚未判定。只有人工审查接受本任务没有可复用候选时，才填写这里。
+本轮是在既有 AgentPal SSoT 下落地首版工程骨架和真实探测，没有形成需要推广到全局 harness 治理的通用 lesson。Codex app-server Windows 入口问题作为任务发现和 residual 记录即可。
 
 ## Promotion Notes
 

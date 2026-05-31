@@ -2,40 +2,46 @@
 
 ## 摘要
 
-待收口。
+本轮建立 AgentPal 第一版实现骨架：移动端是 Expo React Native iOS/Android App，Host/Relay 是 Rust workspace，并完成真实 Codex app-server probe。
 
 ## 范围
 
 | 范围 | 详情 |
 | --- | --- |
-| 变更模块 | pending |
-| 新增文件 | pending |
-| 删除文件 | pending |
-| 不在范围内 | pending |
+| 变更模块 | mobile app, protocol, host, relay, harness task package |
+| 新增文件 | `Cargo.toml`, `Cargo.lock`, `crates/`, `apps/mobile/`, root `package.json` |
+| 删除文件 | none |
+| 不在范围内 | 生产登录、云部署、真机打包、完整 Codex/Claude/OpenCode adapter |
 
 ## 验证
 
 | 检查 | 命令或过程 | 结果 | 证据 |
 | --- | --- | --- | --- |
-| pending | pending | not run | pending |
+| Rust format | `cargo fmt --all --check` | passed | `progress.md` |
+| Rust compile | `cargo check --workspace` | passed | `progress.md` |
+| Relay health | `agentpal-relay` + `/healthz` | passed | `progress.md` |
+| Codex probe | `agentpal-host codex probe` | passed; real `initialize` + `thread/start` | `progress.md` |
+| Mobile typecheck | `npm --prefix apps/mobile run typecheck` | passed | `progress.md` |
+| UI smoke | Expo RN web smoke via `agent-browser` | passed; not product target | `progress.md` |
 
 ## 审查结论
 
 | 来源 | 重要发现 | 处理 | 证据 |
 | --- | --- | --- | --- |
-| pending | pending | pending | `review.md` |
+| self review | none blocking | residual risks recorded | `review.md` |
 
 ## 残余风险
 
 | 风险 | Owner | 是否接受 | 跟进 |
 | --- | --- | --- | --- |
-| pending | owner | pending | pending |
+| Expo dependency audit findings | coordinator | yes | later mobile hardening |
+| iOS/Android device validation not run on this Windows host | coordinator | yes | later Development Build / emulator / EAS task |
 
 ## 经验沉淀反思
 
 | 问题 | 答案 |
 | --- | --- |
-| 是否完成经验候选检查？ | pending |
+| 是否完成经验候选检查？ | yes, no candidate accepted |
 | 经验候选详情文件 | `lesson_candidates.md` |
 
 ## 收口链接

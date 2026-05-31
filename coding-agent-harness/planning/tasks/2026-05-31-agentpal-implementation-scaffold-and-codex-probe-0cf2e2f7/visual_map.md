@@ -9,6 +9,7 @@ Visual Map Contract: v1.0
 | ID | Type | Purpose | Required For Understanding | Source Evidence | Promotion Candidate |
 | --- | --- | --- | --- | --- | --- |
 | MAP-01 | phase | 展示执行阶段和依赖关系 | yes | `task_plan.md` | no |
+| MAP-02 | architecture | 展示本轮 scaffold 后的组件边界 | yes | `technical-stack-decision.md`、`agent-adapter-contract.md` | no |
 
 ## 阶段关系图（Phase Graph）
 
@@ -24,8 +25,8 @@ flowchart LR
 | Phase ID | Kind | Depends On | State | Completion | Output | Required Evidence | Exit Command | Actor | Evidence Status | Blocking Risk | Owner / Handoff |
 | --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- |
 | INIT-01 | init | none | done | 100 | 任务计划和执行策略已确认 | `task_plan.md`; `execution_strategy.md` | `harness task-start 2026-05-31-agentpal-implementation-scaffold-and-codex-probe-0cf2e2f7` | agent | present | none | coordinator |
-| EXEC-01 | execution | INIT-01 | planned | 0 | 有边界的实现、文档切片和验证证据 | diff、commands、worker handoff 或 artifact path | `harness task-phase 2026-05-31-agentpal-implementation-scaffold-and-codex-probe-0cf2e2f7 EXEC-01 --state done --completion 100 --evidence present` | agent | missing | [risk] | [owner] |
-| GATE-01 | gate | EXEC-01 | planned | 0 | Agent Review Submission | `review.md`、progress update、lesson routing | `harness task-review 2026-05-31-agentpal-implementation-scaffold-and-codex-probe-0cf2e2f7 --message "<summary>"` | agent | missing | [risk] | coordinator |
+| EXEC-01 | execution | INIT-01 | planned | 0 | AgentPal scaffold、Relay、Host Codex probe、移动端首屏 | diff、commands、probe report | `harness task-phase 2026-05-31-agentpal-implementation-scaffold-and-codex-probe-0cf2e2f7 EXEC-01 --state done --completion 100 --evidence present` | agent | missing | Codex app-server 入口可能返回 non-101 | coordinator |
+| GATE-01 | gate | EXEC-01 | planned | 0 | Agent Review Submission | `review.md`、progress update、lesson routing | `harness task-review 2026-05-31-agentpal-implementation-scaffold-and-codex-probe-0cf2e2f7 --message "<summary>"` | agent | missing | waits for validation | coordinator |
 | GATE-02 | gate | GATE-01 | planned | 0 | Human Review Confirmation | review packet 和人工确认 | `harness review-confirm 2026-05-31-agentpal-implementation-scaffold-and-codex-probe-0cf2e2f7 --confirm 2026-05-31-agentpal-implementation-scaffold-and-codex-probe-0cf2e2f7` | human | missing | Agent 不能代办人工确认 | human |
 
 允许的 `State`：`planned`, `in_progress`, `review`, `blocked`, `done`, `skipped`。
@@ -48,3 +49,21 @@ flowchart LR
 - state：状态机或生命周期。
 - topology：repo、服务、worker、worktree 拓扑。
 - decision：方案分叉和决策树。
+
+### MAP-02 Architecture
+
+```mermaid
+flowchart LR
+  mobile["apps/mobile\nExpo React Native"]
+  relay["crates/relay\nAxum WebSocket"]
+  host["crates/host\nTokio CLI"]
+  protocol["crates/protocol\nAgentPal DTOs"]
+  codex["Codex app-server\nreal probe"]
+
+  mobile -.future generated/shared types.-> protocol
+  host --> protocol
+  relay --> protocol
+  mobile <-->|future WebSocket| relay
+  relay <-->|future Host socket| host
+  host --> codex
+```

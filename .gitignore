@@ -1,3 +1,11 @@
 tmp/
 .coding-agent-harness/
 ui/
+target/
+node_modules/
+apps/mobile/.expo/
+apps/mobile/.expo-shared/
+apps/mobile/dist/
+apps/mobile/npm-debug.log*
+apps/mobile/yarn-debug.log*
+apps/mobile/yarn-error.log*
