@@ -6,7 +6,7 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "dev.agentpal.mobile"
@@ -18,22 +18,7 @@
       }
     },
     "plugins": [
-      "expo-router",
-      "expo-dev-client",
-      "expo-secure-store",
-      [
-        "expo-camera",
-        {
-          "cameraPermission": "Allow AgentPal to scan the desktop Host pairing QR code.",
-          "microphonePermission": "Allow AgentPal to record voice instructions for agent sessions."
-        }
-      ],
-      [
-        "expo-notifications",
-        {
-          "color": "#247C6D"
-        }
-      ]
+      "expo-router"
     ]
   }
 }

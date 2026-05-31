@@ -21,6 +21,7 @@ type TimelineItem = {
 
 export function useAgentPalRelay(url = defaultRelayUrl()) {
   const socketRef = useRef<WebSocket | null>(null);
+  const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [connectionState, setConnectionState] = useState<ConnectionState>("connecting");
   const [hosts, setHosts] = useState<HostStatus[]>([]);
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
@@ -28,43 +29,64 @@ export function useAgentPalRelay(url = defaultRelayUrl()) {
   const [lastError, setLastError] = useState<string | null>(null);
 
   useEffect(() => {
-    const socket = new WebSocket(url);
-    socketRef.current = socket;
-    setConnectionState("connecting");
+    let stopped = false;
 
-    socket.onopen = () => {
-      setConnectionState("online");
-      sendRaw(socket, {
-        type: "register",
-        role: "mobile",
-        clientId: `mobile-${Date.now()}`,
-        hostId: null
-      });
-    };
-
-    socket.onmessage = (message) => {
-      try {
-        const parsed = JSON.parse(String(message.data)) as RelayServerMessage;
-        applyServerMessage(parsed, setHosts, setSessions, setTimeline, setLastError);
-      } catch (error) {
-        setLastError(error instanceof Error ? error.message : "Relay message parse failed");
+    const connect = () => {
+      if (stopped) {
+        return;
       }
+
+      const socket = new WebSocket(url);
+      socketRef.current = socket;
+      setConnectionState("connecting");
+
+      socket.onopen = () => {
+        setConnectionState("online");
+        setLastError(null);
+        sendRaw(socket, {
+          type: "register",
+          role: "mobile",
+          clientId: `mobile-${Date.now()}`,
+          hostId: null
+        });
+      };
+
+      socket.onmessage = (message) => {
+        try {
+          const parsed = JSON.parse(String(message.data)) as RelayServerMessage;
+          applyServerMessage(parsed, setHosts, setSessions, setTimeline, setLastError);
+        } catch (error) {
+          setLastError(error instanceof Error ? error.message : "Relay message parse failed");
+        }
+      };
+
+      socket.onerror = () => {
+        setConnectionState("error");
+        setLastError(`无法连接 Relay: ${url}`);
+      };
+
+      socket.onclose = () => {
+        if (socketRef.current === socket) {
+          socketRef.current = null;
+        }
+        if (stopped) {
+          return;
+        }
+        setConnectionState((current) => (current === "error" ? "error" : "offline"));
+        retryRef.current = setTimeout(connect, 1500);
+      };
     };
 
-    socket.onerror = () => {
-      setConnectionState("error");
-      setLastError(`无法连接 Relay: ${url}`);
-    };
-
-    socket.onclose = () => {
-      setConnectionState((current) => (current === "error" ? "error" : "offline"));
-    };
+    connect();
 
     return () => {
-      socket.close();
-      if (socketRef.current === socket) {
-        socketRef.current = null;
+      stopped = true;
+      if (retryRef.current) {
+        clearTimeout(retryRef.current);
+        retryRef.current = null;
       }
+      socketRef.current?.close();
+      socketRef.current = null;
     };
   }, [url]);
 
@@ -117,11 +139,14 @@ function applyServerMessage(
     case "snapshot":
       setHosts(() => message.hosts);
       setSessions(() => message.sessions);
+      setLastError(null);
       break;
     case "host-status":
       setHosts((items) => upsertBy(items, message.status, (item) => item.hostId));
+      setLastError(null);
       break;
     case "session-event":
+      setLastError(null);
       const payload = message.envelope.payload;
       if (payload.type === "session-started") {
         const summary = payload.summary;

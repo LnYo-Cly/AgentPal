@@ -1,0 +1,30 @@
+# OSX
+#
+.DS_Store
+
+# Android/IntelliJ
+#
+build/
+.idea
+.gradle
+local.properties
+*.iml
+*.hprof
+.cxx/
+
+# generated inline modules
+app/src/main/java/inline/
+
+# Bundle artifacts
+*.jsbundle
+*.apk
+*.ap_
+*.aab
+
+# Signing material
+*.jks
+*.p12
+*.keystore
+!app/debug.keystore
+*.keystore.properties
+signing.properties

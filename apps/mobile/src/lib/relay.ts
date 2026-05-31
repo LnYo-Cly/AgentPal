@@ -82,11 +82,28 @@ export type RelayClientMessage =
 
 export type ConnectionState = "connecting" | "online" | "offline" | "error";
 
+export const usbRelayUrl = "ws://127.0.0.1:8790/ws";
+export const androidEmulatorRelayUrl = "ws://10.0.2.2:8790/ws";
+
 export function defaultRelayUrl() {
   if (Platform.OS === "android") {
-    return "ws://10.0.2.2:8790/ws";
+    return isAndroidEmulator() ? androidEmulatorRelayUrl : usbRelayUrl;
   }
-  return "ws://127.0.0.1:8790/ws";
+  return usbRelayUrl;
+}
+
+export function normalizeRelayUrl(value: string) {
+  let next = value.trim();
+  if (!next) {
+    return defaultRelayUrl();
+  }
+  if (!next.startsWith("ws://") && !next.startsWith("wss://")) {
+    next = `ws://${next}`;
+  }
+  if (!/\/ws\/?$/.test(next)) {
+    next = `${next.replace(/\/$/, "")}/ws`;
+  }
+  return next;
 }
 
 export function makeInputCommand(hostId: string, sessionId: string, text: string): ClientCommand {
@@ -98,4 +115,21 @@ export function makeInputCommand(hostId: string, sessionId: string, text: string
     createdAt: new Date().toISOString(),
     payload: { text }
   };
+}
+
+function isAndroidEmulator() {
+  const constants = Platform.constants as Record<string, unknown>;
+  const fingerprint = String(constants.Fingerprint ?? "").toLowerCase();
+  const model = String(constants.Model ?? "").toLowerCase();
+  const brand = String(constants.Brand ?? "").toLowerCase();
+  const manufacturer = String(constants.Manufacturer ?? "").toLowerCase();
+
+  return (
+    fingerprint.includes("generic") ||
+    fingerprint.includes("emulator") ||
+    model.includes("sdk") ||
+    model.includes("emulator") ||
+    brand.includes("generic") ||
+    manufacturer.includes("genymotion")
+  );
 }

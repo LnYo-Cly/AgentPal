@@ -13,7 +13,8 @@ import {
   Wifi,
   WifiOff
 } from "lucide-react-native";
-import { ScrollView } from "react-native";
+import { Pressable, ScrollView, TextInput } from "react-native";
+import { useState } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Card } from "@/components/Card";
@@ -21,12 +22,14 @@ import { EventCard } from "@/components/EventCard";
 import { InputBar } from "@/components/InputBar";
 import { SessionCard } from "@/components/SessionCard";
 import { useAgentPalRelay } from "@/hooks/useAgentPalRelay";
-import { DiffSummary, SessionEvent, SessionState } from "@/lib/relay";
+import { defaultRelayUrl, DiffSummary, normalizeRelayUrl, SessionEvent, SessionState, usbRelayUrl } from "@/lib/relay";
 import { Box, Text, theme } from "@/theme";
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const relay = useAgentPalRelay();
+  const [relayUrlDraft, setRelayUrlDraft] = useState(defaultRelayUrl());
+  const [relayUrl, setRelayUrl] = useState(relayUrlDraft);
+  const relay = useAgentPalRelay(relayUrl);
   const active = relay.activeSession;
   const changedFiles = latestChangedFiles(relay.timeline.map((item) => item.event));
   const quickStats = [
@@ -93,6 +96,77 @@ export default function HomeScreen() {
               );
             })}
           </Box>
+
+          <Card muted>
+            <Box gap="s">
+              <Box flexDirection="row" alignItems="center" justifyContent="space-between" gap="m">
+                <Text variant="section">Relay 连接</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Use USB relay address"
+                  onPress={() => {
+                    setRelayUrlDraft(usbRelayUrl);
+                    setRelayUrl(usbRelayUrl);
+                  }}
+                >
+                  <Box minHeight={36} justifyContent="center" paddingHorizontal="m" borderRadius="m" backgroundColor="accentSoft">
+                    <Text variant="caption" color="accent">
+                      USB
+                    </Text>
+                  </Box>
+                </Pressable>
+              </Box>
+              <Box
+                minHeight={48}
+                borderRadius="m"
+                borderWidth={1}
+                borderColor="line"
+                backgroundColor="surface"
+                paddingHorizontal="m"
+                justifyContent="center"
+              >
+                <TextInput
+                  value={relayUrlDraft}
+                  onChangeText={setRelayUrlDraft}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="url"
+                  placeholder="ws://127.0.0.1:8790/ws"
+                  placeholderTextColor={theme.colors.inkMuted}
+                  style={{
+                    color: theme.colors.ink,
+                    fontSize: 14,
+                    minHeight: 46
+                  }}
+                  onSubmitEditing={() => {
+                    const next = normalizeRelayUrl(relayUrlDraft);
+                    setRelayUrlDraft(next);
+                    setRelayUrl(next);
+                  }}
+                />
+              </Box>
+              <Box flexDirection="row" gap="s">
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Reconnect relay"
+                  onPress={() => {
+                    const next = normalizeRelayUrl(relayUrlDraft);
+                    setRelayUrlDraft(next);
+                    setRelayUrl(next);
+                  }}
+                >
+                  <Box minHeight={40} justifyContent="center" paddingHorizontal="m" borderRadius="m" backgroundColor="accent">
+                    <Text variant="caption" color="white">
+                      重连
+                    </Text>
+                  </Box>
+                </Pressable>
+                <Box flex={1} justifyContent="center">
+                  <Text variant="caption">当前：{relay.relayUrl}</Text>
+                </Box>
+              </Box>
+            </Box>
+          </Card>
 
           <Box gap="s">
             <Text variant="section">当前会话</Text>

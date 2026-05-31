@@ -345,7 +345,25 @@ async fn run_connect_loop(
         },
     )
     .await?;
-    publish_host_status(&relay_write, &host_id, host_name, workspace, 0).await?;
+    publish_host_status(&relay_write, &host_id, host_name, workspace, 1).await?;
+    publish_session_event(
+        &relay_write,
+        &host_id,
+        &session_id,
+        &seq,
+        SessionEvent::SessionStarted {
+            summary: SessionSummary {
+                session_id: session_id.clone(),
+                agent_kind: AgentKind::Codex,
+                workspace: workspace_owned.clone(),
+                title: Some("Codex local session".to_owned()),
+                state: SessionState::Idle,
+                pending_approvals: 0,
+                updated_at: OffsetDateTime::now_utc(),
+            },
+        },
+    )
+    .await?;
     publish_session_event(
         &relay_write,
         &host_id,
