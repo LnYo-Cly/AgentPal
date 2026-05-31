@@ -10,13 +10,6 @@
 
 证据较长或数量较多时，不要粘贴全文；放入 `artifacts/INDEX.md` 并在这里引用 ID。
 
-### [YYYY-MM-DD HH:MM] - [阶段名称]
-
-- 做了什么：[具体操作]
-- 验证结果：[运行了什么检查，结果如何]
-- 下一步：[下一步动作]
-- 证据：[type:path:summary]
-
 ## 残余
 
 - Android 模拟器默认使用 `ws://10.0.2.2:8790/ws`，iOS 模拟器/Web 使用 `ws://127.0.0.1:8790/ws`；真机需要后续设置页或配对流程提供电脑局域网 IP。
@@ -25,10 +18,10 @@
 
 ## 协调者交接（Coordinator，启用模块并行时填写）
 
-- Global sync status：pending-coordinator-pass / synced / n/a
-- Registry update needed：[module key, step, status, branch, updated / 不适用]
-- Harness Ledger update needed：[task plan path, review path, closeout status / 不适用]
-- 负责人：coordinator / 不适用
+- Global sync status：pending-coordinator-pass
+- Registry update needed：不适用
+- Harness Ledger update needed：由 lifecycle CLI 同步
+- 负责人：coordinator
 
 ### [2026-05-31 11:00] - task-start
 
