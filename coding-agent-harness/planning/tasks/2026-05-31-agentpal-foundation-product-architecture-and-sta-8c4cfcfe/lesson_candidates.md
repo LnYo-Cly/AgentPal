@@ -7,11 +7,11 @@
 | Field | Value |
 | --- | --- |
 | Schema version | lesson-candidate-v1 |
-| Task-level status | pending-review |
+| Task-level status | no-candidate-accepted |
 | Review gate | candidate-file-present |
-| Review decision | pending-human-review |
+| Review decision | agent-checked-no-candidate |
 | Promotion state | not-promoted |
-| Closeout token | pending |
+| Closeout token | no-candidate |
 | Source task | 2026-05-31-agentpal-foundation-product-architecture-and-sta-8c4cfcfe |
 | Owner | coordinator |
 | Last updated | 2026-05-31 |
@@ -49,7 +49,7 @@
 
 ## No-Candidate Reason
 
-尚未判定。只有人工审查接受本任务没有可复用候选时，才填写这里。
+本任务沉淀的是 AgentPal 项目本身的初始产品和架构 SSoT，不产生可推广到其他项目的稳定 harness 治理 lesson。`ui/` 本地原型目录忽略规则属于本仓边界决策，已记录在 `ux-principles.md`，暂不提升为全局 lesson。
 
 ## Promotion Notes
 
