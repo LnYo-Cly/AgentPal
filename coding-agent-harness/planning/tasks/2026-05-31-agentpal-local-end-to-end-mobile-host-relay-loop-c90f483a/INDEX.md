@@ -31,9 +31,9 @@ Task Contract: harness-task/v1
 | Reviewer Email | lnyocly@gmail.com |
 | Confirm Text | 2026-05-31-agentpal-local-end-to-end-mobile-host-relay-loop-c90f483a |
 | Evidence Checked | TARGET:coding-agent-harness/planning/tasks/2026-05-31-agentpal-local-end-to-end-mobile-host-relay-loop-c90f483a/review.md |
-| Review Commit SHA | pending |
+| Review Commit SHA | b403aa9e05c622125e8d12a3ee853ff8b142f579 |
 | Audit Source | native-index |
-| Audit Status | commit-pending |
+| Audit Status | committed |
 | Exception Reason | n/a |
 | Message | confirmed from dashboard workbench by user approval in chat |
 | Migration Status | native |
