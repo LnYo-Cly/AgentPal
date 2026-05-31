@@ -9,6 +9,8 @@ Visual Map Contract: v1.0
 | ID | Type | Purpose | Required For Understanding | Source Evidence | Promotion Candidate |
 | --- | --- | --- | --- | --- | --- |
 | MAP-01 | phase | 展示执行阶段和依赖关系 | yes | `task_plan.md` | no |
+| MAP-02 | architecture | 展示真实 Codex 垂直切片结构 | yes | `task_plan.md`, `findings.md` | yes |
+| MAP-03 | sequence | 展示手机输入到 Codex turn 的最小闭环 | yes | `task_plan.md`, `agent-adapter-contract.md` | yes |
 
 ## 阶段关系图（Phase Graph）
 
@@ -24,8 +26,8 @@ flowchart LR
 | Phase ID | Kind | Depends On | State | Completion | Output | Required Evidence | Exit Command | Actor | Evidence Status | Blocking Risk | Owner / Handoff |
 | --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- |
 | INIT-01 | init | none | done | 100 | 任务计划和执行策略已确认 | `task_plan.md`; `execution_strategy.md` | `harness task-start 2026-05-31-agentpal-real-codex-vertical-slice-95a01ac2` | agent | present | none | coordinator |
-| EXEC-01 | execution | INIT-01 | planned | 0 | 有边界的实现、文档切片和验证证据 | diff、commands、worker handoff 或 artifact path | `harness task-phase 2026-05-31-agentpal-real-codex-vertical-slice-95a01ac2 EXEC-01 --state done --completion 100 --evidence present` | agent | missing | [risk] | [owner] |
-| GATE-01 | gate | EXEC-01 | planned | 0 | Agent Review Submission | `review.md`、progress update、lesson routing | `harness task-review 2026-05-31-agentpal-real-codex-vertical-slice-95a01ac2 --message "<summary>"` | agent | missing | [risk] | coordinator |
+| EXEC-01 | execution | INIT-01 | in_progress | 80 | 真实 Codex 垂直切片设计和能力探测 | diff、commands、task package updates | `harness task-phase 2026-05-31-agentpal-real-codex-vertical-slice-95a01ac2 EXEC-01 --state done --completion 100 --evidence present` | agent | partial | final harness status pending | coordinator |
+| GATE-01 | gate | EXEC-01 | planned | 0 | Agent Review Submission | `review.md`、progress update、lesson routing | `harness task-review 2026-05-31-agentpal-real-codex-vertical-slice-95a01ac2 --message "<summary>"` | agent | missing | waits for final validation | coordinator |
 | GATE-02 | gate | GATE-01 | planned | 0 | Human Review Confirmation | review packet 和人工确认 | `harness review-confirm 2026-05-31-agentpal-real-codex-vertical-slice-95a01ac2 --confirm 2026-05-31-agentpal-real-codex-vertical-slice-95a01ac2` | human | missing | Agent 不能代办人工确认 | human |
 
 允许的 `State`：`planned`, `in_progress`, `review`, `blocked`, `done`, `skipped`。
@@ -48,3 +50,34 @@ flowchart LR
 - state：状态机或生命周期。
 - topology：repo、服务、worker、worktree 拓扑。
 - decision：方案分叉和决策树。
+
+### MAP-02 Architecture
+
+```mermaid
+flowchart LR
+  mobile["apps/mobile\nExpo RN"] <-->|AgentPal WS| relay["crates/relay\nAxum WS"]
+  relay <-->|AgentPal WS| host["crates/host\nRust Host"]
+  host <-->|structured protocol| codex["Codex app-server\nws://127.0.0.1:<port>"]
+  host -.fallback.-> pty["Codex TUI/PTy fallback"]
+  protocol["crates/protocol\nAgentPal protocol + Codex mapping"] -.types.-> mobile
+  protocol -.types.-> host
+  protocol -.types.-> relay
+```
+
+### MAP-03 First Real Loop
+
+```mermaid
+sequenceDiagram
+  participant Phone
+  participant Relay
+  participant Host
+  participant Codex as Codex app-server
+
+  Host->>Codex: start/connect app-server for workspace
+  Phone->>Relay: input.submit(text)
+  Relay->>Host: deliver command
+  Host->>Codex: thread.start / turn.start / turn.steer
+  Codex->>Host: thread/turn/status/message/diff/approval events
+  Host->>Relay: AgentPal normalized events
+  Relay->>Phone: session feed updates
+```

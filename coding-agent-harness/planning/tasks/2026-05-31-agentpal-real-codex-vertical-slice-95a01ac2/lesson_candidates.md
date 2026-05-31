@@ -7,11 +7,11 @@
 | Field | Value |
 | --- | --- |
 | Schema version | lesson-candidate-v1 |
-| Task-level status | pending-review |
+| Task-level status | no-candidate-accepted |
 | Review gate | candidate-file-present |
-| Review decision | pending-human-review |
+| Review decision | agent-checked-no-candidate |
 | Promotion state | not-promoted |
-| Closeout token | pending |
+| Closeout token | no-candidate |
 | Source task | 2026-05-31-agentpal-real-codex-vertical-slice-95a01ac2 |
 | Owner | coordinator |
 | Last updated | 2026-05-31 |
@@ -49,7 +49,7 @@
 
 ## No-Candidate Reason
 
-尚未判定。只有人工审查接受本任务没有可复用候选时，才填写这里。
+本轮是 AgentPal 项目本地真实 Codex 垂直切片设计，不产生可推广的 harness 治理 lesson。`docs/plans` 路径纠正已由对话确认，当前任务已按 `coding-agent-harness/planning/tasks/` 执行。
 
 ## Promotion Notes
 

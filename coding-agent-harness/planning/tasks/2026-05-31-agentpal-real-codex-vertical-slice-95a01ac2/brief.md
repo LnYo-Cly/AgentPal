@@ -10,42 +10,44 @@
 
 ## 一句话结果
 
-用一句话说明这个任务完成后会产生什么具体结果。
+完成 AgentPal 真实 Codex 垂直切片的项目架构设计、Codex 能力探测和实现计划，后续代码骨架按该任务包执行。
 
 ## 完成后能得到什么
 
-用 100-300 字说明这个任务完成后，用户、项目或下一轮 agent 能直接拿到什么结果。
-说明这个结果能用于什么决策、交付、验证或继续开发。聚焦可用结果，不要展开实现过程，
-除非实现方式本身就是交付物。
+完成后，下一轮 agent 可以直接按任务包搭建工程结构并实现真实 Codex 闭环，不再使用 `docs/plans` 或 mock demo。设计明确 monorepo 包边界、Codex app-server/remote-control 优先级、Windows daemon 限制、Host/Relay/Mobile 的第一版职责、协议事件映射和验证命令。代码实现前的关键不确定性也会被记录：Codex app-server 的稳定性、Windows 上 daemon lifecycle 不可用、以及是否需要 PTY fallback。
 
 ## 交付物
 
-- 可见产物：
-- 修改位置：
-- 验证证据：
+- 可见产物：真实 Codex 垂直切片设计、能力探测结果、实现计划、验证门槛。
+- 修改位置：`coding-agent-harness/planning/tasks/2026-05-31-agentpal-real-codex-vertical-slice-95a01ac2/*`。
+- 验证证据：`codex --version`、`codex app-server --help`、`codex app-server generate-json-schema/generate-ts`、`harness status --json .`。
 
 ## 第一眼应该看什么
 
-写明人或下一轮 agent 打开任务后，应该先读哪些文件、证据或生成产物。
+先读 `task_plan.md` 的 Recommended Architecture 和 Implementation Slice，再读 `findings.md` 的 Codex 能力探测事实。实现时再读 `visual_map.md` 的数据流和阶段表。
 
 ## 边界
 
-- 范围内：本任务允许修改的文件、行为、文档或验证内容。
-- 范围外：不能顺手塞进来的工作。
-- 停止条件：遇到不确定性、风险或缺少权限时，必须回到 coordinator 或用户确认。
+- 范围内：设计真实 Codex 垂直切片、探测本机 Codex/Node/Rust 能力、规划 monorepo 包边界和验证步骤。
+- 范围外：不创建 `apps/`、`crates/`、Expo App 或 Rust crate；不提交 `tmp/` 生成物；不使用 `docs/plans`。
+- 停止条件：如果要启动长期运行的 Codex app-server、打开网络端口、接入真实云 Relay 或修改 Codex 配置，先回到用户确认。
 
 ## 完成判断
 
-列出 3-5 条能证明目标结果已经达成的具体条件。完整执行计划保留在 `task_plan.md`。
+- 任务包明确第一版工程结构：`apps/mobile`、`crates/host`、`crates/relay`、`crates/protocol`。
+- Codex 能力探测证明本机存在 `codex-cli 0.134.0`、app-server、remote-control、schema/TS generation。
+- 设计明确 Windows 上 app-server daemon lifecycle 不可用，Host 不能依赖 `codex app-server daemon`。
+- 设计明确 Codex app-server/remote-control 是第一优先，PTY 仅作为 fallback。
+- `harness status --json .` 通过，且本任务包不含 `docs/plans` 路径。
 
 ## 执行合同
 
 - Owner：coordinator
-- 生命周期状态：未开始
+- 生命周期状态：进行中；本轮仅提交设计，代码实现需下一步继续。
 - 必需文件：`INDEX.md`、`task_plan.md`、`execution_strategy.md`、`visual_map.md`、
   `progress.md`、`findings.md`、`review.md`
 - 完成条件：验证证据必须记录到 `progress.md`
 
 ## 当前下一步
 
-写明开始实现前的第一个具体动作。
+等待用户确认本任务包设计后，开始创建 monorepo 工程骨架并实现真实 Codex 最小闭环。
