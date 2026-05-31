@@ -1,6 +1,6 @@
 # AgentPal implementation scaffold and Codex probe - 进度
 
-## 状态：进行中
+## 状态：审查中
 
 ## 进度记录
 
@@ -53,3 +53,10 @@
 
 - `npm install` 报 10 个 moderate audit findings，来自当前 Expo 依赖树；本轮不运行 `npm audit fix --force`，避免破坏 Expo SDK 版本匹配。
 - iOS/Android 真机或模拟器未在本 Windows 环境执行；后续用 Development Build、Android emulator 或 EAS Build 验证。
+
+### [2026-05-31 10:41] - task-review
+
+- 做了什么：AgentPal implementation scaffold and real Codex probe ready for review
+- 验证结果：已记录
+- 下一步：继续执行
+- 证据：n/a
