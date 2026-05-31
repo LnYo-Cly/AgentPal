@@ -14,7 +14,7 @@ Repo Governance / CI-CD changes remain routed through their reference standards 
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | HL-YYYY-MM-DD-001 | task | none | Short operational title | planned | none | {{paths.harnessRoot}}/planning/tasks/.../task_plan.md | pending | pending | pending | none | YYYY-MM-DD |
 | HL-2026-05-31-agentpal-foundation-product-architecture-and-sta-8c4cfcfe | task | none | AgentPal foundation product architecture and stack SSoT | closed | none | coding-agent-harness/planning/tasks/2026-05-31-agentpal-foundation-product-architecture-and-sta-8c4cfcfe/task_plan.md | pending | pending | pending | Human review confirmed; closing out AgentPal foundation product architecture and stack SSoT | 2026-05-31 |
-| HL-2026-05-31-agentpal-real-codex-vertical-slice-95a01ac2 | task | none | AgentPal real Codex vertical slice | review | none | coding-agent-harness/planning/tasks/2026-05-31-agentpal-real-codex-vertical-slice-95a01ac2/task_plan.md | coding-agent-harness/planning/tasks/2026-05-31-agentpal-real-codex-vertical-slice-95a01ac2/review.md | pending | pending | Real Codex vertical slice design ready for review | 2026-05-31 |
+| HL-2026-05-31-agentpal-real-codex-vertical-slice-95a01ac2 | task | none | AgentPal real Codex vertical slice | closed | none | coding-agent-harness/planning/tasks/2026-05-31-agentpal-real-codex-vertical-slice-95a01ac2/task_plan.md | pending | pending | pending | closed from dashboard workbench after user approval | 2026-05-31 |
 
 ## Field Rules
 
