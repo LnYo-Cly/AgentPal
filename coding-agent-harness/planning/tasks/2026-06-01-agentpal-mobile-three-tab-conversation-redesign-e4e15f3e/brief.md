@@ -10,42 +10,44 @@
 
 ## 一句话结果
 
-用一句话说明这个任务完成后会产生什么具体结果。
+AgentPal 移动端入口重构为首页、会话、设置三页，并让会话页直接成为当前 Agent Session 的聊天工作台。
 
 ## 完成后能得到什么
 
-用 100-300 字说明这个任务完成后，用户、项目或下一轮 agent 能直接拿到什么结果。
-说明这个结果能用于什么决策、交付、验证或继续开发。聚焦可用结果，不要展开实现过程，
-除非实现方式本身就是交付物。
+用户打开手机后不再看到重复的卡片式页面，而是按任务职责进入三个清晰区域：首页只展示当前 Host / Session 状态和关键入口；会话页直接进入当前 session 的消息流、工具 / Diff / 审批事件和输入区；设置页只处理 Relay、Host、通知和偏好。下一轮 agent 可以在这个结构上继续接入真实 session 切换面板、审批回传、slash command 和 skill/plugin 选择，而不需要重新拆分移动端信息架构。
 
 ## 交付物
 
-- 可见产物：
-- 修改位置：
-- 验证证据：
+- 可见产物：三页移动端 UI、会话详情页、移动输入栏、命令 chip、基础按钮反馈。
+- 修改位置：`apps/mobile/app/index.tsx`、`apps/mobile/src/theme/index.ts`。
+- 验证证据：`npm --prefix apps/mobile run typecheck`、`git diff --check`、`agent-browser` 390x844 移动视口检查、`harness status --json .`。
 
 ## 第一眼应该看什么
 
-写明人或下一轮 agent 打开任务后，应该先读哪些文件、证据或生成产物。
+先看 `apps/mobile/app/index.tsx` 的 `HomePage`、`ConversationPage`、`SettingsPage` 和 `BottomNav`，确认三页职责边界；再看 `progress.md` 与 `review.md`，确认 typecheck、静态检查和移动视口交互检查证据。
 
 ## 边界
 
-- 范围内：本任务允许修改的文件、行为、文档或验证内容。
-- 范围外：不能顺手塞进来的工作。
-- 停止条件：遇到不确定性、风险或缺少权限时，必须回到 coordinator 或用户确认。
+- 范围内：移动端首页 / 会话 / 设置的信息架构、视觉布局、基本交互反馈和任务包证据。
+- 范围外：原生 iOS Dynamic Island、Android 类灵动岛、Relay 协议变更、真实审批回传、完整 session selector sheet。
+- 停止条件：如果需要新增原生模块、改变 Relay 协议或引入新的 UI 库，先回到用户确认。
 
 ## 完成判断
 
-列出 3-5 条能证明目标结果已经达成的具体条件。完整执行计划保留在 `task_plan.md`。
+- 底部导航只保留首页、会话、设置。
+- 会话 tab 直接打开当前 session 详情，而不是会话列表。
+- 首页、会话、设置各自承担不同工作，不再重复堆同类卡片。
+- 输入栏、命令 chip、附件、语音和审批按钮都有可见交互反馈。
+- typecheck、diff check、移动视口 smoke 和 harness status 均有证据记录。
 
 ## 执行合同
 
 - Owner：coordinator
-- 生命周期状态：未开始
+- 生命周期状态：审查中
 - 必需文件：`INDEX.md`、`task_plan.md`、`execution_strategy.md`、`visual_map.md`、
   `progress.md`、`findings.md`、`review.md`
 - 完成条件：验证证据必须记录到 `progress.md`
 
 ## 当前下一步
 
-写明开始实现前的第一个具体动作。
+等待用户在手机上确认当前三页 UI 的视觉和手感；如确认通过，再进入 Human Review Confirmation。
