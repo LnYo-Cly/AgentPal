@@ -5,8 +5,8 @@
   "description": "AgentPal mobile workbench and desktop host scaffold.",
   "scripts": {
     "mobile:typecheck": "npm --prefix apps/mobile run typecheck",
-    "mobile:start": "npm --prefix apps/mobile run start",
-    "relay:dev": "cargo run -p agentpal-relay -- --host 127.0.0.1 --port 8790",
+    "mobile:start": "npm --prefix apps/mobile run start:expo-go -- --lan",
+    "relay:dev": "cargo run -p agentpal-relay -- --host 0.0.0.0 --port 8790",
     "host:codex:probe": "cargo run -p agentpal-host -- codex probe --workspace . --prompt \"AgentPal probe: reply with ok\""
   }
 }

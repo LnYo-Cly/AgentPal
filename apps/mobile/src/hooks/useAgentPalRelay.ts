@@ -94,13 +94,13 @@ export function useAgentPalRelay(url = defaultRelayUrl()) {
   const activeSession = useMemo(() => sessions[0] ?? null, [sessions]);
 
   const submit = useCallback(
-    (text: string) => {
+    (text: string, sessionIdOverride?: string | null) => {
       const trimmed = text.trim();
       const socket = socketRef.current;
       if (!trimmed || !activeHost || !socket || socket.readyState !== WebSocket.OPEN) {
         return false;
       }
-      const sessionId = activeSession?.sessionId ?? "agentpal-codex-local";
+      const sessionId = sessionIdOverride ?? activeSession?.sessionId ?? "agentpal-codex-local";
       const message: RelayClientMessage = {
         type: "client-command",
         command: makeInputCommand(activeHost.hostId, sessionId, trimmed)

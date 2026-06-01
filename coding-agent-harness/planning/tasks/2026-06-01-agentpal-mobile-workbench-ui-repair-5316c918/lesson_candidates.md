@@ -7,11 +7,11 @@
 | Field | Value |
 | --- | --- |
 | Schema version | lesson-candidate-v1 |
-| Task-level status | pending-review |
+| Task-level status | no-candidate-accepted |
 | Review gate | candidate-file-present |
-| Review decision | pending-human-review |
+| Review decision | agent-checked-no-candidate |
 | Promotion state | not-promoted |
-| Closeout token | pending |
+| Closeout token | no-candidate |
 | Source task | 2026-06-01-agentpal-mobile-workbench-ui-repair-5316c918 |
 | Owner | coordinator |
 | Last updated | 2026-06-01 |
@@ -49,7 +49,7 @@
 
 ## No-Candidate Reason
 
-尚未判定。只有人工审查接受本任务没有可复用候选时，才填写这里。
+本轮是 AgentPal 项目局部移动端 UI 和开发连接修复，没有新增可复用的跨项目 harness 方法、治理标准或工程经验候选。
 
 ## Promotion Notes
 

@@ -1,3 +1,4 @@
+import Constants from "expo-constants";
 import { Platform } from "react-native";
 
 export type AgentKind = "codex" | "claude-code" | "open-code" | "open-claw" | "custom";
@@ -87,9 +88,9 @@ export const androidEmulatorRelayUrl = "ws://10.0.2.2:8790/ws";
 
 export function defaultRelayUrl() {
   if (Platform.OS === "android") {
-    return isAndroidEmulator() ? androidEmulatorRelayUrl : usbRelayUrl;
+    return isAndroidEmulator() ? androidEmulatorRelayUrl : expoHostRelayUrl() ?? usbRelayUrl;
   }
-  return usbRelayUrl;
+  return expoHostRelayUrl() ?? usbRelayUrl;
 }
 
 export function normalizeRelayUrl(value: string) {
@@ -132,4 +133,13 @@ function isAndroidEmulator() {
     brand.includes("generic") ||
     manufacturer.includes("genymotion")
   );
+}
+
+function expoHostRelayUrl() {
+  const hostUri = Constants.expoConfig?.hostUri;
+  const host = hostUri?.split(":")[0];
+  if (!host || host === "localhost" || host === "127.0.0.1") {
+    return null;
+  }
+  return `ws://${host}:8790/ws`;
 }
