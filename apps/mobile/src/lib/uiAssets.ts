@@ -1,0 +1,22 @@
+export const uiAssets = {
+  heroBackground: require("../../assets/ui/01-hero-background.png"),
+  heroMascot: require("../../assets/ui/02-hero-mascot.png"),
+  sessionCodex: require("../../assets/ui/03-session-codex-cli.png"),
+  sessionClaude: require("../../assets/ui/04-session-claude-code.png"),
+  sessionOpenCode: require("../../assets/ui/05-session-opencode.png"),
+  shortcutApproval: require("../../assets/ui/shortcut-approval.png"),
+  shortcutDiff: require("../../assets/ui/shortcut-diff.png"),
+  shortcutTerminal: require("../../assets/ui/shortcut-terminal.png"),
+  shortcutHost: require("../../assets/ui/shortcut-host.png"),
+  shortcutVoice: require("../../assets/ui/shortcut-voice.png"),
+  companionOnline: require("../../assets/ui/companion-online.png"),
+  companionFocus: require("../../assets/ui/companion-focus.png"),
+  companionRunning: require("../../assets/ui/companion-running.png"),
+  companionIdle: require("../../assets/ui/companion-idle.png"),
+  companionOffline: require("../../assets/ui/companion-offline.png"),
+  navPocket: require("../../assets/ui/nav-pocket.png"),
+  navSessions: require("../../assets/ui/nav-sessions.png"),
+  navCompanions: require("../../assets/ui/nav-companions.png"),
+  navExplore: require("../../assets/ui/nav-explore.png"),
+  navProfile: require("../../assets/ui/nav-profile.png")
+} as const;

@@ -3,22 +3,22 @@ import { PressableProps } from "react-native";
 
 export const theme = createTheme({
   colors: {
-    canvas: "#F6F1E8",
-    surface: "#FFFCF6",
-    surfaceMuted: "#ECE3D4",
-    ink: "#1F2A2E",
-    inkMuted: "#657173",
-    line: "#D8CFC0",
-    accent: "#247C6D",
-    accentSoft: "#DCEDE8",
-    cobalt: "#315C9B",
-    cobaltSoft: "#DFE8F7",
-    amber: "#B96B1E",
-    amberSoft: "#F5E2C7",
-    danger: "#B94141",
-    dangerSoft: "#F1DADA",
-    success: "#2E7D45",
-    successSoft: "#DCEBD8",
+    canvas: "#EAF5FF",
+    surface: "#FFFFFF",
+    surfaceMuted: "#F3F8FF",
+    ink: "#15213A",
+    inkMuted: "#5F6D82",
+    line: "#D7E3F2",
+    accent: "#3F75E8",
+    accentSoft: "#E3EEFF",
+    cobalt: "#3F75E8",
+    cobaltSoft: "#DCE9FF",
+    amber: "#F08A2B",
+    amberSoft: "#FFE6C7",
+    danger: "#E35D6A",
+    dangerSoft: "#FCE4E7",
+    success: "#46B26B",
+    successSoft: "#DDF4E6",
     white: "#FFFFFF"
   },
   spacing: {
@@ -32,9 +32,9 @@ export const theme = createTheme({
   },
   borderRadii: {
     none: 0,
-    s: 4,
-    m: 8,
-    l: 12,
+    s: 6,
+    m: 12,
+    l: 20,
     round: 999
   },
   textVariants: {

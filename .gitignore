@@ -1,6 +1,6 @@
 tmp/
 .coding-agent-harness/
-ui/
+/ui/
 target/
 node_modules/
 apps/mobile/.expo/
