@@ -1,6 +1,6 @@
 # AgentPal mobile workbench UI repair - 进度
 
-## 状态：进行中
+## 状态：审查中
 
 ## 进度记录
 
@@ -37,3 +37,10 @@
 - Registry update needed：不适用
 - Harness Ledger update needed：任务 closeout 后由 harness lifecycle / governance rebuild 刷新
 - 负责人：coordinator
+
+### [2026-06-01 05:47] - task-review
+
+- 做了什么：Mobile workbench UI repair and real-device Relay connection ready for phone-screen review
+- 验证结果：已记录
+- 下一步：继续执行
+- 证据：n/a
