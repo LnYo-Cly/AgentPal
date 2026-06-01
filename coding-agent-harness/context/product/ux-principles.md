@@ -62,6 +62,20 @@ Image2 outputs, visual references, and cutting experiments. Production assets
 must be separately generated, licensed, named, and committed under the eventual
 app asset tree.
 
+## Principle 6: Live Surface Uses Red / Yellow Only
+
+For iOS Dynamic Island / Live Activities and Android Live Updates, AgentPal uses
+a traffic-light mental model with a strict publishing boundary:
+
+- Red means the user must confirm something: approval, permission, dangerous
+  command, or agent question.
+- Yellow means the agent is actively working: editing, testing, running a
+  command, generating a diff, or thinking.
+- Green means idle / available and must not publish to the system live surface.
+
+This rule applies to system-level realtime surfaces only. It should not force
+the whole app UI into traffic-light colors.
+
 ## Recommended Screen Set
 
 The initial prototype set should cover:

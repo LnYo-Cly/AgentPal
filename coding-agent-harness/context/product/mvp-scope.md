@@ -33,6 +33,8 @@ MVP includes:
 - Diff summary cards.
 - Approval cards with approve/reject.
 - Basic push notifications for approval, completion, failure, and host disconnect.
+- Live Surface v1 for the currently tracked active session: red for user
+  confirmation, yellow for agent work, green idle as clear/no display.
 - Simple companion avatar states.
 
 ## Deferred
@@ -43,8 +45,10 @@ Deferred from MVP:
 - Team collaboration and team permissions.
 - Full terminal mirroring as the default interface.
 - Mobile-side code execution.
-- iOS Dynamic Island / Live Activities.
-- Android widgets.
+- Multi-session concurrent Live Activities / Live Updates.
+- Vendor-private Android island APIs, floating-window hacks, or accessibility
+  overlays that imitate a system island.
+- Android home-screen widgets.
 - Advanced voice workflows.
 - Full offline authoring.
 - Rich animated companion runtime as a core dependency.
@@ -71,3 +75,6 @@ MVP is successful when a developer can:
 - AgentPal can expose original CLI-like commands, but with mobile-native UI.
 - Host and Relay reliability comes from event logs, sequence numbers, ack, and
   replay, not from assuming an always-on socket.
+- Live Surface is system-level only. Do not draw a fake Dynamic Island inside
+  the mobile app. Idle green status must not keep a Live Activity, Dynamic
+  Island, Live Update, or ongoing notification alive.

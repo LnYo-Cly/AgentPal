@@ -26,9 +26,11 @@ environment.
 | ARCH-006 | The mobile app consumes structured AgentPal events and must not depend on raw terminal TUI output. | Product brief and adapter contract | 2026-05-31 | medium | `coding-agent-harness/context/integrations/agent-adapter-contract.md` |
 | ARCH-007 | `/` and `$` terminal affordances are supported as mobile-native command and skill/plugin pickers backed by Host adapter registry data. | User screenshot and command picker discussion; adapter contract | 2026-05-31 | medium | `coding-agent-harness/context/integrations/agent-adapter-contract.md` |
 | ARCH-008 | `ui/` is a local ignored folder for prototype images and visual references; it is not production asset storage. | User instruction and `.gitignore` update | 2026-05-31 | high | `coding-agent-harness/context/product/ux-principles.md` |
+| ARCH-009 | Live Surface is a system-level abstraction for iOS Live Activities / Dynamic Island and Android Live Updates / ongoing notifications; red means user confirmation is required, yellow means the agent is working, and green idle clears the live surface instead of publishing. | User Live Surface status decision; `live-surface-status-model.md`; Apple, Expo, and Android documentation | 2026-06-01 | medium | `coding-agent-harness/context/architecture/live-surface-status-model.md` |
 
 ## Promotion Log
 
 | Source Task | Promoted Fact | Destination | Decision | Date |
 | --- | --- | --- | --- | --- |
 | `2026-05-31-agentpal-foundation-product-architecture-and-sta-8c4cfcfe` | AgentPal foundation product, architecture, stack, realtime, host/session, and adapter decisions | `context/product/*`, `context/architecture/*`, `context/integrations/agent-adapter-contract.md` | accepted as initial SSoT | 2026-05-31 |
+| `2026-06-01-agentpal-live-surface-status-model-185ce36f` | Live Surface status priority and red/yellow/green publishing rule | `context/architecture/live-surface-status-model.md`, `context/product/mvp-scope.md`, `context/product/ux-principles.md`, `context/architecture/technical-stack-decision.md` | accepted as Live Surface design contract | 2026-06-01 |

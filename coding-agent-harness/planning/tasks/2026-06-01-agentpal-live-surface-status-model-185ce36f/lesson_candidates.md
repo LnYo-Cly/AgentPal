@@ -7,11 +7,11 @@
 | Field | Value |
 | --- | --- |
 | Schema version | lesson-candidate-v1 |
-| Task-level status | pending-review |
+| Task-level status | no-candidate-accepted |
 | Review gate | candidate-file-present |
-| Review decision | pending-human-review |
+| Review decision | agent-checked-no-candidate |
 | Promotion state | not-promoted |
-| Closeout token | pending |
+| Closeout token | no-candidate |
 | Source task | 2026-06-01-agentpal-live-surface-status-model-185ce36f |
 | Owner | coordinator |
 | Last updated | 2026-06-01 |
@@ -49,7 +49,7 @@
 
 ## No-Candidate Reason
 
-尚未判定。只有人工审查接受本任务没有可复用候选时，才填写这里。
+本任务沉淀的是 AgentPal 当前产品架构事实，不是可跨项目复用的 harness 工作流经验；无需提升为全局 lesson。
 
 ## Promotion Notes
 

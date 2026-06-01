@@ -20,6 +20,8 @@ Confidence: medium
 | Secure storage | `expo-secure-store` |
 | QR scanning | `expo-camera` |
 | Push token collection | `expo-notifications` |
+| iOS Live Surface | `expo-widgets` / ActivityKit-compatible Live Activities for Dynamic Island and lock screen |
+| Android Live Surface | Native Expo module wrapping Android Live Updates / progress-centric ongoing notifications, with normal notification fallback |
 | Host | Rust + Tokio |
 | Host CLI | `clap` |
 | Host local DB | SQLite + sqlx |
@@ -48,6 +50,12 @@ operational shape is more important than fastest initial scaffolding.
 Standard WebSocket is the fixed realtime transport. AgentPal reliability is
 provided by event logs, `seq`, `ack`, replay, idempotent commands, and push
 wake-up, not by assuming any socket stays connected forever.
+
+Live Surface is the fixed system-level attention layer for out-of-app session
+state. The product must not simulate a Dynamic Island inside React Native
+screens. iOS uses Live Activities / Dynamic Island where supported; Android
+uses official Live Updates / promoted ongoing notification behavior where
+supported. Green idle status clears the live surface instead of publishing.
 
 ## UI Component Strategy
 
@@ -86,6 +94,8 @@ libraries.
 | WebView primary UI | Conflicts with native mobile interaction and performance goals. |
 | React Native Paper / gluestack / Tamagui as primary UI | Risk of generic template feel and poor fit for domain cards. |
 | Rive as MVP core dependency | Companion state can start with static WebP/PNG plus lightweight animation; rich runtime animation can remain optional later. |
+| In-app fake Dynamic Island | Dynamic Island / Live Updates are system surfaces; a page-level replica creates misleading UX and does not work outside the app. |
+| Android vendor-private island hacks | Official Android notification/live-update behavior is portable; private floating overlays increase permission, store-review, and maintenance risk. |
 
 ## Wheel-Building Boundary
 

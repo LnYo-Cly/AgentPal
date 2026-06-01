@@ -18,8 +18,9 @@ Keep the English field names and file names because CLI checks rely on them.
 3. `system-map.md`
 4. `service-catalog.md`
 5. `critical-flows.md`
-6. `services/<service-key>.md`
-7. `decisions/ADR-*.md`
+6. `live-surface-status-model.md`
+7. `services/<service-key>.md`
+8. `decisions/ADR-*.md`
 
 ## Boundary
 
@@ -35,6 +36,7 @@ Keep the English field names and file names because CLI checks rely on them.
 | `local-repo-context.md` | 当前仓库在整体系统中的职责和边界 | 说明本仓负责什么、不负责什么 |
 | `system-map.md` | 服务/模块拓扑、上下游关系、部署边界 | 用图或表表达全局关系，不写 payload |
 | `service-catalog.md` | 服务总表；每个服务/微服务一行 | 新增服务先加这里，再决定是否建 profile |
+| `live-surface-status-model.md` | iOS Dynamic Island / Live Activities 与 Android Live Updates 的状态模型 | 只写系统级实时状态，不写普通页面 UI |
 | `services/<service-key>.md` | 单个服务的职责、数据、接口摘要、阅读入口 | 一个服务一个文件，不要多个服务混写 |
 | `critical-flows.md` | 跨服务关键流程 | 写业务/系统流，不写接口字段明细 |
 
