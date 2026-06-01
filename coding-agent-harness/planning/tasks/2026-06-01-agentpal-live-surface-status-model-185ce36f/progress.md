@@ -10,13 +10,6 @@
 
 证据较长或数量较多时，不要粘贴全文；放入 `artifacts/INDEX.md` 并在这里引用 ID。
 
-### [YYYY-MM-DD HH:MM] - [阶段名称]
-
-- 做了什么：[具体操作]
-- 验证结果：[运行了什么检查，结果如何]
-- 下一步：[下一步动作]
-- 证据：[type:path:summary]
-
 ### [2026-06-01 14:20] - SSoT update
 
 - 做了什么：新增 `live-surface-status-model.md`，并更新 MVP、UX、技术栈、架构索引和 Architecture SSoT，记录红色待确认、黄色工作中、绿色空闲不上岛的 Live Surface 状态模型。
@@ -55,5 +48,5 @@
 
 - 做了什么：Live Surface status model ready for human review
 - 验证结果：已记录
-- 下一步：继续执行
-- 证据：n/a
+- 下一步：等待人工审查确认；不由 agent 代办 human confirmation。
+- 证据：review:TARGET:coding-agent-harness/planning/tasks/2026-06-01-agentpal-live-surface-status-model-185ce36f/review.md:Agent Review Submission ARS-202606010702 recorded.
