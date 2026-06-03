@@ -37,10 +37,18 @@
 - 下一步：本任务只声明 `migration-baseline` 达成；full-cutover 作为后续 clean-tree/strict-zero 目标。
 - 证据：command:terminal:`migrate-verify --full-cutover` failed with dirty-state / fullCutoverEligible gates
 
+### 2026-06-03 22:20 - Human confirmation and closeout command
+
+- 做了什么：用户在 workbench 完成人工确认；随后尝试执行 `harness task-complete 2026-06-03-harness-v1-migration-0fc6d60f --message "Migration baseline confirmed by human review; full-cutover deferred until dirty-state is cleared" .`。
+- 验证结果：status 显示 `reviewStatus=confirmed`、`confirmationId=HRC-202606031420`、`taskQueues=finalized`。`task-complete` 未成功，仍报 `git status failed while inspecting transaction write scope`。
+- 下一步：保留 workbench 确认状态；full closeout CLI 等 clean-tree 或 CLI write-scope 问题解决后再重跑。
+- 证据：review:TARGET:coding-agent-harness/planning/tasks/2026-06-03-harness-v1-migration-0fc6d60f/INDEX.md:workbench recorded human confirmation HRC-202606031420
+
 ## 残余
 
 - 当前 checkout 仍有 mobile/host/relay 既有 dirty；本任务不接管这些改动。
 - `harness task-start/task-review` lifecycle 命令在本地 dirty checkout 下失败；已手工记录 blocker，等待后续 CLI 修复或 clean-tree 后重跑。
+- `harness task-complete` 同样被 write-scope 检查拦截；任务已 human-confirmed/finalized，但 closeoutStatus 仍可能显示 pending。
 - Full-cutover 验证未通过；本任务达成等级为 `migration-baseline`。
 - human review confirmation 不能由 agent 执行，需用户在 workbench 中确认。
 

@@ -23,6 +23,8 @@
 | Migration verify | `npx --yes coding-agent-harness migrate-verify /tmp/cah-migration-project/session.json` | pass | `evidence/.../migrate-verify.json` |
 | Full-cutover verify | `npx --yes coding-agent-harness migrate-verify --full-cutover /tmp/cah-migration-project/session.json` | failed: dirty-state warning and `fullCutoverEligible=false` | terminal output |
 | Preset task | `npx --yes coding-agent-harness new-task --budget complex --preset legacy-migration --from-session /tmp/cah-migration-project/session.json .` | task created, evidence archived, auto commit made | commit `d9062b5daa4f7646c04c3ae54969e4817d1d6ebc` |
+| Human confirmation | local workbench | confirmed, `HRC-202606031420` | commits `dfa09b5`, `e30a9a3` |
+| Task complete | `harness task-complete 2026-06-03-harness-v1-migration-0fc6d60f ...` | failed: write-scope git status error | terminal output |
 
 ## 审查结论
 
@@ -38,6 +40,7 @@
 | 既有业务 dirty 仍存在 | coordinator / user | yes | 后续按功能切片验证并提交 |
 | human review confirmation pending | user | yes | 通过本地 workbench 确认 |
 | lifecycle CLI write-scope failure | coordinator | yes | clean-tree 后可重试 task-start/task-review |
+| closeout CLI write-scope failure | coordinator | yes | clean-tree 后可重试 task-complete |
 | full-cutover not eligible | coordinator | yes | clean-tree 且 strict warning 清零后重新运行 migration session |
 
 ## 经验沉淀反思
