@@ -1,0 +1,13 @@
+{
+  "preset": "legacy-migration",
+  "scopes": [
+    {
+      "name": "taskArtifacts",
+      "path": "{{paths.tasksRoot}}/**",
+      "access": "write"
+    }
+  ],
+  "entrypointScopes": [
+    "coding-agent-harness/planning/tasks/**"
+  ]
+}

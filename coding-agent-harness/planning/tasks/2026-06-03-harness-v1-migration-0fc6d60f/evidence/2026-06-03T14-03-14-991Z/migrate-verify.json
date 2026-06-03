@@ -1,0 +1,16 @@
+{
+  "operation": "migrate-verify",
+  "status": "pass",
+  "fullCutover": false,
+  "sessionPath": "G:\\tmp\\cah-migration-project\\session.json",
+  "target": "G:\\My_Project\\python\\gitlab\\pocket_agent",
+  "result": "complete",
+  "dashboard": {
+    "dir": "G:\\tmp\\cah-migration-project\\dashboard",
+    "indexPath": "G:\\tmp\\cah-migration-project\\dashboard\\index.html",
+    "kind": "html-folder"
+  },
+  "strictDeferred": null,
+  "failures": [],
+  "warnings": []
+}

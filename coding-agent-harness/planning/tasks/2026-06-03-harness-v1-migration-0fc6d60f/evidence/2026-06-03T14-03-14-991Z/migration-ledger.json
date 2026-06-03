@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "legacy-migration-ledger/v2",
+  "preset": "legacy-migration",
+  "presetVersion": 2,
+  "staticDashboardRole": "evidence-snapshot",
+  "workbenchRole": "human-confirmation-control-plane",
+  "phases": [
+    {
+      "id": "baseline",
+      "state": "done",
+      "evidence": [
+        "session.json",
+        "migrate-plan.json",
+        "normal-check.json",
+        "strict-check.json",
+        "migrate-verify.json"
+      ]
+    },
+    {
+      "id": "mechanical-scaffold",
+      "state": "planned",
+      "automationAllowed": true,
+      "outputPolicy": "May add missing task contract files and placeholders, but must not mark semantic reconstruction complete.",
+      "counters": {
+        "taskActions": 0,
+        "reviewSchemaGaps": 0,
+        "legacyReferenceGaps": 0
+      }
+    },
+    {
+      "id": "semantic-reconstruction",
+      "state": "planned",
+      "automationAllowed": false,
+      "evidenceLedgerRequired": true,
+      "requiredEvidenceSources": [
+        "task_plan.md",
+        "progress.md",
+        "review.md",
+        "walkthrough",
+        "Harness-Ledger",
+        "git"
+      ],
+      "completionRule": "Each task needs explicit evidenceSources and reviewState before semantic completion."
+    },
+    {
+      "id": "cutover-review",
+      "state": "planned",
+      "humanConfirmationRequired": true,
+      "workbenchQueueRequired": true,
+      "staticDashboardRole": "evidence-snapshot"
+    }
+  ],
+  "counters": {
+    "warnings": 1,
+    "taskActions": 0,
+    "reviewSchemaGaps": 0,
+    "legacyReferenceGaps": 0,
+    "legacyResiduals": 0,
+    "fullCutoverEligible": false
+  },
+  "queue": []
+}

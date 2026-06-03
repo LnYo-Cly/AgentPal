@@ -1,0 +1,132 @@
+{
+  "id": "legacy-migration",
+  "version": 2,
+  "manifestPath": "G:/My_Project/python/gitlab/pocket_agent/.coding-agent-harness/presets/legacy-migration/preset.yaml",
+  "manifestSha256": "e30c1ac80ab9bb6809066b71f156403206993dbac0ef3cfc988599e3318e3bab",
+  "compatibleBudgets": [
+    "complex"
+  ],
+  "entrypoints": {
+    "newTask": {
+      "type": "template",
+      "command": "",
+      "templates": {
+        "taskPlanAppend": "templates/task_plan.append.md",
+        "executionStrategyAppend": "templates/execution_strategy.append.md",
+        "visualMapAppend": "templates/visual_map.append.md",
+        "findingsSeed": "templates/findings.seed.md",
+        "reviewSeed": "templates/review.seed.md"
+      },
+      "writes": [
+        "{{paths.tasksRoot}}/**"
+      ],
+      "reads": [
+        "session.json"
+      ],
+      "audit": true
+    },
+    "plan": {
+      "type": "script",
+      "command": "scripts/plan-work-queue.mjs",
+      "templates": {},
+      "writes": [
+        "{{paths.tasksRoot}}/**"
+      ],
+      "reads": [
+        "docs/**",
+        ".git/**"
+      ],
+      "audit": true
+    },
+    "scaffold": {
+      "type": "script",
+      "command": "scripts/scaffold-task-contracts.mjs",
+      "templates": {},
+      "writes": [
+        "{{paths.tasksRoot}}/**"
+      ],
+      "reads": [
+        "docs/**"
+      ],
+      "audit": true
+    },
+    "check": {
+      "type": "check",
+      "command": "checks/preset-check.mjs",
+      "templates": {},
+      "writes": [
+        "{{paths.tasksRoot}}/**"
+      ],
+      "reads": [
+        "docs/**"
+      ],
+      "audit": true
+    }
+  },
+  "audit": {
+    "manifestRequired": true,
+    "evidenceFiles": [
+      "preset-manifest.json",
+      "preset-audit.json",
+      "write-scope.json"
+    ]
+  },
+  "writeScopes": [
+    {
+      "name": "taskArtifacts",
+      "path": "{{paths.tasksRoot}}/**",
+      "access": "write"
+    }
+  ],
+  "inputs": {
+    "session": {
+      "type": "json-file",
+      "flag": "--from-session",
+      "required": true,
+      "validateOperation": "migrate-run",
+      "rejectPlanOnly": true,
+      "requireTarget": true,
+      "targetFromSession": true
+    }
+  },
+  "templateValues": {
+    "preset": {
+      "value": "legacy-migration"
+    },
+    "presetVersion": {
+      "value": 2
+    },
+    "evidenceBundle": {
+      "from": "computed.evidenceBundle"
+    },
+    "migrationTargetLevel": {
+      "from": "computed.migrationTargetLevel"
+    },
+    "migrationAchievedLevel": {
+      "from": "computed.migrationAchievedLevel"
+    },
+    "strictDeferred": {
+      "from": "computed.strictDeferred"
+    },
+    "fullCutoverClaimAllowed": {
+      "from": "computed.fullCutoverClaimAllowed"
+    },
+    "warnings": {
+      "from": "computed.warnings"
+    },
+    "taskActions": {
+      "from": "computed.taskActions"
+    },
+    "legacyResiduals": {
+      "from": "computed.legacyResiduals"
+    }
+  },
+  "metadata": {},
+  "resources": {
+    "references": {},
+    "artifacts": {}
+  },
+  "context": {
+    "requiredReads": []
+  }
+}

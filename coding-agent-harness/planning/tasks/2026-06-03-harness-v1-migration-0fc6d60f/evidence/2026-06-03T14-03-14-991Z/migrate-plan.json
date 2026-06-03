@@ -1,0 +1,163 @@
+{
+  "operation": "migrate-plan",
+  "target": "G:\\My_Project\\python\\gitlab\\pocket_agent",
+  "locale": "zh-CN",
+  "mode": "v2-manifest",
+  "compatibility": {
+    "preserves": [
+      "AGENTS.md and CLAUDE.md are never overwritten by safe-adoption.",
+      "Existing Harness-Ledger, SSoT, walkthrough, progress, review, and historical task plans are preserved.",
+      "Closed historical tasks may remain in legacy format unless they become active evidence for a strict gate."
+    ],
+    "strictGate": "Normal migration mode reports adoption-needed warnings; --strict remains available as the final cutover gate."
+  },
+  "summary": {
+    "tasks": 9,
+    "warnings": 1,
+    "missingExecutionStrategy": 0,
+    "missingVisualMap": 0,
+    "missingVisualRoadmap": 0,
+    "visualMapActions": 0,
+    "legacyVisualOnly": 0,
+    "unknownClassification": 0,
+    "weakBrief": 0,
+    "missingCanonicalVisualMap": 0,
+    "taskActions": 0,
+    "reviewSchemaGaps": 0,
+    "legacyReferenceGaps": 0,
+    "legacyResiduals": 0,
+    "recommendedCapabilities": [],
+    "fullCutoverEligible": false
+  },
+  "recommendedCapabilities": [],
+  "phases": [
+    {
+      "id": "MP-01",
+      "title": "Stabilize legacy state",
+      "goal": "Record current harness state without rewriting historical documents.",
+      "actions": [
+        "Run safe-adoption dry-run",
+        "Confirm locale",
+        "Confirm current git status is understood"
+      ],
+      "exitCriteria": [
+        ".harness-capabilities.json exists",
+        "Existing AGENTS.md/CLAUDE.md/history are preserved"
+      ],
+      "locale": "zh-CN"
+    },
+    {
+      "id": "MP-02",
+      "title": "Choose capability cutover",
+      "goal": "Declare only capabilities that match real project facts.",
+      "actions": [],
+      "exitCriteria": [
+        "Capability registry has no accidental declarations",
+        "Every optional capability has a project fact trigger"
+      ],
+      "locale": "zh-CN"
+    },
+    {
+      "id": "MP-03",
+      "title": "Classify tasks from SSoT before repairing contracts",
+      "goal": "Use Harness Ledger, Closeout SSoT, Regression SSoT, task progress, walkthroughs, reviews, and git history to decide which tasks are actually current.",
+      "actions": [
+        "Classify taskActions as current-active, closed-with-evidence, closed-with-residual, superseded, or unknown-history",
+        "Add brief.md, execution_strategy.md, visual_map.md only for current-active or reopened tasks",
+        "Route closed historical gaps as residuals instead of adding fake current templates"
+      ],
+      "exitCriteria": [
+        "Every repaired task cites SSoT/progress/walkthrough/review/git evidence",
+        "Closed historical tasks remain unchanged and have residual routing",
+        "Active task status is readable by status/dashboard"
+      ],
+      "locale": "zh-CN"
+    },
+    {
+      "id": "MP-04",
+      "title": "Introduce modules if needed",
+      "goal": "Move from single-line task history to module ownership only when the project has real independent domains.",
+      "actions": [
+        "Identify modules by product/domain, not file folders",
+        "Create module registry after owner/write-scope decisions",
+        "Route shared updates through coordinator"
+      ],
+      "exitCriteria": [
+        "Module owners and write scopes are explicit",
+        "No worker owns shared global ledgers without coordinator sync"
+      ],
+      "locale": "zh-CN"
+    },
+    {
+      "id": "MP-05",
+      "title": "Upgrade current reviews and references",
+      "goal": "Bring only active review and reference gates to v1 schema.",
+      "actions": [
+        "Upgrade release-blocking reviews first",
+        "Create missing reference files only for adopted capabilities",
+        "Record accepted historical gaps as residuals"
+      ],
+      "exitCriteria": [
+        "Current release gates have v1 review evidence",
+        "Legacy-only gaps are categorized as residuals"
+      ],
+      "locale": "zh-CN"
+    },
+    {
+      "id": "MP-06",
+      "title": "Strict cutover",
+      "goal": "Turn strict checks into the blocking gate after migration scope is complete.",
+      "actions": [
+        "Run normal check until warnings are understood",
+        "Run --strict after active work is migrated",
+        "Keep residual owner/action/status for deferred history"
+      ],
+      "exitCriteria": [
+        "Strict check passes or every remaining failure has owner/action/status"
+      ],
+      "locale": "zh-CN"
+    }
+  ],
+  "taskActions": [],
+  "visualMapActions": [],
+  "legacyVisualOnlyTasks": [],
+  "unknownClassificationTasks": [],
+  "weakBriefTasks": [],
+  "reviewActions": [],
+  "legacyActions": [],
+  "legacyResiduals": [],
+  "warningGroups": [
+    {
+      "category": "Review Finding",
+      "count": 1,
+      "examples": [
+        "dirty-state: 561 uncommitted Git path(s) may block CLI-owned auto-commit when they overlap a command write scope or are staged; commit them or record owner/no-commit reason before lifecycle commands."
+      ]
+    }
+  ],
+  "warningQueue": [
+    {
+      "id": "AD-001",
+      "category": "Review Finding",
+      "type": "review-finding",
+      "scope": "project",
+      "priority": "P3",
+      "phase": "triage",
+      "fixability": "manual",
+      "status": "open",
+      "confidence": "high",
+      "severity": "warning",
+      "title": "dirty-state",
+      "affected": "project",
+      "affectedPaths": [],
+      "requiredAction": "Inspect source document and decide whether to adopt v1 contract.",
+      "detail": "dirty-state: 561 uncommitted Git path(s) may block CLI-owned auto-commit when they overlap a command write scope or are staged; commit them or record owner/no-commit reason before lifecycle commands."
+    }
+  ],
+  "nextCommands": [
+    "harness migrate-structure --plan G:\\My_Project\\python\\gitlab\\pocket_agent",
+    "harness migrate-structure --apply G:\\My_Project\\python\\gitlab\\pocket_agent",
+    "harness check --profile target-project G:\\My_Project\\python\\gitlab\\pocket_agent",
+    "harness dashboard --out-dir /tmp/cah-v2-dashboard-pocket-agent G:\\My_Project\\python\\gitlab\\pocket_agent"
+  ]
+}

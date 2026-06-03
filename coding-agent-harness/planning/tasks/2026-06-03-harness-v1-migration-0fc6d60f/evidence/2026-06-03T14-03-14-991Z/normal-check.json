@@ -1,0 +1,10 @@
+{
+  "status": "warn",
+  "failures": 0,
+  "warnings": 1,
+  "legacyStatus": "skipped",
+  "failureDetails": [],
+  "warningDetails": [
+    "dirty-state: 561 uncommitted Git path(s) may block CLI-owned auto-commit when they overlap a command write scope or are staged; commit them or record owner/no-commit reason before lifecycle commands."
+  ]
+}

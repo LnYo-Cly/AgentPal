@@ -22,6 +22,7 @@ Repo Governance / CI-CD changes remain routed through their reference standards 
 | HL-2026-06-01-agentpal-mobile-three-tab-conversation-redesign-e4e15f3e | task | none | AgentPal mobile three-tab conversation redesign | review | none | coding-agent-harness/planning/tasks/2026-06-01-agentpal-mobile-three-tab-conversation-redesign-e4e15f3e/task_plan.md | coding-agent-harness/planning/tasks/2026-06-01-agentpal-mobile-three-tab-conversation-redesign-e4e15f3e/review.md | pending | pending | Three-tab conversation-first mobile UI ready for phone review | 2026-06-01 |
 | HL-2026-06-01-agentpal-mobile-cold-visual-redesign-b37239ca | task | none | AgentPal mobile cold visual redesign | active | none | coding-agent-harness/planning/tasks/2026-06-01-agentpal-mobile-cold-visual-redesign-b37239ca/task_plan.md | pending | pending | pending | Replace warm beige mobile UI with cold developer-tool visual system | 2026-06-01 |
 | HL-2026-06-01-agentpal-host-pairing | task | none | AgentPal Host pairing MVP | planned | none | coding-agent-harness/planning/tasks/2026-06-01-agentpal-host-pairing/task_plan.md | pending | pending | pending | task registered by CLI | 2026-06-01 |
+| HL-2026-06-03-harness-v1-migration-0fc6d60f | task | none | Harness v1 legacy migration | planned | none | coding-agent-harness/planning/tasks/2026-06-03-harness-v1-migration-0fc6d60f/task_plan.md | pending | pending | pending | task registered by CLI | 2026-06-03 |
 
 ## Field Rules
 
