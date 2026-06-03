@@ -31,9 +31,9 @@ Task Contract: harness-task/v1
 | Reviewer Email | lnyocly@gmail.com |
 | Confirm Text | 2026-06-03-harness-v1-migration-0fc6d60f |
 | Evidence Checked | TARGET:coding-agent-harness/planning/tasks/2026-06-03-harness-v1-migration-0fc6d60f/review.md |
-| Review Commit SHA | pending |
+| Review Commit SHA | dfa09b52490b5393e7815851589cbf64f4e6773c |
 | Audit Source | native-index |
-| Audit Status | commit-pending |
+| Audit Status | committed |
 | Exception Reason | n/a |
 | Message | confirmed from dashboard workbench |
 | Migration Status | native |
