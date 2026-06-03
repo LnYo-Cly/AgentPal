@@ -3,6 +3,7 @@ locale: zh-CN
 capabilities:
   - core
   - dashboard
+  - safe-adoption
 structure:
   harnessRoot: coding-agent-harness
   planningRoot: coding-agent-harness/planning

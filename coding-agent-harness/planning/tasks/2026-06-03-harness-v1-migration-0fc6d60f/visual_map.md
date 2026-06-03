@@ -14,7 +14,7 @@ Visual Map Contract: v1.0
 
 ```mermaid
 flowchart LR
-  INIT01["INIT-01 范围与上下文\nkind=init"] --> EXEC01["EXEC-01 实现切片\nkind=execution"]
+  INIT01["INIT-01 范围与上下文\nkind=init"] --> EXEC01["EXEC-01 迁移轨道执行\nkind=execution"]
   EXEC01 --> GATE01["GATE-01 Agent 提交审查\nkind=gate"]
   GATE01 --> GATE02["GATE-02 人工审查确认\nkind=gate"]
 ```
@@ -23,10 +23,10 @@ flowchart LR
 
 | Phase ID | Kind | Depends On | State | Completion | Output | Required Evidence | Exit Command | Actor | Evidence Status | Blocking Risk | Owner / Handoff |
 | --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- |
-| INIT-01 | init | none | planned | 0 | 任务计划和执行策略已确认 | `task_plan.md`; `execution_strategy.md` | `harness task-start 2026-06-03-harness-v1-migration-0fc6d60f` | agent | missing | none | coordinator |
-| EXEC-01 | execution | INIT-01 | planned | 0 | 有边界的实现、文档切片和验证证据 | diff、commands、worker handoff 或 artifact path | `harness task-phase 2026-06-03-harness-v1-migration-0fc6d60f EXEC-01 --state done --completion 100 --evidence present` | agent | missing | [risk] | [owner] |
-| GATE-01 | gate | EXEC-01 | planned | 0 | Agent Review Submission | `review.md`、progress update、lesson routing | `harness task-review 2026-06-03-harness-v1-migration-0fc6d60f --message "<summary>"` | agent | missing | [risk] | coordinator |
-| GATE-02 | gate | GATE-01 | planned | 0 | Human Review Confirmation | review packet 和人工确认 | `harness review-confirm 2026-06-03-harness-v1-migration-0fc6d60f --confirm 2026-06-03-harness-v1-migration-0fc6d60f` | human | missing | Agent 不能代办人工确认 | human |
+| INIT-01 | init | none | done | 100 | 任务计划和执行策略已确认，subagent 决策已记录 | `task_plan.md`; `execution_strategy.md` | `harness task-start 2026-06-03-harness-v1-migration-0fc6d60f` | agent | present | CLI write-scope 检查失败，已在 `progress.md` 记录 blocker | coordinator |
+| EXEC-01 | execution | INIT-01 | done | 100 | v2 structure apply、migration run/verify、legacy-migration task package 和 ignore rule 已完成 | session、migrate-plan、checks、dashboard、diff | `harness task-phase 2026-06-03-harness-v1-migration-0fc6d60f EXEC-01 --state done --completion 100 --evidence present` | agent | present | CLI lifecycle 命令未能执行，使用手工 evidence 记录 | coordinator |
+| GATE-01 | gate | EXEC-01 | done | 100 | Agent Review Submission 已手工记录 | `review.md`、progress update、lesson routing | `harness task-review 2026-06-03-harness-v1-migration-0fc6d60f --message "Harness migration baseline ready for human confirmation"` | agent | present | `task-review` 预计同样受 write-scope 问题影响，未伪造 CLI 成功 | coordinator |
+| GATE-02 | gate | GATE-01 | planned | 0 | Human Review Confirmation | review packet 和人工确认 | `harness review-confirm 2026-06-03-harness-v1-migration-0fc6d60f --confirm 2026-06-03-harness-v1-migration-0fc6d60f` | human | missing | Agent 不能代办人工确认；必须通过本地 workbench 暴露确认操作 | human |
 
 允许的 `State`：`planned`, `in_progress`, `review`, `blocked`, `done`, `skipped`。
 
@@ -40,14 +40,8 @@ flowchart LR
 
 ## 支持性图表（Supporting Maps）
 
-按需添加，不要求每类都存在：
-
-- architecture：模块、组件、服务结构。
-- sequence：前端、后端、服务、数据库、agent 时序。
-- data-flow：数据流转和所有权。
-- state：状态机或生命周期。
-- topology：repo、服务、worker、worktree 拓扑。
-- decision：方案分叉和决策树。
+- topology：本任务只触达 Harness migration package、manifest、ledger 和 ignore rules。
+- state：human review confirmation 仍由用户完成。
 
 ## Legacy Migration Preset Flow
 

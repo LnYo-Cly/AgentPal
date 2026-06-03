@@ -11,60 +11,49 @@
 
 ## Subagent Delegation Decision
 
-任务开始时，coordinator 必须根据用户目标主动做这个判断，即使用户完全没有提到 subagent。
-不要假设用户知道 subagent 或 worker 是什么。如果分工有帮助，用白话说明收益，并向用户申请一次授权。
-可以直接对用户说 subagent 或 worker subagent；关键规则是 agent 不能等用户主动提出 subagent。
-如果任务已经明显拆成互不重叠的独立切片，implementation 前就应判断为 `ask-user`。如果还不知道精确文件路径，先确认路径，然后立刻申请独立执行助手授权。
-
 | Question | Decision | Reason | Next Action |
 | --- | --- | --- | --- |
-| Should a reviewer subagent be used? | yes / no | [为什么需要或不需要 reviewer] | 如果 yes，直接调用只读 reviewer，不需要额外申请。 |
-| Would a worker subagent materially help? | no / ask-user / already-authorized | [并行切片、独立实现、专项调查，或说明为什么不需要] | 如果 ask-user，直接问：“这个任务适合拆给 worker subagent 并行处理。是否授权我派一个 worker subagent，只修改 [scope]，只在 [worktree/branch] 内执行，我负责协调和最终审查？” |
+| Should a reviewer subagent be used? | no | 本轮变更是 Harness CLI 迁移和证据归档，已有 normal/strict/full-cutover 机器验证；无需额外只读 reviewer。 | 使用 self-check，并把 human confirmation 留给 workbench。 |
+| Would a worker subagent materially help? | no | 写入范围集中，且当前 checkout 有既有 dirty；并行 worker 会增加共享 Harness 文件冲突。 | coordinator 单线程收口。 |
 
 ## User Authorization Decision
 
-如果上方 worker 决策是 `ask-user`，implementation 必须暂停，直到这里记录用户答案。
-已解决状态只能是 `authorized`、`denied` 或 `not-needed`。选择 `ask-user` 后不得继续保持 `pending`。
-
 | Gate | State | Decided By | Decided At | Scope | Worktree / Branch | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| worker subagent | pending | pending | pending | pending | pending | 只有直接问过用户后才能填写。 |
+| worker subagent | not-needed | coordinator | 2026-06-03 | Harness migration task package only | current checkout / master | 用户已同意迁移，但本任务不需要 worker。 |
 
 ## 决策表
 
 | 决策 | 选择 | 说明 |
 | --- | --- | --- |
-| 主执行者 | coordinator | coordinator 负责编排顺序、冲突判断和最终收口。 |
-| Subagent 模式 | none / reviewer-only / worker-worktree | 选择能满足任务的最小协作模式。 |
-| 审查模型 | self-check / predefined verifier / adversarial review | 说明为什么该审查层级足够。 |
-| Worktree 策略 | same checkout / dedicated worktree | 会改代码的 subagent 必须使用独立 worktree，并提交 handoff commit。 |
-| 冲突控制 | coordinator owns shared files | subagent 不得直接编辑 coordinator 管理的全局表或共享文件，除非获得明确锁。 |
-| 证据深度 | L0 / L1 / L2 / L3 | 按变更风险匹配证据深度。 |
+| 主执行者 | coordinator | coordinator 负责迁移命令、证据归档、dirty 边界和最终汇报。 |
+| Subagent 模式 | none | 不拆 worker；human review gate 由用户确认。 |
+| 审查模型 | self-check plus harness verifier | 使用 `check`、`migrate-verify`、full-cutover verify 和 dashboard 证据。 |
+| Worktree 策略 | same checkout | 只改 Harness migration scope 和 `.gitignore`；不碰业务 dirty。 |
+| 冲突控制 | coordinator owns shared files | Ledger 和 manifest 由 coordinator 管理；不混入 mobile/host/relay dirty。 |
+| 证据深度 | L2 | 项目级迁移需要 CLI 运行证据、dashboard 和 full-cutover session 验证。 |
 
 ## 子代理 / Worker 合同
 
-如使用 subagent 或 worker，在这里写清楚输入包、写入范围、handoff 格式和最终集成 owner。
-
 | 角色 | 输入包 | 写入范围 | 交接要求 | 负责人 |
 | --- | --- | --- | --- | --- |
-| reviewer / worker / n/a | C-001 | read-only / path list / n/a | report / commit SHA / n/a | coordinator |
+| n/a | C-001..C-004 | n/a | n/a | coordinator |
 
 ## 证据计划
 
 | 证据层级 | 计划命令或检查 | 记录位置 | 完成条件 |
 | --- | --- | --- | --- |
-| L0 | [静态检查 / 小范围自检] | `progress.md` | [通过标准] |
-| L1 | [单元测试 / targeted check] | `progress.md` 或 `artifacts/INDEX.md` | [通过标准] |
-| L2 | [集成 / 浏览器 / 真实数据冒烟] | `artifacts/INDEX.md` | [通过标准] |
-| L3 | [发布前 / 生产等价验证 / 外部审查] | `review.md` 与 walkthrough | [通过标准] |
+| L0 | `git status --short --branch` | `progress.md` | 区分迁移改动、业务 dirty 和本地 skill 缓存。 |
+| L1 | `harness check --profile target-project .` | evidence bundle / `progress.md` | failures 0，dirty-state warning 已解释。 |
+| L2 | `harness migrate-run --allow-dirty ...`、`harness migrate-verify ...`、dashboard/workbench | evidence bundle / `walkthrough.md` | session complete，dashboard 可读，verify pass。 |
+| L3 | human review confirmation | local workbench | 用户明确确认后才能执行 review-confirm。 |
 
 ## 暂停 / 升级条件
 
-- 所需工作超出已批准写入范围。
-- 共享表需要更新，但没有 coordinator lock。
-- 实际风险高于原计划，证据深度需要升级。
-- reviewer 发现会改变范围或方案的 P0/P1/P2 问题。
-- 环境无法提供关键证据，继续执行会变成猜测。
+- 需要回滚或修改 mobile/host/relay 既有 dirty。
+- 需要将外部资料投影到 architecture/development/integrations。
+- `migrate-verify --full-cutover` 失败或 strict check 出现 failure。
+- 需要执行 human `review-confirm`。
 
 ## Legacy Migration Preset Strategy
 
@@ -75,12 +64,10 @@ This preset keeps migration inside the Complex Task contract.
 | Write boundary | Do not rewrite historical task bodies unless the user explicitly confirms that phase. |
 | Evidence source | Use `coding-agent-harness/planning/tasks/2026-06-03-harness-v1-migration-0fc6d60f/evidence/2026-06-03T14-03-14-991Z/` as the handoff bundle. Absolute session paths are origin data only. |
 | Target level | `migration-baseline` |
-| Achieved level | `migration-full-cutover` |
+| Achieved level | `migration-baseline` |
 
 ## Subagent Lane Table
 
-Declare lanes before dispatching workers.
-
 | Lane ID | Allowed globs | Forbidden globs | Shared file owner | Worktree / branch | Handoff path | Merge order | Verification command |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| coordinator | coding-agent-harness/planning/tasks/** | AGENTS.md, CLAUDE.md, coding-agent-harness/governance/generated/Harness-Ledger.md until closeout | coordinator | current | progress.md | 1 | harness check --profile target-project . |
+| coordinator | `.gitignore`, `coding-agent-harness/harness.yaml`, current migration task package | mobile/host/relay code dirty and unrelated prior task docs | coordinator | current / master | `walkthrough.md` | 1 | `harness check --profile target-project .` |

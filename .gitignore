@@ -1,5 +1,7 @@
 tmp/
 .coding-agent-harness/
+.agents/
+skills-lock.json
 /ui/
 target/
 node_modules/
