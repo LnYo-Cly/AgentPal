@@ -23,6 +23,7 @@ Repo Governance / CI-CD changes remain routed through their reference standards 
 | HL-2026-06-01-agentpal-mobile-cold-visual-redesign-b37239ca | task | none | AgentPal mobile cold visual redesign | active | none | coding-agent-harness/planning/tasks/2026-06-01-agentpal-mobile-cold-visual-redesign-b37239ca/task_plan.md | pending | pending | pending | Replace warm beige mobile UI with cold developer-tool visual system | 2026-06-01 |
 | HL-2026-06-01-agentpal-host-pairing | task | none | AgentPal Host pairing MVP | planned | none | coding-agent-harness/planning/tasks/2026-06-01-agentpal-host-pairing/task_plan.md | pending | pending | pending | task registered by CLI | 2026-06-01 |
 | HL-2026-06-03-harness-v1-migration-0fc6d60f | task | none | Harness v1 legacy migration | planned | none | coding-agent-harness/planning/tasks/2026-06-03-harness-v1-migration-0fc6d60f/task_plan.md | pending | pending | pending | task registered by CLI | 2026-06-03 |
+| HL-2026-06-04-agentpal-reusable-task-presets-92745a25 | task | none | AgentPal reusable task presets | planned | none | coding-agent-harness/planning/tasks/2026-06-04-agentpal-reusable-task-presets-92745a25/task_plan.md | pending | pending | pending | task registered by CLI | 2026-06-04 |
 
 ## Field Rules
 
