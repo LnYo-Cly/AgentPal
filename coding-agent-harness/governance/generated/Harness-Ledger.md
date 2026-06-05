@@ -26,6 +26,7 @@ Repo Governance / CI-CD changes remain routed through their reference standards 
 | HL-2026-06-04-agentpal-reusable-task-presets-92745a25 | task | none | AgentPal reusable task presets | planned | none | coding-agent-harness/planning/tasks/2026-06-04-agentpal-reusable-task-presets-92745a25/task_plan.md | pending | pending | pending | task registered by CLI | 2026-06-04 |
 | HL-2026-06-05-agentpal-session-history-and-inbox-ux-redesign-af6730dc | task | none | AgentPal session history and inbox UX redesign | planned | none | coding-agent-harness/planning/tasks/2026-06-05-agentpal-session-history-and-inbox-ux-redesign-af6730dc/task_plan.md | pending | pending | pending | task registered by CLI | 2026-06-05 |
 | HL-2026-06-05-agentpal-project-tree-and-worktree-diff-visibili-9aceaeb2 | task | none | AgentPal project tree and worktree diff visibility | planned | none | coding-agent-harness/planning/tasks/2026-06-05-agentpal-project-tree-and-worktree-diff-visibili-9aceaeb2/task_plan.md | pending | pending | pending | task registered by CLI | 2026-06-05 |
+| HL-2026-06-05-agentpal-conversation-workbench-state-and-layout-d31a183a | task | none | AgentPal conversation workbench state and layout repair | planned | none | coding-agent-harness/planning/tasks/2026-06-05-agentpal-conversation-workbench-state-and-layout-d31a183a/task_plan.md | pending | pending | pending | task registered by CLI | 2026-06-05 |
 
 ## Field Rules
 
