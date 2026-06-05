@@ -1,32 +1,65 @@
 import { createBox, createRestyleComponent, createText, createTheme, spacing, SpacingProps } from "@shopify/restyle";
 import { PressableProps } from "react-native";
 
+export type ThemePreference = "system" | "light" | "dark";
+export type ResolvedThemeMode = "light" | "dark";
+
+const lightColors = {
+  canvas: "#F6F9FF",
+  surface: "#FFFFFF",
+  surfaceMuted: "#EEF4FB",
+  navActive: "#E5F1FF",
+  userBubble: "#DFF0FF",
+  terminal: "#0F172A",
+  terminalText: "#EAF2FF",
+  ink: "#101828",
+  inkMuted: "#667085",
+  line: "#D9E4F2",
+  accent: "#2F80ED",
+  accentSoft: "#E3F1FF",
+  cobalt: "#2563EB",
+  cobaltSoft: "#E8F0FF",
+  violet: "#7C3AED",
+  violetSoft: "#F0E9FF",
+  amber: "#D79A21",
+  amberSoft: "#FFF6D8",
+  danger: "#D92D54",
+  dangerSoft: "#FFE7EE",
+  success: "#12B76A",
+  successSoft: "#E7F8F0",
+  white: "#FFFFFF",
+  transparent: "transparent"
+};
+
+const darkColors: typeof lightColors = {
+  canvas: "#1B1B1D",
+  surface: "#15151A",
+  surfaceMuted: "#24252B",
+  navActive: "#202A39",
+  userBubble: "#14304A",
+  terminal: "#090D14",
+  terminalText: "#E7EDF6",
+  ink: "#F4F7FB",
+  inkMuted: "#9CA0AA",
+  line: "#2C2D34",
+  accent: "#2F8CFF",
+  accentSoft: "#102A45",
+  cobalt: "#5EA1FF",
+  cobaltSoft: "#132941",
+  violet: "#B58CFF",
+  violetSoft: "#2B1D45",
+  amber: "#E2A72E",
+  amberSoft: "#382B12",
+  danger: "#FF5D73",
+  dangerSoft: "#3E1720",
+  success: "#22D36E",
+  successSoft: "#123525",
+  white: "#FFFFFF",
+  transparent: "transparent"
+};
+
 export const theme = createTheme({
-  colors: {
-    canvas: "#F6F3EE",
-    surface: "#FFFFFF",
-    surfaceMuted: "#EFEDE8",
-    navActive: "#E7EEF0",
-    userBubble: "#E8F4FA",
-    terminal: "#20242C",
-    terminalText: "#EEF3F8",
-    ink: "#191B20",
-    inkMuted: "#70747E",
-    line: "#E3E0DA",
-    accent: "#5EA1C8",
-    accentSoft: "#E2F2FA",
-    cobalt: "#4B7BD8",
-    cobaltSoft: "#E4ECFF",
-    violet: "#8A6BE8",
-    violetSoft: "#EEE9FF",
-    amber: "#D8992E",
-    amberSoft: "#FFF0D1",
-    danger: "#D94C5C",
-    dangerSoft: "#FDE7EA",
-    success: "#55B772",
-    successSoft: "#E5F6EA",
-    white: "#FFFFFF"
-  },
+  colors: { ...lightColors },
   spacing: {
     none: 0,
     xs: 4,
@@ -39,8 +72,8 @@ export const theme = createTheme({
   borderRadii: {
     none: 0,
     s: 6,
-    m: 12,
-    l: 20,
+    m: 10,
+    l: 16,
     round: 999
   },
   textVariants: {
@@ -88,6 +121,17 @@ export const theme = createTheme({
 });
 
 export type Theme = typeof theme;
+
+export function applyThemePalette(mode: ResolvedThemeMode): Theme {
+  const colors = mode === "dark" ? darkColors : lightColors;
+  Object.assign(theme.colors, colors);
+
+  return {
+    ...theme,
+    colors: { ...theme.colors }
+  };
+}
+
 export const Box = createBox<Theme>();
 export const Text = createText<Theme>();
 

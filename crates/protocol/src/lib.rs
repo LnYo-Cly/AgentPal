@@ -8,6 +8,8 @@ pub type SessionId = String;
 pub type CommandId = String;
 pub type ApprovalId = String;
 pub type ClientId = String;
+pub type PairToken = String;
+pub type WorkspaceId = String;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -20,6 +22,8 @@ pub struct AgentPalEnvelope<T> {
     pub created_at: OffsetDateTime,
     pub payload: T,
 }
+
+pub type SessionEventEnvelope = AgentPalEnvelope<SessionEvent>;
 
 impl<T> AgentPalEnvelope<T> {
     pub fn new(
@@ -88,6 +92,8 @@ pub enum SessionEvent {
     },
     AgentMessage {
         text: String,
+        #[serde(default)]
+        complete: bool,
     },
     ToolStarted {
         name: String,
@@ -135,6 +141,63 @@ pub struct DiffFileSummary {
     pub additions: u32,
     pub deletions: u32,
     pub risk: RiskLevel,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkspaceRequest {
+    pub request_id: String,
+    pub host_id: HostId,
+    pub session_id: Option<SessionId>,
+    pub workspace: Option<String>,
+    pub max_depth: u32,
+    pub max_entries: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkspaceSnapshot {
+    pub request_id: String,
+    pub host_id: HostId,
+    pub workspace: String,
+    pub root_name: String,
+    #[serde(with = "time::serde::rfc3339")]
+    pub generated_at: OffsetDateTime,
+    pub tree: Vec<ProjectTreeEntry>,
+    pub tree_truncated: bool,
+    pub worktrees: Vec<WorktreeSummary>,
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectTreeEntry {
+    pub path: String,
+    pub name: String,
+    pub kind: ProjectEntryKind,
+    pub depth: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ProjectEntryKind {
+    Directory,
+    File,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorktreeSummary {
+    pub path: String,
+    pub branch: Option<String>,
+    pub head: Option<String>,
+    pub dirty: bool,
+    pub files_changed: u32,
+    pub additions: u32,
+    pub deletions: u32,
+    pub files: Vec<DiffFileSummary>,
+    pub diff_truncated: bool,
+    pub error: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -205,6 +268,16 @@ pub struct PickerRegistryItem {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PickerRegistry {
+    pub host_id: HostId,
+    pub session_id: SessionId,
+    pub items: Vec<PickerRegistryItem>,
+    #[serde(with = "time::serde::rfc3339")]
+    pub updated_at: OffsetDateTime,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum PickerTrigger {
     #[serde(rename = "/")]
     Slash,
@@ -250,6 +323,18 @@ pub enum RelayClientMessage {
     ClientCommand {
         command: ClientCommand,
     },
+    HistoryRequest {
+        request: HistoryRequest,
+    },
+    WorkspaceRequest {
+        request: WorkspaceRequest,
+    },
+    WorkspaceSnapshot {
+        snapshot: WorkspaceSnapshot,
+    },
+    PickerRegistry {
+        registry: PickerRegistry,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -269,6 +354,8 @@ pub enum RelayServerMessage {
     Snapshot {
         hosts: Vec<HostStatus>,
         sessions: Vec<SessionSummary>,
+        picker_registries: Vec<PickerRegistry>,
+        workspace_snapshots: Vec<WorkspaceSnapshot>,
     },
     HostStatus {
         status: HostStatus,
@@ -279,12 +366,61 @@ pub enum RelayServerMessage {
     ClientCommand {
         command: ClientCommand,
     },
+    HistoryRequest {
+        request: HistoryRequest,
+    },
+    WorkspaceRequest {
+        request: WorkspaceRequest,
+    },
+    WorkspaceSnapshot {
+        snapshot: WorkspaceSnapshot,
+    },
+    HistoryPage {
+        page: HistoryPage,
+    },
+    PickerRegistry {
+        registry: PickerRegistry,
+    },
     RelayNotice {
         message: String,
     },
     Error {
         message: String,
     },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HistoryRequest {
+    pub request_id: String,
+    pub host_id: HostId,
+    pub session_id: SessionId,
+    pub before_seq: Option<u64>,
+    pub limit: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HistoryPage {
+    pub request_id: String,
+    pub host_id: HostId,
+    pub session_id: SessionId,
+    pub events: Vec<SessionEventEnvelope>,
+    pub has_more: bool,
+    pub oldest_seq: Option<u64>,
+    pub newest_seq: Option<u64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PairingPayload {
+    pub version: u32,
+    pub relay_url: String,
+    pub host_id: HostId,
+    pub host_name: String,
+    pub pair_token: PairToken,
+    #[serde(with = "time::serde::rfc3339::option")]
+    pub expires_at: Option<OffsetDateTime>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

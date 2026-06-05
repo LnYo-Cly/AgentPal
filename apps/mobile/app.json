@@ -9,7 +9,10 @@
     "newArchEnabled": false,
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "dev.agentpal.mobile"
+      "bundleIdentifier": "dev.agentpal.mobile",
+      "infoPlist": {
+        "NSCameraUsageDescription": "AgentPal uses the camera to scan desktop Host pairing QR codes."
+      }
     },
     "android": {
       "package": "dev.agentpal.mobile",
@@ -18,7 +21,15 @@
       }
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "AgentPal uses the camera to scan desktop Host pairing QR codes.",
+          "recordAudioAndroid": false
+        }
+      ],
+      "expo-secure-store"
     ]
   }
 }

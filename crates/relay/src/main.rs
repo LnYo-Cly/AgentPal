@@ -1,7 +1,8 @@
 use std::{collections::HashMap, net::SocketAddr, sync::Arc};
 
 use agentpal_protocol::{
-    HostStatus, RelayClientMessage, RelayServerMessage, SessionEvent, SessionSummary,
+    HistoryPage, HistoryRequest, HostStatus, PickerRegistry, RelayClientMessage,
+    RelayServerMessage, SessionEvent, SessionEventEnvelope, SessionSummary, WorkspaceSnapshot,
 };
 use anyhow::Context;
 use axum::{
@@ -43,6 +44,9 @@ struct AppState {
 struct RelaySnapshot {
     hosts: HashMap<String, HostStatus>,
     sessions: HashMap<String, SessionSummary>,
+    events: HashMap<String, Vec<SessionEventEnvelope>>,
+    picker_registries: HashMap<String, PickerRegistry>,
+    workspace_snapshots: HashMap<String, WorkspaceSnapshot>,
 }
 
 #[derive(Debug, Serialize)]
@@ -101,6 +105,8 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
         RelayServerMessage::Snapshot {
             hosts: snapshot.hosts.values().cloned().collect(),
             sessions: snapshot.sessions.values().cloned().collect(),
+            picker_registries: snapshot.picker_registries.values().cloned().collect(),
+            workspace_snapshots: snapshot.workspace_snapshots.values().cloned().collect(),
         }
     };
     if send_json(&mut sender, &snapshot).await.is_err() {
@@ -174,19 +180,118 @@ async fn handle_client_message(message: RelayClientMessage, state: &AppState) {
             let _ = state.tx.send(RelayServerMessage::HostStatus { status });
         }
         RelayClientMessage::SessionEvent { envelope } => {
-            if let SessionEvent::SessionStarted { summary } = &envelope.payload {
-                state
-                    .snapshot
-                    .write()
-                    .await
-                    .sessions
-                    .insert(summary.session_id.clone(), summary.clone());
+            if let Some(session_id) = &envelope.session_id {
+                let mut snapshot = state.snapshot.write().await;
+                match &envelope.payload {
+                    SessionEvent::SessionStarted { summary } => {
+                        snapshot
+                            .sessions
+                            .insert(summary.session_id.clone(), summary.clone());
+                    }
+                    SessionEvent::StateChanged { state } => {
+                        if let Some(summary) = snapshot.sessions.get_mut(session_id) {
+                            summary.state = state.clone();
+                            summary.updated_at = envelope.created_at;
+                        }
+                    }
+                    SessionEvent::ApprovalRequested { .. } => {
+                        if let Some(summary) = snapshot.sessions.get_mut(session_id) {
+                            summary.pending_approvals = summary.pending_approvals.saturating_add(1);
+                            summary.updated_at = envelope.created_at;
+                        }
+                    }
+                    SessionEvent::ApprovalResolved { .. } => {
+                        if let Some(summary) = snapshot.sessions.get_mut(session_id) {
+                            summary.pending_approvals = summary.pending_approvals.saturating_sub(1);
+                            summary.updated_at = envelope.created_at;
+                        }
+                    }
+                    _ => {}
+                }
+                snapshot
+                    .events
+                    .entry(session_id.clone())
+                    .or_default()
+                    .push(envelope.clone());
             }
             let _ = state.tx.send(RelayServerMessage::SessionEvent { envelope });
         }
         RelayClientMessage::ClientCommand { command } => {
             let _ = state.tx.send(RelayServerMessage::ClientCommand { command });
         }
+        RelayClientMessage::HistoryRequest { request } => {
+            let page = history_page(&request, state).await;
+            let _ = state.tx.send(RelayServerMessage::HistoryPage { page });
+            let _ = state
+                .tx
+                .send(RelayServerMessage::HistoryRequest { request });
+        }
+        RelayClientMessage::WorkspaceRequest { request } => {
+            let _ = state
+                .tx
+                .send(RelayServerMessage::WorkspaceRequest { request });
+        }
+        RelayClientMessage::WorkspaceSnapshot { snapshot } => {
+            state.snapshot.write().await.workspace_snapshots.insert(
+                workspace_snapshot_key(&snapshot.host_id, &snapshot.workspace),
+                snapshot.clone(),
+            );
+            let _ = state
+                .tx
+                .send(RelayServerMessage::WorkspaceSnapshot { snapshot });
+        }
+        RelayClientMessage::PickerRegistry { registry } => {
+            state
+                .snapshot
+                .write()
+                .await
+                .picker_registries
+                .insert(registry.session_id.clone(), registry.clone());
+            let _ = state
+                .tx
+                .send(RelayServerMessage::PickerRegistry { registry });
+        }
+    }
+}
+
+fn workspace_snapshot_key(host_id: &str, workspace: &str) -> String {
+    format!("{host_id}:{workspace}")
+}
+
+async fn history_page(request: &HistoryRequest, state: &AppState) -> HistoryPage {
+    let limit = request.limit.clamp(1, 100) as usize;
+    let snapshot = state.snapshot.read().await;
+    let all_events = snapshot
+        .events
+        .get(&request.session_id)
+        .map(Vec::as_slice)
+        .unwrap_or(&[]);
+
+    let mut candidates: Vec<SessionEventEnvelope> = all_events
+        .iter()
+        .filter(|event| event.host_id == request.host_id)
+        .filter(|event| match request.before_seq {
+            Some(before_seq) => event.seq < before_seq,
+            None => true,
+        })
+        .rev()
+        .take(limit + 1)
+        .cloned()
+        .collect();
+    let has_more = candidates.len() > limit;
+    if has_more {
+        candidates.truncate(limit);
+    }
+    candidates.reverse();
+
+    HistoryPage {
+        request_id: request.request_id.clone(),
+        host_id: request.host_id.clone(),
+        session_id: request.session_id.clone(),
+        oldest_seq: candidates.first().map(|event| event.seq),
+        newest_seq: candidates.last().map(|event| event.seq),
+        events: candidates,
+        has_more,
     }
 }
 

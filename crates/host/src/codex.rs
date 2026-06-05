@@ -1,20 +1,26 @@
 use std::{
+    collections::{HashMap, HashSet},
     env,
-    path::PathBuf,
+    path::{Path, PathBuf},
     process::Stdio,
     sync::Arc,
     time::{Duration, Instant},
 };
 
 use agentpal_protocol::{
-    AgentKind, AgentPalEnvelope, ClientCommand, ClientCommandKind, HostStatus, RelayClientMessage,
-    RelayClientRole, RelayServerMessage, SessionEvent, SessionState, SessionSummary,
+    AgentKind, AgentPalEnvelope, ClientCommand, ClientCommandKind, DiffFileSummary, HistoryRequest,
+    HostStatus, PairingPayload, PickerExecuteMode, PickerItemKind, PickerRegistry,
+    PickerRegistryItem, PickerTrigger, ProjectEntryKind, ProjectTreeEntry, RelayClientMessage,
+    RelayClientRole, RelayServerMessage, RiskLevel, SessionEvent, SessionState, SessionSummary,
+    WorkspaceSnapshot, WorktreeSummary,
 };
 use clap::Args;
 use futures_util::{SinkExt, StreamExt, stream::SplitSink};
+use local_ip_address::local_ip;
+use qrcode::{QrCode, render::unicode};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use time::OffsetDateTime;
+use time::{Duration as TimeDuration, OffsetDateTime, format_description::well_known::Rfc3339};
 use tokio::{
     net::TcpStream,
     process::{Child, Command},
@@ -92,6 +98,30 @@ pub struct CodexConnectArgs {
     pub timeout_seconds: u64,
 }
 
+#[derive(Debug, Args)]
+pub struct CodexPairArgs {
+    #[arg(long, default_value = "agentpal-local-host")]
+    pub host_id: String,
+
+    #[arg(long)]
+    pub host_name: Option<String>,
+
+    #[arg(long)]
+    pub relay_url: Option<String>,
+
+    #[arg(long, default_value_t = 8790)]
+    pub relay_port: u16,
+
+    #[arg(long, default_value = "/ws")]
+    pub relay_path: String,
+
+    #[arg(long, default_value_t = 10)]
+    pub expires_minutes: u64,
+
+    #[arg(long, default_value_t = false)]
+    pub no_qr: bool,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexProbeReport {
@@ -121,6 +151,60 @@ pub enum ProbePhase {
     ThreadStart,
     TurnStart,
     Completed,
+}
+
+type ThreadMap = Arc<Mutex<HashMap<String, String>>>;
+type PendingThreadStarts = Arc<Mutex<HashMap<u64, String>>>;
+type PendingThreadLoads = Arc<Mutex<HashMap<u64, String>>>;
+type PickerItems = Arc<Mutex<Vec<PickerRegistryItem>>>;
+
+pub fn pair(args: CodexPairArgs) -> anyhow::Result<()> {
+    let host_name = args.host_name.clone().unwrap_or_else(default_host_name);
+    let relay_url = match args.relay_url {
+        Some(url) => normalize_ws_url(&url),
+        None => default_lan_relay_url(args.relay_port, &args.relay_path)?,
+    };
+    let expires_at = if args.expires_minutes == 0 {
+        None
+    } else {
+        Some(OffsetDateTime::now_utc() + TimeDuration::minutes(args.expires_minutes as i64))
+    };
+    let payload = PairingPayload {
+        version: 1,
+        relay_url,
+        host_id: args.host_id,
+        host_name,
+        pair_token: Uuid::new_v4().to_string(),
+        expires_at,
+    };
+    let pair_url = pair_url(&payload);
+
+    println!("AgentPal pairing address:");
+    println!("{pair_url}");
+    println!();
+    println!("Manual fields:");
+    println!("  relay_url: {}", payload.relay_url);
+    println!("  host_id: {}", payload.host_id);
+    println!("  host_name: {}", payload.host_name);
+    println!("  pair_token: {}", payload.pair_token);
+    if let Some(expires_at) = payload.expires_at {
+        println!("  expires_at: {expires_at}");
+    } else {
+        println!("  expires_at: never");
+    }
+
+    if !args.no_qr {
+        let code = QrCode::new(pair_url.as_bytes())?;
+        let qr = code
+            .render::<unicode::Dense1x2>()
+            .quiet_zone(true)
+            .module_dimensions(2, 1)
+            .build();
+        println!();
+        println!("{qr}");
+    }
+
+    Ok(())
 }
 
 pub async fn probe(args: CodexProbeArgs) -> CodexProbeReport {
@@ -333,7 +417,10 @@ async fn run_connect_loop(
     let host_id = args.host_id.clone();
     let session_id = args.session_id.clone();
     let workspace_owned = workspace.to_owned();
-    let thread_id = Arc::new(Mutex::new(None::<String>));
+    let thread_ids = Arc::new(Mutex::new(HashMap::<String, String>::new()));
+    let pending_thread_starts = Arc::new(Mutex::new(HashMap::<u64, String>::new()));
+    let pending_thread_loads = Arc::new(Mutex::new(HashMap::<u64, String>::new()));
+    let picker_items = Arc::new(Mutex::new(default_picker_items()));
     let seq = Arc::new(Mutex::new(0_u64));
 
     relay_send(
@@ -346,42 +433,38 @@ async fn run_connect_loop(
     )
     .await?;
     publish_host_status(&relay_write, &host_id, host_name, workspace, 1).await?;
-    publish_session_event(
-        &relay_write,
-        &host_id,
-        &session_id,
-        &seq,
-        SessionEvent::SessionStarted {
-            summary: SessionSummary {
-                session_id: session_id.clone(),
-                agent_kind: AgentKind::Codex,
-                workspace: workspace_owned.clone(),
-                title: Some("Codex local session".to_owned()),
-                state: SessionState::Idle,
-                pending_approvals: 0,
-                updated_at: OffsetDateTime::now_utc(),
-            },
-        },
-    )
-    .await?;
-    publish_session_event(
-        &relay_write,
-        &host_id,
-        &session_id,
-        &seq,
-        SessionEvent::StateChanged {
-            state: SessionState::Idle,
-        },
-    )
-    .await?;
 
     send_codex_initialize(&codex_write).await?;
+    request_codex_picker_sources(&codex_write, &seq, workspace).await?;
+    publish_picker_registry(&relay_write, &host_id, &session_id, &picker_items).await?;
+    publish_recent_codex_threads(
+        &relay_write,
+        &codex_write,
+        &host_id,
+        &session_id,
+        &workspace_owned,
+        &seq,
+    )
+    .await?;
+    publish_workspace_snapshot(
+        &relay_write,
+        &host_id,
+        &session_id,
+        &workspace_owned,
+        "workspace-initial",
+        3,
+        220,
+    )
+    .await?;
 
     let relay_writer_for_codex = Arc::clone(&relay_write);
     let host_for_codex = host_id.clone();
-    let session_for_codex = session_id.clone();
     let seq_for_codex = Arc::clone(&seq);
-    let thread_for_codex = Arc::clone(&thread_id);
+    let threads_for_codex = Arc::clone(&thread_ids);
+    let pending_for_codex = Arc::clone(&pending_thread_starts);
+    let pending_loads_for_codex = Arc::clone(&pending_thread_loads);
+    let picker_items_for_codex = Arc::clone(&picker_items);
+    let picker_session_for_codex = session_id.clone();
     let workspace_for_codex = workspace_owned.clone();
     tokio::spawn(async move {
         read_codex_events(
@@ -389,10 +472,13 @@ async fn run_connect_loop(
             codex_tx,
             relay_writer_for_codex,
             host_for_codex,
-            session_for_codex,
             workspace_for_codex,
             seq_for_codex,
-            thread_for_codex,
+            threads_for_codex,
+            pending_for_codex,
+            pending_loads_for_codex,
+            picker_items_for_codex,
+            picker_session_for_codex,
         )
         .await;
     });
@@ -402,9 +488,11 @@ async fn run_connect_loop(
     let host_for_commands = host_id.clone();
     let session_for_commands = session_id.clone();
     let seq_for_commands = Arc::clone(&seq);
-    let thread_for_commands = Arc::clone(&thread_id);
+    let threads_for_commands = Arc::clone(&thread_ids);
+    let pending_for_commands = Arc::clone(&pending_thread_starts);
+    let pending_loads_for_commands = Arc::clone(&pending_thread_loads);
     let workspace_for_commands = workspace_owned.clone();
-    let command_task = tokio::spawn(async move {
+    let mut command_task = tokio::spawn(async move {
         while let Some(message) = relay_read.next().await {
             let message = match message {
                 Ok(Message::Text(text)) => text,
@@ -415,36 +503,104 @@ async fn run_connect_loop(
             let Ok(server_message) = serde_json::from_str::<RelayServerMessage>(&message) else {
                 continue;
             };
-            if let RelayServerMessage::ClientCommand { command } = server_message {
-                if command.host_id != host_for_commands {
-                    continue;
-                }
-                if let Err(error) = handle_client_command(
-                    command,
-                    &relay_writer_for_commands,
-                    &codex_writer_for_commands,
-                    &host_for_commands,
-                    &session_for_commands,
-                    &workspace_for_commands,
-                    &seq_for_commands,
-                    &thread_for_commands,
-                )
-                .await
-                {
-                    let _ = publish_session_event(
+            match server_message {
+                RelayServerMessage::ClientCommand { command } => {
+                    if command.host_id != host_for_commands {
+                        continue;
+                    }
+                    if let Err(error) = handle_client_command(
+                        command,
                         &relay_writer_for_commands,
+                        &codex_writer_for_commands,
                         &host_for_commands,
                         &session_for_commands,
+                        &workspace_for_commands,
                         &seq_for_commands,
-                        SessionEvent::Error {
-                            message: error.to_string(),
-                            phase: Some("client-command".to_owned()),
-                        },
+                        &threads_for_commands,
+                        &pending_for_commands,
+                        &pending_loads_for_commands,
                     )
-                    .await;
+                    .await
+                    {
+                        let _ = publish_session_event(
+                            &relay_writer_for_commands,
+                            &host_for_commands,
+                            &session_for_commands,
+                            &seq_for_commands,
+                            SessionEvent::Error {
+                                message: error.to_string(),
+                                phase: Some("client-command".to_owned()),
+                            },
+                        )
+                        .await;
+                    }
                 }
+                RelayServerMessage::HistoryRequest { request } => {
+                    if request.host_id != host_for_commands {
+                        continue;
+                    }
+                    if let Err(error) = handle_history_request(
+                        request,
+                        &codex_writer_for_commands,
+                        &workspace_for_commands,
+                        &seq_for_commands,
+                        &threads_for_commands,
+                        &pending_loads_for_commands,
+                    )
+                    .await
+                    {
+                        let _ = publish_session_event(
+                            &relay_writer_for_commands,
+                            &host_for_commands,
+                            &session_for_commands,
+                            &seq_for_commands,
+                            SessionEvent::Error {
+                                message: error.to_string(),
+                                phase: Some("history-request".to_owned()),
+                            },
+                        )
+                        .await;
+                    }
+                }
+                RelayServerMessage::WorkspaceRequest { request } => {
+                    if request.host_id != host_for_commands {
+                        continue;
+                    }
+                    let workspace = request
+                        .workspace
+                        .as_deref()
+                        .unwrap_or(&workspace_for_commands);
+                    if let Err(error) = publish_workspace_snapshot(
+                        &relay_writer_for_commands,
+                        &host_for_commands,
+                        request
+                            .session_id
+                            .as_deref()
+                            .unwrap_or(&session_for_commands),
+                        workspace,
+                        &request.request_id,
+                        request.max_depth,
+                        request.max_entries,
+                    )
+                    .await
+                    {
+                        let _ = publish_session_event(
+                            &relay_writer_for_commands,
+                            &host_for_commands,
+                            &session_for_commands,
+                            &seq_for_commands,
+                            SessionEvent::Error {
+                                message: error.to_string(),
+                                phase: Some("workspace-request".to_owned()),
+                            },
+                        )
+                        .await;
+                    }
+                }
+                _ => {}
             }
         }
+        anyhow::Result::<()>::Err(anyhow::anyhow!("relay websocket closed"))
     });
 
     if let Some(prompt) = &args.once_prompt {
@@ -462,7 +618,9 @@ async fn run_connect_loop(
             &session_id,
             workspace,
             &seq,
-            &thread_id,
+            &thread_ids,
+            &pending_thread_starts,
+            &pending_thread_loads,
         )
         .await?;
     }
@@ -477,17 +635,22 @@ async fn run_connect_loop(
         }
     };
     let loop_result = if args.timeout_seconds > 0 {
-        timeout(Duration::from_secs(args.timeout_seconds), loop_future)
-            .await
-            .map(|_| ())
-            .map_err(anyhow::Error::from)
+        tokio::select! {
+            result = timeout(Duration::from_secs(args.timeout_seconds), loop_future) => {
+                result.map(|_| ()).map_err(anyhow::Error::from)
+            }
+            result = &mut command_task => relay_task_result(result),
+        }
     } else {
         tokio::select! {
             _ = loop_future => Ok(()),
             result = tokio::signal::ctrl_c() => result.map_err(anyhow::Error::from),
+            result = &mut command_task => relay_task_result(result),
         }
     };
-    command_task.abort();
+    if !command_task.is_finished() {
+        command_task.abort();
+    }
 
     publish_session_event(
         &relay_write,
@@ -513,15 +676,27 @@ async fn run_connect_loop(
     Ok(())
 }
 
+fn relay_task_result(
+    result: Result<anyhow::Result<()>, tokio::task::JoinError>,
+) -> anyhow::Result<()> {
+    match result {
+        Ok(Ok(())) => Ok(()),
+        Ok(Err(error)) => Err(error),
+        Err(error) => Err(anyhow::Error::from(error)),
+    }
+}
+
 async fn handle_client_command(
     command: ClientCommand,
     relay_write: &Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     codex_write: &Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     host_id: &str,
-    session_id: &str,
+    fallback_session_id: &str,
     workspace: &str,
     seq: &Arc<Mutex<u64>>,
-    thread_id: &Arc<Mutex<Option<String>>>,
+    thread_ids: &ThreadMap,
+    pending_thread_starts: &PendingThreadStarts,
+    pending_thread_loads: &PendingThreadLoads,
 ) -> anyhow::Result<()> {
     if command.kind != ClientCommandKind::InputSubmit {
         return Ok(());
@@ -536,11 +711,16 @@ async fn handle_client_command(
     if text.is_empty() {
         return Ok(());
     }
+    let target_session_id = if command.session_id.trim().is_empty() {
+        fallback_session_id
+    } else {
+        command.session_id.as_str()
+    };
 
     publish_session_event(
         relay_write,
         host_id,
-        session_id,
+        target_session_id,
         seq,
         SessionEvent::UserMessage { text: text.clone() },
     )
@@ -548,7 +728,7 @@ async fn handle_client_command(
     publish_session_event(
         relay_write,
         host_id,
-        session_id,
+        target_session_id,
         seq,
         SessionEvent::StateChanged {
             state: SessionState::Running,
@@ -556,11 +736,30 @@ async fn handle_client_command(
     )
     .await?;
 
-    let current_thread = thread_id.lock().await.clone();
+    let current_thread = thread_ids.lock().await.get(target_session_id).cloned();
     let thread = match current_thread {
-        Some(thread) => thread,
+        Some(thread) => {
+            if target_session_id == fallback_session_id {
+                thread
+            } else {
+                resume_codex_thread(
+                    codex_write,
+                    workspace,
+                    seq,
+                    pending_thread_loads,
+                    target_session_id,
+                    &thread,
+                    false,
+                )
+                .await?
+            }
+        }
         None => {
             let request_id = next_request_id(seq).await;
+            pending_thread_starts
+                .lock()
+                .await
+                .insert(request_id, target_session_id.to_owned());
             let thread_start = json!({
                 "jsonrpc": "2.0",
                 "id": request_id,
@@ -575,7 +774,7 @@ async fn handle_client_command(
                 }
             });
             codex_send(codex_write, &thread_start).await?;
-            wait_for_thread_id(thread_id).await?
+            wait_for_thread_id(thread_ids, target_session_id).await?
         }
     };
 
@@ -600,15 +799,49 @@ async fn handle_client_command(
     Ok(())
 }
 
+async fn handle_history_request(
+    request: HistoryRequest,
+    codex_write: &Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
+    workspace: &str,
+    seq: &Arc<Mutex<u64>>,
+    thread_ids: &ThreadMap,
+    pending_thread_loads: &PendingThreadLoads,
+) -> anyhow::Result<()> {
+    let session_id = request.session_id.trim();
+    if session_id.is_empty() {
+        return Ok(());
+    }
+
+    let known_thread = thread_ids.lock().await.get(session_id).cloned();
+    let Some(thread_id) = known_thread.or_else(|| thread_id_from_session_id(session_id)) else {
+        return Ok(());
+    };
+
+    resume_codex_thread(
+        codex_write,
+        workspace,
+        seq,
+        pending_thread_loads,
+        session_id,
+        &thread_id,
+        true,
+    )
+    .await?;
+    Ok(())
+}
+
 async fn read_codex_events(
     mut codex_read: futures_util::stream::SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
     codex_tx: mpsc::UnboundedSender<Value>,
     relay_write: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     host_id: String,
-    session_id: String,
     workspace: String,
     seq: Arc<Mutex<u64>>,
-    thread_id: Arc<Mutex<Option<String>>>,
+    thread_ids: ThreadMap,
+    pending_thread_starts: PendingThreadStarts,
+    pending_thread_loads: PendingThreadLoads,
+    picker_items: PickerItems,
+    picker_session_id: String,
 ) {
     while let Some(message) = codex_read.next().await {
         let Ok(Message::Text(text)) = message else {
@@ -618,6 +851,66 @@ async fn read_codex_events(
             continue;
         };
         let _ = codex_tx.send(value.clone());
+        if let Some(items) = picker_items_from_codex_response(&value) {
+            update_picker_items(&picker_items, items).await;
+            let _ =
+                publish_picker_registry(&relay_write, &host_id, &picker_session_id, &picker_items)
+                    .await;
+        }
+        let request_id = value.get("id").and_then(Value::as_u64);
+        let event_thread_id =
+            extract_thread_id(&value).or_else(|| extract_thread_id_from_events(&[value.clone()]));
+        if let Some(id) = &event_thread_id {
+            let pending_session_id = match request_id {
+                Some(request_id) => pending_thread_starts.lock().await.remove(&request_id),
+                None => None,
+            };
+            let session_id = pending_session_id.unwrap_or_else(|| session_id_for_thread(id));
+            thread_ids.lock().await.insert(session_id, id.clone());
+        }
+        if let Some(request_id) = request_id {
+            if let Some(session_id) = pending_thread_loads.lock().await.remove(&request_id) {
+                if let Some(thread_id) = value.pointer("/result/thread/id").and_then(Value::as_str)
+                {
+                    thread_ids
+                        .lock()
+                        .await
+                        .insert(session_id, thread_id.to_owned());
+                }
+            }
+        }
+        let thread_id_snapshot = thread_ids.lock().await.clone();
+        for (history_session_id, event) in
+            codex_response_to_history_events(&value, &workspace, &thread_id_snapshot)
+        {
+            let _ = publish_session_event(&relay_write, &host_id, &history_session_id, &seq, event)
+                .await;
+        }
+        for (history_session_id, thread_id) in codex_threads_in_response(&value) {
+            thread_ids
+                .lock()
+                .await
+                .insert(history_session_id, thread_id);
+        }
+
+        let (mapped_event_session_id, fallback_session_id) = {
+            let thread_ids = thread_ids.lock().await;
+            let mapped_event_session_id = event_thread_id
+                .as_deref()
+                .and_then(|thread_id| session_id_for_known_thread(&thread_ids, thread_id));
+            let fallback_session_id = thread_ids
+                .keys()
+                .next()
+                .cloned()
+                .unwrap_or_else(|| "agentpal-codex-local".to_owned());
+            (mapped_event_session_id, fallback_session_id)
+        };
+        let session_id = {
+            let thread_ids = thread_ids.lock().await;
+            session_id_from_codex_event(&value, &thread_ids)
+        }
+        .or(mapped_event_session_id)
+        .unwrap_or(fallback_session_id);
         if let Some(error) = value.get("error") {
             let _ = publish_session_event(
                 &relay_write,
@@ -630,11 +923,6 @@ async fn read_codex_events(
                 },
             )
             .await;
-        }
-        if let Some(id) =
-            extract_thread_id(&value).or_else(|| extract_thread_id_from_events(&[value.clone()]))
-        {
-            *thread_id.lock().await = Some(id);
         }
         if let Some(event) = codex_event_to_session_event(&value, &session_id, &workspace) {
             let _ = publish_session_event(&relay_write, &host_id, &session_id, &seq, event).await;
@@ -689,9 +977,10 @@ fn codex_event_to_session_event(
         "item/agentMessage/delta" => value
             .pointer("/params/delta")
             .and_then(Value::as_str)
-            .filter(|delta| !delta.trim().is_empty())
+            .filter(|delta| !delta.is_empty())
             .map(|delta| SessionEvent::AgentMessage {
                 text: delta.to_owned(),
+                complete: false,
             }),
         "turn/diff/updated" => {
             let diff = value
@@ -721,6 +1010,34 @@ fn codex_event_to_session_event(
         "item/completed" => {
             let item = value.pointer("/params/item")?;
             let kind = item.get("type").and_then(Value::as_str).unwrap_or("item");
+            if kind == "agentMessage" {
+                return item
+                    .get("text")
+                    .and_then(Value::as_str)
+                    .filter(|text| !text.trim().is_empty())
+                    .map(|text| SessionEvent::AgentMessage {
+                        text: text.to_owned(),
+                        complete: true,
+                    });
+            }
+            if kind == "commandExecution" {
+                return Some(SessionEvent::CommandOutput {
+                    command: item
+                        .get("command")
+                        .and_then(Value::as_str)
+                        .unwrap_or("command")
+                        .to_owned(),
+                    exit_code: item
+                        .get("exitCode")
+                        .and_then(Value::as_i64)
+                        .map(|code| code as i32),
+                    summary: item
+                        .get("aggregatedOutput")
+                        .and_then(Value::as_str)
+                        .map(short_summary)
+                        .unwrap_or_default(),
+                });
+            }
             Some(SessionEvent::ToolFinished {
                 name: kind.to_owned(),
                 ok: !matches!(
@@ -788,17 +1105,414 @@ fn summarize_item(item: &Value) -> String {
     }
 }
 
-async fn wait_for_thread_id(thread_id: &Arc<Mutex<Option<String>>>) -> anyhow::Result<String> {
+fn default_picker_items() -> Vec<PickerRegistryItem> {
+    [
+        ("/help", "帮助", "查看 Codex 可用命令和当前会话帮助"),
+        ("/model", "模型", "切换或查看当前 Codex 模型"),
+        ("/status", "状态", "查看当前会话、模型和权限状态"),
+        ("/diff", "Diff", "查看当前工作区变更"),
+        ("/review", "Review", "请求 Codex 审查当前变更"),
+        ("/approvals", "审批", "查看或调整审批相关设置"),
+        ("/new", "新会话", "开始一个新的 Codex 会话"),
+        ("/resume", "恢复", "恢复历史 Codex 会话"),
+        ("/compact", "压缩上下文", "压缩当前会话上下文"),
+        ("/clear", "清屏", "清理当前终端显示"),
+        ("/quit", "退出", "退出当前 Codex 终端会话"),
+    ]
+    .into_iter()
+    .map(|(insert_text, label, description)| PickerRegistryItem {
+        id: format!("slash:{insert_text}"),
+        trigger: PickerTrigger::Slash,
+        label: label.to_owned(),
+        kind: PickerItemKind::SlashCommand,
+        source: AgentKind::Codex,
+        description: Some(description.to_owned()),
+        insert_text: format!("{insert_text} "),
+        execute_mode: PickerExecuteMode::Insert,
+    })
+    .collect()
+}
+
+fn picker_items_from_codex_response(value: &Value) -> Option<Vec<PickerRegistryItem>> {
+    let mut items = Vec::new();
+    if let Some(entries) = value.pointer("/result/data").and_then(Value::as_array) {
+        for entry in entries {
+            for skill in entry
+                .get("skills")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+            {
+                let Some(name) = skill.get("name").and_then(Value::as_str) else {
+                    continue;
+                };
+                if skill.get("enabled").and_then(Value::as_bool) == Some(false) {
+                    continue;
+                }
+                let label = skill
+                    .pointer("/interface/displayName")
+                    .and_then(Value::as_str)
+                    .unwrap_or(name);
+                let description = skill
+                    .pointer("/interface/shortDescription")
+                    .or_else(|| skill.get("shortDescription"))
+                    .or_else(|| skill.get("description"))
+                    .and_then(Value::as_str)
+                    .map(short_picker_description);
+                items.push(PickerRegistryItem {
+                    id: format!("skill:{name}"),
+                    trigger: PickerTrigger::Dollar,
+                    label: label.to_owned(),
+                    kind: PickerItemKind::Skill,
+                    source: AgentKind::Codex,
+                    description,
+                    insert_text: format!("${name} "),
+                    execute_mode: PickerExecuteMode::Insert,
+                });
+            }
+        }
+    }
+
+    if let Some(marketplaces) = value
+        .pointer("/result/marketplaces")
+        .and_then(Value::as_array)
+    {
+        for marketplace in marketplaces {
+            for plugin in marketplace
+                .get("plugins")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+            {
+                let Some(name) = plugin.get("name").and_then(Value::as_str) else {
+                    continue;
+                };
+                if plugin.get("installed").and_then(Value::as_bool) == Some(false)
+                    || plugin.get("enabled").and_then(Value::as_bool) == Some(false)
+                {
+                    continue;
+                }
+                let label = plugin
+                    .pointer("/interface/displayName")
+                    .and_then(Value::as_str)
+                    .unwrap_or(name);
+                let description = plugin
+                    .pointer("/interface/shortDescription")
+                    .or_else(|| plugin.pointer("/interface/longDescription"))
+                    .and_then(Value::as_str)
+                    .map(short_picker_description);
+                items.push(PickerRegistryItem {
+                    id: format!("plugin:{name}"),
+                    trigger: PickerTrigger::Dollar,
+                    label: label.to_owned(),
+                    kind: PickerItemKind::Plugin,
+                    source: AgentKind::Codex,
+                    description,
+                    insert_text: format!("${name} "),
+                    execute_mode: PickerExecuteMode::Insert,
+                });
+            }
+        }
+    }
+
+    (!items.is_empty()).then_some(items)
+}
+
+async fn update_picker_items(picker_items: &PickerItems, next_items: Vec<PickerRegistryItem>) {
+    let mut items = picker_items.lock().await;
+    for next in next_items {
+        if let Some(existing) = items.iter_mut().find(|item| item.id == next.id) {
+            *existing = next;
+        } else {
+            items.push(next);
+        }
+    }
+}
+
+fn short_picker_description(value: &str) -> String {
+    let trimmed = value.trim();
+    if trimmed.chars().count() <= 120 {
+        trimmed.to_owned()
+    } else {
+        format!("{}...", trimmed.chars().take(120).collect::<String>())
+    }
+}
+
+fn picker_kind_rank(kind: &PickerItemKind) -> u8 {
+    match kind {
+        PickerItemKind::SlashCommand => 0,
+        PickerItemKind::Skill => 1,
+        PickerItemKind::Plugin => 2,
+        PickerItemKind::Preset => 3,
+    }
+}
+
+fn codex_response_to_history_events(
+    value: &Value,
+    workspace: &str,
+    thread_ids: &HashMap<String, String>,
+) -> Vec<(String, SessionEvent)> {
+    let Some(id) = value.get("id").and_then(Value::as_u64) else {
+        return Vec::new();
+    };
+    if id < 1_000 {
+        return Vec::new();
+    }
+
+    let mut events = Vec::new();
+    if let Some(items) = value.pointer("/result/data").and_then(Value::as_array) {
+        for thread in items {
+            if let Some(summary) = thread_to_session_summary(thread, workspace) {
+                events.push((
+                    summary.session_id.clone(),
+                    SessionEvent::SessionStarted { summary },
+                ));
+            }
+        }
+    }
+    if let Some(thread) = value.pointer("/result/thread") {
+        if let Some(mut summary) = thread_to_session_summary(thread, workspace) {
+            if let Some(thread_id) = thread.get("id").and_then(Value::as_str) {
+                if let Some(mapped_session_id) = session_id_for_known_thread(thread_ids, thread_id)
+                {
+                    summary.session_id = mapped_session_id;
+                }
+            }
+            let session_id = summary.session_id.clone();
+            events.push((session_id.clone(), SessionEvent::SessionStarted { summary }));
+            for item in thread
+                .get("turns")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+                .filter_map(|turn| turn.get("items").and_then(Value::as_array))
+                .flatten()
+            {
+                if let Some(event) = thread_item_to_session_event(item) {
+                    events.push((session_id.clone(), event));
+                }
+            }
+        }
+    }
+    events
+}
+
+fn codex_threads_in_response(value: &Value) -> Vec<(String, String)> {
+    let mut items = Vec::new();
+    if let Some(threads) = value.pointer("/result/data").and_then(Value::as_array) {
+        for thread in threads {
+            if let Some(thread_id) = thread.get("id").and_then(Value::as_str) {
+                items.push((session_id_for_thread(thread_id), thread_id.to_owned()));
+            }
+        }
+    }
+    if let Some(thread_id) = value.pointer("/result/thread/id").and_then(Value::as_str) {
+        items.push((session_id_for_thread(thread_id), thread_id.to_owned()));
+    }
+    items
+}
+
+fn thread_to_session_summary(thread: &Value, workspace_fallback: &str) -> Option<SessionSummary> {
+    let thread_id = thread.get("id").and_then(Value::as_str)?;
+    let workspace = thread
+        .get("cwd")
+        .and_then(Value::as_str)
+        .unwrap_or(workspace_fallback)
+        .to_owned();
+    Some(SessionSummary {
+        session_id: session_id_for_thread(thread_id),
+        agent_kind: AgentKind::Codex,
+        workspace,
+        title: thread
+            .get("name")
+            .and_then(Value::as_str)
+            .or_else(|| thread.get("preview").and_then(Value::as_str))
+            .filter(|title| !title.trim().is_empty())
+            .map(|title| title.trim().chars().take(72).collect()),
+        state: codex_thread_state(thread),
+        pending_approvals: 0,
+        updated_at: unix_seconds_to_offset_datetime(
+            thread
+                .get("updatedAt")
+                .or_else(|| thread.get("updated_at"))
+                .and_then(Value::as_i64),
+        )
+        .unwrap_or_else(OffsetDateTime::now_utc),
+    })
+}
+
+fn thread_item_to_session_event(item: &Value) -> Option<SessionEvent> {
+    let kind = item.get("type").and_then(Value::as_str)?;
+    match kind {
+        "userMessage" => {
+            let text = item
+                .get("content")
+                .and_then(Value::as_array)?
+                .iter()
+                .filter_map(|content| {
+                    if content.get("type").and_then(Value::as_str) == Some("text") {
+                        content.get("text").and_then(Value::as_str)
+                    } else {
+                        None
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join("\n");
+            (!text.trim().is_empty()).then_some(SessionEvent::UserMessage { text })
+        }
+        "agentMessage" => item
+            .get("text")
+            .and_then(Value::as_str)
+            .filter(|text| !text.trim().is_empty())
+            .map(|text| SessionEvent::AgentMessage {
+                text: text.to_owned(),
+                complete: true,
+            }),
+        "commandExecution" => Some(SessionEvent::CommandOutput {
+            command: item
+                .get("command")
+                .and_then(Value::as_str)
+                .unwrap_or("command")
+                .to_owned(),
+            exit_code: item
+                .get("exitCode")
+                .and_then(Value::as_i64)
+                .map(|code| code as i32),
+            summary: item
+                .get("aggregatedOutput")
+                .and_then(Value::as_str)
+                .map(short_summary)
+                .unwrap_or_default(),
+        }),
+        "fileChange" | "mcpToolCall" | "dynamicToolCall" => Some(SessionEvent::ToolFinished {
+            name: kind.to_owned(),
+            ok: true,
+            summary: summarize_item(item),
+        }),
+        _ => None,
+    }
+}
+
+fn codex_thread_state(thread: &Value) -> SessionState {
+    let status = thread.pointer("/status/type").and_then(Value::as_str);
+    match status {
+        Some("active") => SessionState::Running,
+        Some("systemError") => SessionState::Failed,
+        Some("idle") | Some("notLoaded") | _ => SessionState::Idle,
+    }
+}
+
+fn unix_seconds_to_offset_datetime(seconds: Option<i64>) -> Option<OffsetDateTime> {
+    seconds.and_then(|seconds| OffsetDateTime::from_unix_timestamp(seconds).ok())
+}
+
+fn short_summary(text: &str) -> String {
+    let trimmed = text.trim();
+    if trimmed.chars().count() <= 600 {
+        return trimmed.to_owned();
+    }
+    format!("{}...", trimmed.chars().take(600).collect::<String>())
+}
+
+async fn publish_recent_codex_threads(
+    relay_write: &Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
+    codex_write: &Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
+    host_id: &str,
+    fallback_session_id: &str,
+    workspace: &str,
+    seq: &Arc<Mutex<u64>>,
+) -> anyhow::Result<()> {
+    let request_id = next_request_id(seq).await;
+    let request = json!({
+        "jsonrpc": "2.0",
+        "id": request_id,
+        "method": "thread/list",
+        "params": {
+            "limit": 8,
+            "cwd": workspace,
+            "sortKey": "updated_at",
+            "sortDirection": "desc",
+            "archived": false
+        }
+    });
+    codex_send(codex_write, &request).await?;
+
+    let fallback_summary = SessionSummary {
+        session_id: fallback_session_id.to_owned(),
+        agent_kind: AgentKind::Codex,
+        workspace: workspace.to_owned(),
+        title: Some("新 Codex 会话".to_owned()),
+        state: SessionState::Idle,
+        pending_approvals: 0,
+        updated_at: OffsetDateTime::now_utc(),
+    };
+    publish_session_event(
+        relay_write,
+        host_id,
+        fallback_session_id,
+        seq,
+        SessionEvent::SessionStarted {
+            summary: fallback_summary,
+        },
+    )
+    .await?;
+    publish_session_event(
+        relay_write,
+        host_id,
+        fallback_session_id,
+        seq,
+        SessionEvent::StateChanged {
+            state: SessionState::Idle,
+        },
+    )
+    .await?;
+    Ok(())
+}
+
+async fn wait_for_thread_id(thread_ids: &ThreadMap, session_id: &str) -> anyhow::Result<String> {
     let deadline = Instant::now() + Duration::from_secs(20);
     loop {
-        if let Some(thread) = thread_id.lock().await.clone() {
-            return Ok(thread);
+        if let Some(thread) = thread_ids.lock().await.get(session_id).cloned() {
+            if !thread.is_empty() {
+                return Ok(thread);
+            }
         }
         if Instant::now() > deadline {
             anyhow::bail!("timed out waiting for codex thread id");
         }
         sleep(Duration::from_millis(100)).await;
     }
+}
+
+async fn resume_codex_thread(
+    codex_write: &Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
+    workspace: &str,
+    seq: &Arc<Mutex<u64>>,
+    pending_thread_loads: &PendingThreadLoads,
+    session_id: &str,
+    thread_id: &str,
+    include_turns: bool,
+) -> anyhow::Result<String> {
+    let request_id = next_request_id(seq).await;
+    pending_thread_loads
+        .lock()
+        .await
+        .insert(request_id, session_id.to_owned());
+    let resume = json!({
+        "jsonrpc": "2.0",
+        "id": request_id,
+        "method": "thread/resume",
+        "params": {
+            "threadId": thread_id,
+            "cwd": workspace,
+            "runtimeWorkspaceRoots": [workspace],
+            "approvalPolicy": "on-request",
+            "sandbox": "workspace-write",
+            "excludeTurns": !include_turns
+        }
+    });
+    codex_send(codex_write, &resume).await?;
+    Ok(thread_id.to_owned())
 }
 
 async fn publish_host_status(
@@ -811,6 +1525,451 @@ async fn publish_host_status(
     let mut status = HostStatus::local_codex(host_id, host_name, workspace);
     status.active_sessions = active_sessions;
     relay_send(relay_write, &RelayClientMessage::HostStatus { status }).await
+}
+
+async fn request_codex_picker_sources(
+    codex_write: &Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
+    seq: &Arc<Mutex<u64>>,
+    workspace: &str,
+) -> Result<(), WsError> {
+    let skills_id = next_request_id(seq).await;
+    let skills = json!({
+        "jsonrpc": "2.0",
+        "id": skills_id,
+        "method": "skills/list",
+        "params": {
+            "cwds": [workspace],
+            "forceReload": true
+        }
+    });
+    codex_send(codex_write, &skills).await?;
+
+    let plugins_id = next_request_id(seq).await;
+    let plugins = json!({
+        "jsonrpc": "2.0",
+        "id": plugins_id,
+        "method": "plugin/list",
+        "params": {
+            "cwds": [workspace],
+            "marketplaceKinds": ["local", "workspace-directory"]
+        }
+    });
+    codex_send(codex_write, &plugins).await
+}
+
+async fn publish_picker_registry(
+    relay_write: &Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
+    host_id: &str,
+    session_id: &str,
+    picker_items: &PickerItems,
+) -> Result<(), WsError> {
+    let mut items = picker_items.lock().await.clone();
+    items.sort_by(|a, b| {
+        picker_kind_rank(&a.kind)
+            .cmp(&picker_kind_rank(&b.kind))
+            .then_with(|| a.label.to_lowercase().cmp(&b.label.to_lowercase()))
+    });
+    let registry = PickerRegistry {
+        host_id: host_id.to_owned(),
+        session_id: session_id.to_owned(),
+        items,
+        updated_at: OffsetDateTime::now_utc(),
+    };
+    relay_send(
+        relay_write,
+        &RelayClientMessage::PickerRegistry { registry },
+    )
+    .await
+}
+
+async fn publish_workspace_snapshot(
+    relay_write: &Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
+    host_id: &str,
+    _session_id: &str,
+    workspace: &str,
+    request_id: &str,
+    max_depth: u32,
+    max_entries: u32,
+) -> anyhow::Result<()> {
+    let snapshot =
+        build_workspace_snapshot(host_id, workspace, request_id, max_depth, max_entries).await;
+    relay_send(
+        relay_write,
+        &RelayClientMessage::WorkspaceSnapshot { snapshot },
+    )
+    .await?;
+    Ok(())
+}
+
+async fn build_workspace_snapshot(
+    host_id: &str,
+    workspace: &str,
+    request_id: &str,
+    max_depth: u32,
+    max_entries: u32,
+) -> WorkspaceSnapshot {
+    let root = canonical_workspace_path(workspace);
+    let workspace_display = root.to_string_lossy().to_string();
+    let root_name = root
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("workspace")
+        .to_owned();
+    let (tree, tree_truncated, tree_error) =
+        collect_project_tree(&root, max_depth.clamp(1, 6), max_entries.clamp(40, 800));
+    let (worktrees, worktree_error) = collect_worktree_summaries(&root).await;
+    let error = [tree_error, worktree_error]
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>()
+        .join("; ");
+
+    WorkspaceSnapshot {
+        request_id: request_id.to_owned(),
+        host_id: host_id.to_owned(),
+        workspace: workspace_display,
+        root_name,
+        generated_at: OffsetDateTime::now_utc(),
+        tree,
+        tree_truncated,
+        worktrees,
+        error: (!error.is_empty()).then_some(error),
+    }
+}
+
+fn canonical_workspace_path(workspace: &str) -> PathBuf {
+    let input = PathBuf::from(workspace);
+    input.canonicalize().unwrap_or(input)
+}
+
+fn collect_project_tree(
+    root: &Path,
+    max_depth: u32,
+    max_entries: u32,
+) -> (Vec<ProjectTreeEntry>, bool, Option<String>) {
+    if !root.exists() {
+        return (
+            Vec::new(),
+            false,
+            Some(format!("workspace path does not exist: {}", root.display())),
+        );
+    }
+
+    let mut entries = Vec::new();
+    let mut truncated = false;
+    let result = collect_project_tree_inner(
+        root,
+        root,
+        0,
+        max_depth,
+        max_entries as usize,
+        &mut entries,
+        &mut truncated,
+    );
+    (
+        entries,
+        truncated,
+        result.err().map(|error| error.to_string()),
+    )
+}
+
+fn collect_project_tree_inner(
+    root: &Path,
+    current: &Path,
+    depth: u32,
+    max_depth: u32,
+    max_entries: usize,
+    entries: &mut Vec<ProjectTreeEntry>,
+    truncated: &mut bool,
+) -> anyhow::Result<()> {
+    if entries.len() >= max_entries {
+        *truncated = true;
+        return Ok(());
+    }
+
+    let mut children = Vec::new();
+    for item in std::fs::read_dir(current)? {
+        let item = item?;
+        let file_name = item.file_name().to_string_lossy().to_string();
+        if should_skip_tree_entry(&file_name) {
+            continue;
+        }
+        let file_type = item.file_type()?;
+        children.push((file_name, file_type.is_dir(), item.path()));
+    }
+    children.sort_by(|a, b| {
+        b.1.cmp(&a.1)
+            .then_with(|| a.0.to_lowercase().cmp(&b.0.to_lowercase()))
+    });
+
+    for (name, is_dir, path) in children {
+        if entries.len() >= max_entries {
+            *truncated = true;
+            break;
+        }
+        let display_path = relative_path(root, &path);
+        entries.push(ProjectTreeEntry {
+            path: display_path,
+            name,
+            kind: if is_dir {
+                ProjectEntryKind::Directory
+            } else {
+                ProjectEntryKind::File
+            },
+            depth,
+        });
+        if is_dir && depth + 1 < max_depth {
+            collect_project_tree_inner(
+                root,
+                &path,
+                depth + 1,
+                max_depth,
+                max_entries,
+                entries,
+                truncated,
+            )?;
+        }
+    }
+
+    Ok(())
+}
+
+fn should_skip_tree_entry(name: &str) -> bool {
+    matches!(
+        name,
+        ".git"
+            | ".agents"
+            | ".codex"
+            | ".coding-agent-harness"
+            | ".expo"
+            | ".gradle"
+            | ".harness"
+            | ".idea"
+            | ".next"
+            | ".turbo"
+            | ".venv"
+            | ".vscode"
+            | "build"
+            | "coding-agent-harness"
+            | "dist"
+            | "node_modules"
+            | "target"
+            | "tmp"
+            | "ui"
+    )
+}
+
+async fn collect_worktree_summaries(root: &Path) -> (Vec<WorktreeSummary>, Option<String>) {
+    let worktrees = match git_output(root, &["worktree", "list", "--porcelain"]).await {
+        Ok(output) => parse_worktree_list(&output),
+        Err(error) => {
+            let summary = summarize_worktree(root, None, None).await;
+            return (vec![summary], Some(error.to_string()));
+        }
+    };
+    let targets = if worktrees.is_empty() {
+        vec![WorktreeInfo {
+            path: root.to_path_buf(),
+            branch: None,
+            head: None,
+        }]
+    } else {
+        worktrees
+    };
+
+    let mut summaries = Vec::new();
+    for worktree in targets.into_iter().take(12) {
+        summaries.push(summarize_worktree(&worktree.path, worktree.branch, worktree.head).await);
+    }
+    (summaries, None)
+}
+
+#[derive(Debug)]
+struct WorktreeInfo {
+    path: PathBuf,
+    branch: Option<String>,
+    head: Option<String>,
+}
+
+fn parse_worktree_list(output: &str) -> Vec<WorktreeInfo> {
+    let mut items = Vec::new();
+    let mut current: Option<WorktreeInfo> = None;
+
+    for line in output.lines() {
+        if let Some(path) = line.strip_prefix("worktree ") {
+            if let Some(item) = current.take() {
+                items.push(item);
+            }
+            current = Some(WorktreeInfo {
+                path: PathBuf::from(path.trim()),
+                branch: None,
+                head: None,
+            });
+            continue;
+        }
+        if let Some(item) = current.as_mut() {
+            if let Some(head) = line.strip_prefix("HEAD ") {
+                item.head = Some(head.trim().to_owned());
+            } else if let Some(branch) = line.strip_prefix("branch ") {
+                item.branch = Some(branch.trim().trim_start_matches("refs/heads/").to_owned());
+            }
+        }
+    }
+    if let Some(item) = current {
+        items.push(item);
+    }
+    items
+}
+
+async fn summarize_worktree(
+    path: &Path,
+    branch: Option<String>,
+    head: Option<String>,
+) -> WorktreeSummary {
+    let mut files: HashMap<String, DiffFileSummary> = HashMap::new();
+    let mut error_messages = Vec::new();
+
+    for args in [
+        &["diff", "--numstat", "--"][..],
+        &["diff", "--cached", "--numstat", "--"][..],
+    ] {
+        match git_output(path, args).await {
+            Ok(output) => merge_numstat(&mut files, &output),
+            Err(error) => error_messages.push(error.to_string()),
+        }
+    }
+
+    let status_output = match git_output(path, &["status", "--porcelain=v1", "-uall"]).await {
+        Ok(output) => output,
+        Err(error) => {
+            error_messages.push(error.to_string());
+            String::new()
+        }
+    };
+    merge_status_paths(&mut files, &status_output);
+
+    let mut file_list: Vec<DiffFileSummary> = files.into_values().collect();
+    file_list.sort_by(|a, b| a.path.to_lowercase().cmp(&b.path.to_lowercase()));
+    let files_changed = file_list.len() as u32;
+    let additions = file_list.iter().map(|item| item.additions).sum();
+    let deletions = file_list.iter().map(|item| item.deletions).sum();
+    let diff_truncated = file_list.len() > 30;
+    if diff_truncated {
+        file_list.truncate(30);
+    }
+
+    WorktreeSummary {
+        path: path.to_string_lossy().to_string(),
+        branch,
+        head,
+        dirty: files_changed > 0 || !status_output.trim().is_empty(),
+        files_changed,
+        additions,
+        deletions,
+        files: file_list,
+        diff_truncated,
+        error: (!error_messages.is_empty()).then_some(error_messages.join("; ")),
+    }
+}
+
+fn merge_numstat(files: &mut HashMap<String, DiffFileSummary>, output: &str) {
+    for line in output.lines() {
+        let mut parts = line.split('\t');
+        let additions = parse_numstat_count(parts.next());
+        let deletions = parse_numstat_count(parts.next());
+        let Some(path) = parts.next().map(clean_git_path) else {
+            continue;
+        };
+        let entry = files
+            .entry(path.clone())
+            .or_insert_with(|| DiffFileSummary {
+                path: path.clone(),
+                additions: 0,
+                deletions: 0,
+                risk: risk_for_path(&path),
+            });
+        entry.additions = entry.additions.saturating_add(additions);
+        entry.deletions = entry.deletions.saturating_add(deletions);
+    }
+}
+
+fn parse_numstat_count(value: Option<&str>) -> u32 {
+    value.and_then(|part| part.parse::<u32>().ok()).unwrap_or(0)
+}
+
+fn merge_status_paths(files: &mut HashMap<String, DiffFileSummary>, output: &str) {
+    let mut seen = HashSet::new();
+    for line in output.lines() {
+        if line.len() < 4 {
+            continue;
+        }
+        let path = clean_git_path(&line[3..]);
+        if path.is_empty() || !seen.insert(path.clone()) {
+            continue;
+        }
+        files
+            .entry(path.clone())
+            .or_insert_with(|| DiffFileSummary {
+                path: path.clone(),
+                additions: 0,
+                deletions: 0,
+                risk: risk_for_path(&path),
+            });
+    }
+}
+
+fn clean_git_path(path: &str) -> String {
+    let cleaned = path
+        .rsplit_once(" -> ")
+        .map(|(_, next)| next)
+        .unwrap_or(path)
+        .trim()
+        .trim_matches('"');
+    cleaned.replace('\\', "/")
+}
+
+fn risk_for_path(path: &str) -> RiskLevel {
+    let lower = path.to_lowercase();
+    if lower.contains("secret")
+        || lower.contains("credential")
+        || lower.ends_with(".env")
+        || lower.contains("androidmanifest.xml")
+    {
+        RiskLevel::High
+    } else if lower.ends_with(".lock")
+        || lower.contains("package-lock.json")
+        || lower.contains("cargo.lock")
+        || lower.contains("gradle")
+    {
+        RiskLevel::Medium
+    } else {
+        RiskLevel::Low
+    }
+}
+
+async fn git_output(cwd: &Path, args: &[&str]) -> anyhow::Result<String> {
+    let output = timeout(
+        Duration::from_secs(8),
+        Command::new("git")
+            .args(args)
+            .current_dir(cwd)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .output(),
+    )
+    .await??;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_owned();
+        anyhow::bail!("git {} failed: {}", args.join(" "), stderr);
+    }
+    Ok(String::from_utf8_lossy(&output.stdout).to_string())
+}
+
+fn relative_path(root: &Path, path: &Path) -> String {
+    path.strip_prefix(root)
+        .unwrap_or(path)
+        .to_string_lossy()
+        .replace('\\', "/")
 }
 
 async fn publish_session_event(
@@ -945,6 +2104,93 @@ fn websocket_url(host: &str, port: u16, path: &str) -> String {
         format!("/{path}")
     };
     format!("ws://{host}:{port}{path}")
+}
+
+fn normalize_ws_url(input: &str) -> String {
+    let mut value = input.trim().to_owned();
+    if !value.starts_with("ws://") && !value.starts_with("wss://") {
+        value = format!("ws://{value}");
+    }
+    if !value.ends_with("/ws") && !value.ends_with("/ws/") {
+        value = format!("{}/ws", value.trim_end_matches('/'));
+    }
+    value
+}
+
+fn default_lan_relay_url(port: u16, path: &str) -> anyhow::Result<String> {
+    let ip = local_ip()?;
+    Ok(websocket_url(&ip.to_string(), port, path))
+}
+
+fn pair_url(payload: &PairingPayload) -> String {
+    let mut url = url::Url::parse("agentpal://pair").expect("static pair url parses");
+    {
+        let mut query = url.query_pairs_mut();
+        query.append_pair("v", &payload.version.to_string());
+        query.append_pair("relayUrl", &payload.relay_url);
+        query.append_pair("hostId", &payload.host_id);
+        query.append_pair("hostName", &payload.host_name);
+        query.append_pair("pairToken", &payload.pair_token);
+        if let Some(expires_at) = payload.expires_at {
+            query.append_pair(
+                "expiresAt",
+                &expires_at
+                    .format(&Rfc3339)
+                    .unwrap_or_else(|_| expires_at.to_string()),
+            );
+        }
+    }
+    url.to_string()
+}
+
+fn session_id_for_thread(thread_id: &str) -> String {
+    format!("codex-{thread_id}")
+}
+
+fn thread_id_from_session_id(session_id: &str) -> Option<String> {
+    session_id
+        .strip_prefix("codex-")
+        .filter(|thread_id| !thread_id.trim().is_empty())
+        .map(str::to_owned)
+}
+
+fn session_id_from_codex_event(
+    value: &Value,
+    thread_ids: &HashMap<String, String>,
+) -> Option<String> {
+    value
+        .pointer("/params/threadId")
+        .or_else(|| value.pointer("/params/thread/id"))
+        .or_else(|| value.pointer("/params/turn/threadId"))
+        .and_then(Value::as_str)
+        .map(|thread_id| {
+            session_id_for_known_thread(thread_ids, thread_id)
+                .unwrap_or_else(|| session_id_for_thread(thread_id))
+        })
+}
+
+fn session_id_for_known_thread(
+    thread_ids: &HashMap<String, String>,
+    thread_id: &str,
+) -> Option<String> {
+    thread_ids
+        .iter()
+        .find_map(|(session_id, known_thread_id)| {
+            if known_thread_id == thread_id && !session_id.starts_with("codex-") {
+                Some(session_id.clone())
+            } else {
+                None
+            }
+        })
+        .or_else(|| {
+            thread_ids.iter().find_map(|(session_id, known_thread_id)| {
+                if known_thread_id == thread_id {
+                    Some(session_id.clone())
+                } else {
+                    None
+                }
+            })
+        })
 }
 
 async fn read_until_response<S>(

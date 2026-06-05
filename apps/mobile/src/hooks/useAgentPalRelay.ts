@@ -3,12 +3,17 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ConnectionState,
   HostStatus,
+  PickerRegistry,
   RelayClientMessage,
   RelayServerMessage,
+  SessionEventEnvelope,
   SessionEvent,
   SessionSummary,
+  WorkspaceSnapshot,
   defaultRelayUrl,
-  makeInputCommand
+  makeHistoryRequest,
+  makeInputCommand,
+  makeWorkspaceRequest
 } from "@/lib/relay";
 
 type TimelineItem = {
@@ -19,13 +24,29 @@ type TimelineItem = {
   event: SessionEvent;
 };
 
-export function useAgentPalRelay(url = defaultRelayUrl()) {
+type SessionHistory = {
+  events: SessionEventEnvelope[];
+  loading: boolean;
+  hasMore: boolean;
+  oldestSeq: number | null;
+  error: string | null;
+  latestRequestId: string | null;
+};
+
+const historyPageSize = 30;
+const historyTimeoutMs = 9000;
+
+export function useAgentPalRelay(url = defaultRelayUrl(), pairedHostId?: string | null) {
   const socketRef = useRef<WebSocket | null>(null);
   const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [reconnectNonce, setReconnectNonce] = useState(0);
   const [connectionState, setConnectionState] = useState<ConnectionState>("connecting");
   const [hosts, setHosts] = useState<HostStatus[]>([]);
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [timeline, setTimeline] = useState<TimelineItem[]>([]);
+  const [sessionHistory, setSessionHistory] = useState<Record<string, SessionHistory>>({});
+  const [pickerRegistries, setPickerRegistries] = useState<Record<string, PickerRegistry>>({});
+  const [workspaceSnapshots, setWorkspaceSnapshots] = useState<Record<string, WorkspaceSnapshot>>({});
   const [lastError, setLastError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -47,14 +68,14 @@ export function useAgentPalRelay(url = defaultRelayUrl()) {
           type: "register",
           role: "mobile",
           clientId: `mobile-${Date.now()}`,
-          hostId: null
+          hostId: pairedHostId ?? null
         });
       };
 
       socket.onmessage = (message) => {
         try {
           const parsed = JSON.parse(String(message.data)) as RelayServerMessage;
-          applyServerMessage(parsed, setHosts, setSessions, setTimeline, setLastError);
+          applyServerMessage(parsed, setHosts, setSessions, setTimeline, setSessionHistory, setPickerRegistries, setWorkspaceSnapshots, setLastError);
         } catch (error) {
           setLastError(error instanceof Error ? error.message : "Relay message parse failed");
         }
@@ -88,10 +109,103 @@ export function useAgentPalRelay(url = defaultRelayUrl()) {
       socketRef.current?.close();
       socketRef.current = null;
     };
-  }, [url]);
+  }, [pairedHostId, reconnectNonce, url]);
 
-  const activeHost = useMemo(() => hosts.find((host) => host.online) ?? hosts[0] ?? null, [hosts]);
+  const activeHost = useMemo(
+    () => {
+      if (pairedHostId) {
+        return hosts.find((host) => host.hostId === pairedHostId) ?? null;
+      }
+      return hosts.find((host) => host.online) ?? hosts[0] ?? null;
+    },
+    [hosts, pairedHostId]
+  );
   const activeSession = useMemo(() => sessions[0] ?? null, [sessions]);
+
+  const requestSessionHistory = useCallback(
+    (hostId: string, sessionId: string, beforeSeq?: number | null) => {
+      const socket = socketRef.current;
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        return false;
+      }
+
+      let shouldRequest = false;
+      const request = makeHistoryRequest(hostId, sessionId, beforeSeq, historyPageSize);
+      setSessionHistory((items) => {
+        const current = items[sessionId];
+        if (current?.loading || (beforeSeq && current && !current.hasMore)) {
+          return items;
+        }
+        shouldRequest = true;
+        return {
+          ...items,
+          [sessionId]: {
+            events: current?.events ?? [],
+            hasMore: current?.hasMore ?? true,
+            oldestSeq: current?.oldestSeq ?? null,
+            loading: true,
+            error: null,
+            latestRequestId: request.requestId
+          }
+        };
+      });
+
+      if (!shouldRequest) {
+        return false;
+      }
+
+      sendRaw(socket, {
+        type: "history-request",
+        request
+      });
+      setTimeout(() => {
+        setSessionHistory((items) => {
+          const current = items[sessionId];
+          if (!current?.loading || current.latestRequestId !== request.requestId) {
+            return items;
+          }
+          return {
+            ...items,
+            [sessionId]: {
+              ...current,
+              loading: false,
+              hasMore: current.events.length > 0 ? current.hasMore : false,
+              error: "历史加载超时",
+              latestRequestId: null
+            }
+          };
+        });
+      }, historyTimeoutMs);
+      return true;
+    },
+    []
+  );
+
+  const loadLatestHistory = useCallback(
+    (sessionId: string) => {
+      const hostId = activeHost?.hostId;
+      if (!hostId) {
+        return false;
+      }
+      return requestSessionHistory(hostId, sessionId, null);
+    },
+    [activeHost, requestSessionHistory]
+  );
+
+  const loadOlderHistory = useCallback(
+    (sessionId: string) => {
+      const current = sessionHistory[sessionId];
+      if (!current?.hasMore || !current.oldestSeq) {
+        return false;
+      }
+      const hostId = activeHost?.hostId;
+      if (!hostId) {
+        return false;
+      }
+      return requestSessionHistory(hostId, sessionId, current.oldestSeq);
+    },
+    [activeHost, requestSessionHistory, sessionHistory]
+  );
 
   const submit = useCallback(
     (text: string, sessionIdOverride?: string | null) => {
@@ -111,16 +225,52 @@ export function useAgentPalRelay(url = defaultRelayUrl()) {
     [activeHost, activeSession]
   );
 
+  const requestWorkspaceSnapshot = useCallback(
+    (sessionId?: string | null, workspace?: string | null) => {
+      const socket = socketRef.current;
+      const hostId = activeHost?.hostId;
+      if (!hostId || !socket || socket.readyState !== WebSocket.OPEN) {
+        return false;
+      }
+      const message: RelayClientMessage = {
+        type: "workspace-request",
+        request: makeWorkspaceRequest(hostId, sessionId, workspace)
+      };
+      sendRaw(socket, message);
+      return true;
+    },
+    [activeHost]
+  );
+
+  const reconnect = useCallback(() => {
+    setHosts([]);
+    setSessions([]);
+    setTimeline([]);
+    setSessionHistory({});
+    setPickerRegistries({});
+    setWorkspaceSnapshots({});
+    setConnectionState("connecting");
+    setLastError(null);
+    setReconnectNonce((value) => value + 1);
+  }, []);
+
   return {
     relayUrl: url,
     connectionState,
     hosts,
     sessions,
     timeline,
+    sessionHistory,
+    pickerRegistries,
+    workspaceSnapshots,
     activeHost,
     activeSession,
     lastError,
-    submit
+    reconnect,
+    submit,
+    requestWorkspaceSnapshot,
+    loadLatestHistory,
+    loadOlderHistory
   };
 }
 
@@ -133,12 +283,17 @@ function applyServerMessage(
   setHosts: (updater: (items: HostStatus[]) => HostStatus[]) => void,
   setSessions: (updater: (items: SessionSummary[]) => SessionSummary[]) => void,
   setTimeline: (updater: (items: TimelineItem[]) => TimelineItem[]) => void,
+  setSessionHistory: (updater: (items: Record<string, SessionHistory>) => Record<string, SessionHistory>) => void,
+  setPickerRegistries: (updater: (items: Record<string, PickerRegistry>) => Record<string, PickerRegistry>) => void,
+  setWorkspaceSnapshots: (updater: (items: Record<string, WorkspaceSnapshot>) => Record<string, WorkspaceSnapshot>) => void,
   setLastError: (value: string | null) => void
 ) {
   switch (message.type) {
     case "snapshot":
       setHosts(() => message.hosts);
       setSessions(() => message.sessions);
+      setPickerRegistries(() => Object.fromEntries((message.pickerRegistries ?? []).map((registry) => [registry.sessionId, registry])));
+      setWorkspaceSnapshots(() => Object.fromEntries((message.workspaceSnapshots ?? []).map((snapshot) => [workspaceSnapshotKey(snapshot.hostId, snapshot.workspace), snapshot])));
       setLastError(null);
       break;
     case "host-status":
@@ -176,16 +331,93 @@ function applyServerMessage(
           ...items
         ].slice(0, 80)
       );
+      if (message.envelope.sessionId) {
+        setSessionHistory((items) => mergeRealtimeEnvelope(items, message.envelope));
+      }
+      break;
+    case "history-page":
+      setLastError(null);
+      setSessionHistory((items) => mergeHistoryPage(items, message.page.sessionId, message.page.events, message.page.hasMore));
+      break;
+    case "picker-registry":
+      setLastError(null);
+      setPickerRegistries((items) => ({
+        ...items,
+        [message.registry.sessionId]: message.registry
+      }));
+      break;
+    case "workspace-snapshot":
+      setLastError(null);
+      setWorkspaceSnapshots((items) => ({
+        ...items,
+        [workspaceSnapshotKey(message.snapshot.hostId, message.snapshot.workspace)]: message.snapshot
+      }));
       break;
     case "error":
       setLastError(message.message);
       break;
     case "relay-notice":
     case "client-command":
+    case "history-request":
+    case "workspace-request":
       break;
     default:
       setLastError(null);
   }
+}
+
+export function workspaceSnapshotKey(hostId: string, workspace: string) {
+  return `${hostId}:${workspace}`;
+}
+
+function mergeRealtimeEnvelope(items: Record<string, SessionHistory>, envelope: SessionEventEnvelope) {
+  const sessionId = envelope.sessionId;
+  if (!sessionId) {
+    return items;
+  }
+  const current = items[sessionId] ?? { events: [], loading: false, hasMore: true, oldestSeq: null, error: null, latestRequestId: null };
+  if (current.events.some((item) => item.id === envelope.id)) {
+    return items;
+  }
+  const events = sortEvents([...current.events, envelope]);
+  return {
+    ...items,
+    [sessionId]: {
+      ...current,
+      events,
+      oldestSeq: events[0]?.seq ?? current.oldestSeq,
+      loading: false,
+      error: null,
+      latestRequestId: null
+    }
+  };
+}
+
+function mergeHistoryPage(items: Record<string, SessionHistory>, sessionId: string, nextEvents: SessionEventEnvelope[], hasMore: boolean) {
+  const current = items[sessionId] ?? { events: [], loading: false, hasMore: true, oldestSeq: null, error: null, latestRequestId: null };
+  const byId = new Map<string, SessionEventEnvelope>();
+  for (const event of current.events) {
+    byId.set(event.id, event);
+  }
+  for (const event of nextEvents) {
+    byId.set(event.id, event);
+  }
+  const events = sortEvents(Array.from(byId.values()));
+  return {
+    ...items,
+    [sessionId]: {
+      events,
+      hasMore,
+      loading: false,
+      oldestSeq: events[0]?.seq ?? null,
+      error: null,
+      latestRequestId: null
+    }
+  };
+}
+
+function sortEvents(events: SessionEventEnvelope[]) {
+  return events.slice().sort((a, b) => a.seq - b.seq);
 }
 
 function upsertBy<T>(items: T[], next: T, getKey: (item: T) => string) {

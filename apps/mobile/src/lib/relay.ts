@@ -3,6 +3,9 @@ import { Platform } from "react-native";
 
 export type AgentKind = "codex" | "claude-code" | "open-code" | "open-claw" | "custom";
 export type SessionState = "idle" | "thinking" | "running" | "waiting-approval" | "completed" | "failed" | "offline";
+export type PickerTrigger = "/" | "$";
+export type PickerItemKind = "slash-command" | "skill" | "plugin" | "preset";
+export type PickerExecuteMode = "insert" | "submit" | "host-action";
 
 export type HostStatus = {
   hostId: string;
@@ -33,6 +36,8 @@ export type AgentPalEnvelope<T> = {
   payload: T;
 };
 
+export type SessionEventEnvelope = AgentPalEnvelope<SessionEvent>;
+
 export type DiffSummary = {
   filesChanged: number;
   additions: number;
@@ -45,11 +50,52 @@ export type DiffSummary = {
   }>;
 };
 
+export type WorkspaceRequest = {
+  requestId: string;
+  hostId: string;
+  sessionId?: string | null;
+  workspace?: string | null;
+  maxDepth: number;
+  maxEntries: number;
+};
+
+export type WorkspaceSnapshot = {
+  requestId: string;
+  hostId: string;
+  workspace: string;
+  rootName: string;
+  generatedAt: string;
+  tree: ProjectTreeEntry[];
+  treeTruncated: boolean;
+  worktrees: WorktreeSummary[];
+  error?: string | null;
+};
+
+export type ProjectTreeEntry = {
+  path: string;
+  name: string;
+  kind: "directory" | "file";
+  depth: number;
+};
+
+export type WorktreeSummary = {
+  path: string;
+  branch?: string | null;
+  head?: string | null;
+  dirty: boolean;
+  filesChanged: number;
+  additions: number;
+  deletions: number;
+  files: DiffSummary["files"];
+  diffTruncated: boolean;
+  error?: string | null;
+};
+
 export type SessionEvent =
   | { type: "session-started"; summary: SessionSummary }
   | { type: "state-changed"; state: SessionState }
   | { type: "user-message"; text: string }
-  | { type: "agent-message"; text: string }
+  | { type: "agent-message"; text: string; complete?: boolean }
   | { type: "tool-started"; name: string; input: unknown }
   | { type: "tool-finished"; name: string; ok: boolean; summary: string }
   | { type: "command-output"; command: string; exitCode?: number | null; summary: string }
@@ -59,10 +105,15 @@ export type SessionEvent =
   | { type: "error"; message: string; phase?: string | null };
 
 export type RelayServerMessage =
-  | { type: "snapshot"; hosts: HostStatus[]; sessions: SessionSummary[] }
+  | { type: "snapshot"; hosts: HostStatus[]; sessions: SessionSummary[]; pickerRegistries?: PickerRegistry[]; workspaceSnapshots?: WorkspaceSnapshot[] }
   | { type: "host-status"; status: HostStatus }
   | { type: "session-event"; envelope: AgentPalEnvelope<SessionEvent> }
   | { type: "client-command"; command: ClientCommand }
+  | { type: "history-request"; request: HistoryRequest }
+  | { type: "workspace-request"; request: WorkspaceRequest }
+  | { type: "workspace-snapshot"; snapshot: WorkspaceSnapshot }
+  | { type: "history-page"; page: HistoryPage }
+  | { type: "picker-registry"; registry: PickerRegistry }
   | { type: "relay-notice"; message: string }
   | { type: "error"; message: string };
 
@@ -79,7 +130,45 @@ export type ClientCommand = {
 
 export type RelayClientMessage =
   | { type: "register"; role: "mobile"; clientId: string; hostId?: string | null }
-  | { type: "client-command"; command: ClientCommand };
+  | { type: "client-command"; command: ClientCommand }
+  | { type: "history-request"; request: HistoryRequest }
+  | { type: "workspace-request"; request: WorkspaceRequest };
+
+export type PickerRegistryItem = {
+  id: string;
+  trigger: PickerTrigger;
+  label: string;
+  kind: PickerItemKind;
+  source: AgentKind;
+  description?: string | null;
+  insertText: string;
+  executeMode: PickerExecuteMode;
+};
+
+export type PickerRegistry = {
+  hostId: string;
+  sessionId: string;
+  items: PickerRegistryItem[];
+  updatedAt: string;
+};
+
+export type HistoryRequest = {
+  requestId: string;
+  hostId: string;
+  sessionId: string;
+  beforeSeq?: number | null;
+  limit: number;
+};
+
+export type HistoryPage = {
+  requestId: string;
+  hostId: string;
+  sessionId: string;
+  events: SessionEventEnvelope[];
+  hasMore: boolean;
+  oldestSeq?: number | null;
+  newestSeq?: number | null;
+};
 
 export type ConnectionState = "connecting" | "online" | "offline" | "error";
 
@@ -115,6 +204,27 @@ export function makeInputCommand(hostId: string, sessionId: string, text: string
     kind: "input-submit",
     createdAt: new Date().toISOString(),
     payload: { text }
+  };
+}
+
+export function makeHistoryRequest(hostId: string, sessionId: string, beforeSeq?: number | null, limit = 30): HistoryRequest {
+  return {
+    requestId: `history-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    hostId,
+    sessionId,
+    beforeSeq: beforeSeq ?? null,
+    limit
+  };
+}
+
+export function makeWorkspaceRequest(hostId: string, sessionId?: string | null, workspace?: string | null): WorkspaceRequest {
+  return {
+    requestId: `workspace-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    hostId,
+    sessionId: sessionId ?? null,
+    workspace: workspace ?? null,
+    maxDepth: 3,
+    maxEntries: 220
   };
 }
 
