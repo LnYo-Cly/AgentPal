@@ -4,111 +4,16 @@
 
 | Reviewer | Type | Scope |
 | --- | --- | --- |
-| [name] | self / subagent / external / human | [审查范围] |
+| coordinator | self | 代码 diff、协议边界、Host 路径安全、移动端预览交互和验证证据 |
 
 ## 审查范围
 
-- 审查类型：adversarial / security / regression / architecture / release / other
-- 范围内：[文件、模块、行为、运行目标]
-- 范围外：[明确不审查的内容；如无写“无”]
-- 来源材料：[task plan、diff、commit、PR、测试输出、运行证据]
+- 审查类型：regression / security / architecture / mobile UX
+- 范围内：`apps/mobile/app/index.tsx`、`apps/mobile/src/hooks/useAgentPalRelay.ts`、`apps/mobile/src/lib/relay.ts`、`crates/protocol/src/lib.rs`、`crates/relay/src/main.rs`、`crates/host/src/codex.rs`
+- 范围外：完整文件编辑、二进制/图片预览、Diff 逐行审查、语音输入、session 管理重构
+- 来源材料：代码提交 `1888a74`、验证命令输出、真实 WebSocket file-preview probe
 
 ## Agent Review Submission（Agent 提交审查）
-
-本节由 agent 或 coordinator 在审查材料包准备好时填写。它只表示“提交待审”，不表示人工批准。
-
-| Field | Value |
-| --- | --- |
-| Submission ID | [由 task-review 生成] |
-| Submitted At | [timestamp] |
-| Submitted By | [agent 或 coordinator 身份] |
-| Task Key | 2026-06-06-agentpal-project-explorer-expand-and-file-previe-393118ff |
-| Materials Checklist Hash | [由 task-review 生成；只作信息记录，不作为手工门禁] |
-| Evidence Summary | [测试、diff、运行和审查材料证据] |
-| Open Findings Count | [数字] |
-| Scanner Version | [生成时的 scanner 版本] |
-
-### Material Checklist（材料清单）
-
-| Material | Required? | Status | Evidence |
-| --- | --- | --- | --- |
-| Brief | yes / no | present / missing / incomplete | [路径或原因] |
-| Task plan | yes / no | present / missing / incomplete | [路径或原因] |
-| Progress and evidence | yes / no | present / missing / incomplete | [路径或原因] |
-| Visual map | yes / no | present / missing / incomplete | [路径或原因] |
-| Lesson candidate decision | yes / no | present / missing / incomplete | [路径或原因] |
-| Walkthrough or closeout link | yes / no | present / missing / incomplete | [路径或原因] |
-
-Scanner 会根据必需文件、章节、证据和这个严格提交块派生 `materialsReady`。如果材料未齐，任务应进入缺材料队列，而不是人工审查确认队列。
-如果存在开放的 P0/P1/P2 阻塞发现，任务应进入阻塞队列，而不是人工审查确认队列。
-
-## 信心挑战（Confidence Challenge）
-
-直接回答：你是否对当前计划、实现和策略有 100% 信心？
-
-- Verdict：yes / no
-- 如果不是 100%，剩余漏洞或证据缺口：
-  - [风险 / 漏洞 / 未验证假设；如无写“无”]
-- Fix loop count：[已经执行几轮 review -> fix -> evidence -> review]
-- 当前结论：[为什么现在可以继续、暂停或收口]
-
-## 重要发现（Material Findings，表头供 checker 解析）
-
-| ID | Severity | Finding | Evidence Checked | Required Action | Open | Disposition | Blocks Release | Follow-up |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-
-不要保留示例 finding。若没有重要发现，只保留表头，并补全下面的无重要发现声明。
-
-允许的 `Severity`：`P0`, `P1`, `P2`, `P3`。
-允许的 `Open`：`yes`, `no`。
-允许的 `Disposition`：`open`, `mitigated`, `closed`, `deferred`, `accepted-risk`, `not-reproducible`, `out-of-scope`。
-允许的 `Blocks Release`：`yes`, `no`。
-
-## 非阻塞备注（Non-Material Notes）
-
-- [不阻塞本轮目标但值得记录的问题；如无写“无”]
-
-## 已检查证据（Evidence Checked）
-
-| Evidence ID | Type | Path | Summary |
-| --- | --- | --- | --- |
-| E-001 | command / diff / fixture / screenshot / review / report | PUBLIC:path 或 PRIVATE:path 或 TARGET:path 或 EXTERNAL:path 或 URL:https://example.com | [检查了什么，结论是什么] |
-
-## 无重要发现声明
-
-[如果没有重要发现，明确写：本轮已检查上述证据，未发现阻塞目标的重要发现。]
-
-## 残余风险
-
-| Risk | Owner | Accepted? | Follow-up |
-| --- | --- | --- | --- |
-| [风险] | [负责人] | yes / no | [后续路径或“无”] |
-
-## Lifecycle Queue Routing（生命周期队列路由）
-
-| Queue | Applies? | Reason | Exit condition |
-| --- | --- | --- | --- |
-| Review | yes / no | 已提交审查材料包，且可等待人工确认。 | 人工确认或退回。 |
-| Missing Materials | yes / no | 必需文件、章节、证据或 review submission 缺失 / 不完整。 | Agent 补齐材料并重新提交审查。 |
-| Blocked | yes / no | 存在 open blocking finding、非法状态转换、审计失败或需要人工 waiver。 | blocker 被修复、关闭或明确豁免。 |
-| Lessons | yes / no | Lesson candidate 需要拒绝、留在任务内、dry-run promotion 或创建沉淀任务。 | 人工决定候选路由；除非明确批准，promotion 仍是单独维护任务。 |
-| Confirmed / Finalized | yes / no | 已有人工确认；可能仍待结项或治理收口。 | Closeout、ledger 和 lesson routing 都完成。 |
-| Soft-deleted / Superseded | yes / no | 任务有 tombstone、superseded-by 或 archive 状态；duplicate / abandoned 等语义写在 `Reason`。 | reopen 或作为只读审计历史保留。 |
-
-## 后续路由（Follow-Up Routing）
-
-- 任务计划：[是否需要更新，路径或“无”]
-- Progress：[对应 `progress.md` 条目]
-- 发现记录：[是否需要写入 `findings.md`]
-- Regression SSoT：[新增 / 调整 / 无]
-- Lessons：[checked-created: L-YYYY-MM-DD-NNN / checked-candidate: LC-YYYYMMDD-NNN / queued-promotion: LC-YYYYMMDD-NNN / checked-none: 一句话原因]
-- 收口记录：[收口时引用路径]
-
-## 最终信心依据（Final Confidence Basis）
-
-[说明最终信心来自哪些证据、审查层级和已关闭发现。发布前最终审查不能只依赖 self-only。]
-
-## Agent Review Submission
 
 | Field | Value |
 | --- | --- |
@@ -120,4 +25,79 @@ Scanner 会根据必需文件、章节、证据和这个严格提交块派生 `m
 | Evidence Summary | Implemented project tree folder expand/collapse and read-only file preview. Mobile sends file-preview-request; Relay forwards it; Host validates workspace boundary, rejects binary/outside-workspace files, and returns text previews. Code commit: 1888a74. Evidence: npm --prefix apps/mobile run typecheck; cargo check --workspace with CARGO_TARGET_DIR=tmp/target-file-preview-check; cargo fmt; git diff --check; npx expo export --platform ios --output-dir ../../tmp/expo-export-file-preview --clear; WebSocket file-preview probe returned apps/mobile/app/index.tsx content in 13ms. |
 | Open Findings Count | 0 |
 | Scanner Version | task-scanner/2026-05-25-phase-kind |
-| Target | TARGET:coding-agent-harness/planning/tasks/2026-06-06-agentpal-project-explorer-expand-and-file-previe-393118ff |
+
+### Material Checklist（材料清单）
+
+| Material | Required? | Status | Evidence |
+| --- | --- | --- | --- |
+| Brief | yes | present | `brief.md` describes scope, boundary and completion criteria |
+| Task plan | yes | present | `task_plan.md` lists protocol, Host, Relay, mobile and validation steps |
+| Progress and evidence | yes | present | `progress.md` records checks and probe evidence |
+| Visual map | yes | present | `visual_map.md` records lifecycle phases and human gate |
+| Lesson candidate decision | yes | present | `lesson_candidates.md` generated by Harness, no candidate accepted |
+| Walkthrough or closeout link | yes | present | `walkthrough.md` summarizes implementation and verification |
+
+## 信心挑战（Confidence Challenge）
+
+- Verdict：yes
+- 如果不是 100%，剩余漏洞或证据缺口：
+  - 无阻塞目标的证据缺口；仍需用户在手机端确认实际视觉与交互手感。
+- Fix loop count：1
+- 当前结论：自动检查和真实 Host/Relay probe 均通过，可以交给人工确认 gate。
+
+## 重要发现（Material Findings，表头供 checker 解析）
+
+| ID | Severity | Finding | Evidence Checked | Required Action | Open | Disposition | Blocks Release | Follow-up |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+
+## 非阻塞备注（Non-Material Notes）
+
+- 文件预览是只读文本预览；完整文件管理器、搜索和编辑属于后续任务。
+- 大文件按 Host 限制截断，UI 会显示“已截断”。
+
+## 已检查证据（Evidence Checked）
+
+| Evidence ID | Type | Path | Summary |
+| --- | --- | --- | --- |
+| E-001 | command | TARGET:apps/mobile | `npm --prefix apps/mobile run typecheck` passed |
+| E-002 | command | TARGET:. | `CARGO_TARGET_DIR=tmp/target-file-preview-check cargo check --workspace` passed |
+| E-003 | command | TARGET:. | `cargo fmt` completed |
+| E-004 | command | TARGET:. | `git diff --check` passed with CRLF warnings only |
+| E-005 | command | TARGET:apps/mobile | `npx expo export --platform ios --output-dir ../../tmp/expo-export-file-preview --clear` passed |
+| E-006 | fixture | ws://127.0.0.1:8790/ws | file-preview probe returned `apps/mobile/app/index.tsx`, language `tsx`, `truncated=true`, content prefix present in 13ms |
+| E-007 | diff | TARGET:. | Code commit `1888a74 feat(agentpal): add project file preview` |
+
+## 无重要发现声明
+
+本轮已检查上述证据，未发现阻塞目标的重要发现。
+
+## 残余风险
+
+| Risk | Owner | Accepted? | Follow-up |
+| --- | --- | --- | --- |
+| 手机端实际视觉手感仍需用户确认 | human | yes | 通过 Expo Go 刷新后在项目面板点击目录和文件 |
+| 二进制、图片、超大文件完整预览不在本轮支持范围 | coordinator | yes | 后续独立任务 |
+
+## Lifecycle Queue Routing（生命周期队列路由）
+
+| Queue | Applies? | Reason | Exit condition |
+| --- | --- | --- | --- |
+| Review | yes | Agent review submission 已完成，等待人工确认。 | 用户人工确认或退回。 |
+| Missing Materials | no | 任务材料已补齐实际目标、范围、证据和 walkthrough。 | 不适用。 |
+| Blocked | no | 没有 open blocking finding。 | 不适用。 |
+| Lessons | no | 本轮没有需要沉淀为全局 lesson 的候选。 | 不适用。 |
+| Confirmed / Finalized | no | 人工确认尚未完成。 | 用户执行或授权人工确认。 |
+| Soft-deleted / Superseded | no | 任务仍为当前活跃任务。 | 不适用。 |
+
+## 后续路由（Follow-Up Routing）
+
+- 任务计划：已更新 `task_plan.md`
+- Progress：见 `progress.md`
+- 发现记录：无重要发现，不更新 `findings.md`
+- Regression SSoT：无新增
+- Lessons：checked-none: 本轮是局部功能实现，没有可复用流程经验
+- 收口记录：`walkthrough.md`
+
+## 最终信心依据（Final Confidence Basis）
+
+信心来自类型检查、Rust workspace check、Expo iOS export、diff check 和真实 WebSocket file-preview probe。人工确认仍需要用户在手机端检查交互是否符合预期。

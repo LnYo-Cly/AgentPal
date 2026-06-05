@@ -2,61 +2,44 @@
 
 ## 状态：审查中
 
-`## 状态` 是受控机器字段，只能使用以下值之一：
-
-- `未开始`
-- `计划中`
-- `进行中`
-- `审查中`
-- `已阻塞`
-- `已完成`
-
-不要把 `计划审阅中`、`等待 coordinator pass`、`本地审查就绪` 等细粒度协作状态写入本字段。
-这些状态应记录到进度记录、残余或协调者交接中。
-
 ## 进度记录
-
-证据使用 `type:path:summary` 格式。
-
-允许的 `type`：`command`, `diff`, `fixture`, `screenshot`, `review`, `report`。
-
-证据较长或数量较多时，不要粘贴全文；放入 `artifacts/INDEX.md` 并在这里引用 ID。
-
-### [YYYY-MM-DD HH:MM] - [阶段名称]
-
-- 做了什么：[具体操作]
-- 验证结果：[运行了什么检查，结果如何]
-- 下一步：[下一步动作]
-- 证据：[type:path:summary]
-
-## 残余
-
-- [遗留问题；如无写“无”]
-
-## 协调者交接（Coordinator，启用模块并行时填写）
-
-- Global sync status：pending-coordinator-pass / synced / n/a
-- Registry update needed：[module key, step, status, branch, updated / 不适用]
-- Harness Ledger update needed：[task plan path, review path, closeout status / 不适用]
-- 负责人：coordinator / 不适用
 
 ### [2026-06-05 16:59] - task-start
 
-- 做了什么：Start implementing project tree folder expansion and read-only file preview.
-- 验证结果：已记录
-- 下一步：继续执行
-- 证据：n/a
+- 做了什么：启动任务，确认本轮目标是会话页项目目录展开和只读文件预览。
+- 验证结果：Harness 任务创建并进入执行状态。
+- 下一步：实现协议、Host、Relay 和移动端 UI。
+- 证据：command:harness task-start:任务进入进行中。
 
-### [2026-06-05 17:52] - task-log
+### [2026-06-05 17:52] - implementation evidence
 
-- 做了什么：Implemented project folder expand/collapse, read-only Host file preview protocol, mobile preview sheet, and compact conversation panel tabs. Evidence: npm --prefix apps/mobile run typecheck passed; CARGO_TARGET_DIR=tmp/target-file-preview-check cargo check --workspace passed; git diff --check passed with CRLF warnings only; npx expo export --platform ios --output-dir ../../tmp/expo-export-file-preview --clear passed; WebSocket file-preview probe returned apps/mobile/app/index.tsx content with language=tsx and truncated=true.
-- 验证结果：已记录
-- 下一步：继续执行
-- 证据：n/a
+- 做了什么：实现项目目录展开/收起、Host 文件预览协议、Relay 转发、移动端预览缓存和文件预览弹层。
+- 验证结果：移动端类型检查、Rust workspace check、diff check、Expo iOS export 和真实 WebSocket file-preview probe 通过。
+- 下一步：提交代码并进入 agent review。
+- 证据：command:npm --prefix apps/mobile run typecheck:passed
+- 证据：command:CARGO_TARGET_DIR=tmp/target-file-preview-check cargo check --workspace:passed
+- 证据：command:cargo fmt:passed
+- 证据：command:git diff --check:passed with CRLF warnings only
+- 证据：command:npx expo export --platform ios --output-dir ../../tmp/expo-export-file-preview --clear:passed
+- 证据：command:WebSocket file-preview probe:apps/mobile/app/index.tsx returned language=tsx, truncated=true, content prefix in 13ms
 
-### [2026-06-05 17:59] - task-review
+### [2026-06-05 17:59] - code commit and agent review
 
-- 做了什么：Implemented project tree folder expand/collapse and read-only file preview. Mobile sends file-preview-request; Relay forwards it; Host validates workspace boundary, rejects binary/outside-workspace files, and returns text previews. Code commit: 1888a74. Evidence: npm --prefix apps/mobile run typecheck; cargo check --workspace with CARGO_TARGET_DIR=tmp/target-file-preview-check; cargo fmt; git diff --check; npx expo export --platform ios --output-dir ../../tmp/expo-export-file-preview --clear; WebSocket file-preview probe returned apps/mobile/app/index.tsx content in 13ms.
-- 验证结果：已记录
-- 下一步：继续执行
-- 证据：n/a
+- 做了什么：提交代码并执行 Harness `task-review`。
+- 验证结果：代码提交 `1888a74 feat(agentpal): add project file preview`；Harness 已生成 agent review submission。
+- 下一步：修正任务材料占位内容，然后等待人工确认 gate。
+- 证据：diff:1888a74:6 files, 611 insertions, 28 deletions
+- 证据：review:review.md:agent review submission created with open findings count 0
+
+## 残余
+
+- 人工确认 gate 仍未完成，agent 不代办 `review-confirm`。
+- 文件预览当前只支持文本预览；二进制、目录和 workspace 外路径会被拒绝。
+- 大文件会按请求上限截断，完整文件浏览或搜索不在本任务范围。
+
+## 协调者交接（Coordinator，启用模块并行时填写）
+
+- Global sync status：synced
+- Registry update needed：不适用
+- Harness Ledger update needed：已由 Harness CLI 同步
+- 负责人：coordinator
