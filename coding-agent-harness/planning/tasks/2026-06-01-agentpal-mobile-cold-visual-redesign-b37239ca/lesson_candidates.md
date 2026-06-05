@@ -14,7 +14,7 @@
 | Closeout token | pending |
 | Source task | 2026-06-01-agentpal-mobile-cold-visual-redesign-b37239ca |
 | Owner | coordinator |
-| Last updated | 2026-06-01 |
+| Last updated | 2026-06-03 |
 
 ## Schema
 
@@ -49,7 +49,7 @@
 
 ## No-Candidate Reason
 
-尚未判定。只有人工审查接受本任务没有可复用候选时，才填写这里。
+Agent 当前判断：本轮是 AgentPal 项目内移动端 UI/hook P0 修复，没有足够通用的治理经验需要立即 promoted。最终仍等待人工审查接受 no-candidate，或改判为需要沉淀。
 
 ## Promotion Notes
 

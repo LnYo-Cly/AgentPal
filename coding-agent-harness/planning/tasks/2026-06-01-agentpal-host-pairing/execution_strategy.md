@@ -18,8 +18,8 @@
 
 | Question | Decision | Reason | Next Action |
 | --- | --- | --- | --- |
-| Should a reviewer subagent be used? | yes / no | [为什么需要或不需要 reviewer] | 如果 yes，直接调用只读 reviewer，不需要额外申请。 |
-| Would a worker subagent materially help? | no / ask-user / already-authorized | [并行切片、独立实现、专项调查，或说明为什么不需要] | 如果 ask-user，直接问：“这个任务适合拆给 worker subagent 并行处理。是否授权我派一个 worker subagent，只修改 [scope]，只在 [worktree/branch] 内执行，我负责协调和最终审查？” |
+| Should a reviewer subagent be used? | no | 本轮主要是同一协议链路和真实本地探针验证，self-review 加真实 Codex probe 足够覆盖风险。 | 记录 self-review 到 `review.md`。 |
+| Would a worker subagent materially help? | no | 改动集中在 Host/Relay/mobile 协议闭环，拆 worker 会增加同步成本和 dirty worktree 冲突风险。 | coordinator 直接实现和验证。 |
 
 ## User Authorization Decision
 
@@ -28,18 +28,18 @@
 
 | Gate | State | Decided By | Decided At | Scope | Worktree / Branch | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| worker subagent | pending | pending | pending | pending | pending | 只有直接问过用户后才能填写。 |
+| worker subagent | not-needed | coordinator | 2026-06-02 01:21 Asia/Shanghai | Host/Relay/mobile pairing and session slice | same checkout | 单人 coordinator 执行更稳。 |
 
 ## 决策表
 
 | 决策 | 选择 | 说明 |
 | --- | --- | --- |
 | 主执行者 | coordinator | coordinator 负责编排顺序、冲突判断和最终收口。 |
-| Subagent 模式 | none / reviewer-only / worker-worktree | 选择能满足任务的最小协作模式。 |
-| 审查模型 | self-check / predefined verifier / adversarial review | 说明为什么该审查层级足够。 |
-| Worktree 策略 | same checkout / dedicated worktree | 会改代码的 subagent 必须使用独立 worktree，并提交 handoff commit。 |
+| Subagent 模式 | none | 任务接口强耦合且已有 dirty worktree，保持 coordinator 单线执行。 |
+| 审查模型 | self-check + real integration probes | TypeScript/Rust/static checks之外，增加真实 Codex realtime 和 history WebSocket 探针。 |
+| Worktree 策略 | same checkout | 用户当前在同一项目真机测试，切换 worktree 会让 Expo/Host 运行路径复杂化。 |
 | 冲突控制 | coordinator owns shared files | subagent 不得直接编辑 coordinator 管理的全局表或共享文件，除非获得明确锁。 |
-| 证据深度 | L0 / L1 / L2 / L3 | 按变更风险匹配证据深度。 |
+| 证据深度 | L2 | 涉及 mobile + Relay + Host + Codex，本轮需要真实本地集成探针。 |
 
 ## 子代理 / Worker 合同
 
@@ -47,16 +47,16 @@
 
 | 角色 | 输入包 | 写入范围 | 交接要求 | 负责人 |
 | --- | --- | --- | --- | --- |
-| reviewer / worker / n/a | C-001 | read-only / path list / n/a | report / commit SHA / n/a | coordinator |
+| n/a | C-001..C-004 | n/a | n/a | coordinator |
 
 ## 证据计划
 
 | 证据层级 | 计划命令或检查 | 记录位置 | 完成条件 |
 | --- | --- | --- | --- |
-| L0 | [静态检查 / 小范围自检] | `progress.md` | [通过标准] |
-| L1 | [单元测试 / targeted check] | `progress.md` 或 `artifacts/INDEX.md` | [通过标准] |
-| L2 | [集成 / 浏览器 / 真实数据冒烟] | `artifacts/INDEX.md` | [通过标准] |
-| L3 | [发布前 / 生产等价验证 / 外部审查] | `review.md` 与 walkthrough | [通过标准] |
+| L0 | `git diff --check` | `progress.md` | 无空白错误；Windows LF/CRLF 警告可接受。 |
+| L1 | `npm --prefix apps/mobile run typecheck`; `CARGO_TARGET_DIR=tmp/target-pairing cargo check --workspace` | `progress.md` | 退出码 0。 |
+| L2 | Expo iOS export；Node WebSocket real Codex probe；Node WebSocket history probe | `progress.md` 和 `review.md` | 同一 session 收到 `PONG`，history page 返回当前 session 事件。 |
+| L3 | 用户真机确认 | `review.md` / Dashboard confirmation | 用户确认手机端 UI 与连接行为符合预期。 |
 
 ## 暂停 / 升级条件
 

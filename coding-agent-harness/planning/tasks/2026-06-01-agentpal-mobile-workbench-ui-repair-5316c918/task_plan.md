@@ -44,6 +44,11 @@ Task Package Index: required
 - [x] `relay.submit` 支持传入选中 session id。
 - [x] 真机默认 Relay URL 优先使用 Expo host IP，Relay 开发脚本监听 `0.0.0.0`。
 - [x] `npm --prefix apps/mobile run typecheck` 和 `git diff --check` 通过。
+- [x] 会话页底部输入区按实际高度预留滚动空间，不再遮挡最新消息。
+- [x] 首次进入会话页会主动拉取最近历史；若最新页只有隐藏状态事件，会继续拉取更早消息。
+- [x] Agent Markdown 回复使用现有 `markdown-it` + `react-native-render-html` 渲染，列表缩进和气泡宽度适配手机阅读。
+- [x] 技能/命令面板优先展示 Host 同步的真实 `PickerRegistry`，空列表时才降级插入 `$` 或 `/` 前缀。
+- [x] 设置页区分 Host 已发现、未保存和已连接状态，底部内容为浮动导航预留更大安全区。
 
 ## 工作树（Worktree）
 

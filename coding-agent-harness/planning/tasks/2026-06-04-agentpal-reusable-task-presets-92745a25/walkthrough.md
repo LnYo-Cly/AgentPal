@@ -1,47 +1,35 @@
-# 收口记录：AgentPal reusable task presets
+# Walkthrough
 
-## 摘要
+## Summary
 
-待收口。
+This task creates reusable AgentPal Harness presets for recurring work families:
 
-## 范围
+- `agentpal-feature`
+- `agentpal-mobile-ui`
+- `agentpal-runtime-probe`
 
-| 范围 | 详情 |
-| --- | --- |
-| 变更模块 | pending |
-| 新增文件 | pending |
-| 删除文件 | pending |
-| 不在范围内 | pending |
+The presets make README / CHANGELOG / commit decisions explicit task closeout rules instead of unconditional side effects during task creation.
 
-## 验证
+## Verification
 
-| 检查 | 命令或过程 | 结果 | 证据 |
-| --- | --- | --- | --- |
-| pending | pending | not run | pending |
+Completed:
 
-## 审查结论
+- `harness preset check .coding-agent-harness/presets/agentpal-feature`
+- `harness preset check .coding-agent-harness/presets/agentpal-mobile-ui`
+- `harness preset check .coding-agent-harness/presets/agentpal-runtime-probe`
+- Actual smoke `harness new-task --preset ...` for all three presets in `tmp/preset-smoke-target-20260604-150307`
+- Temp target `harness task-index --json .` listed all three preset-created tasks with expected kind/preset values
+- Temp target `harness check --profile target-project .` passed
+- Generated task plans contain closeout protocols for README, CHANGELOG, and commit/no-commit decisions
 
-| 来源 | 重要发现 | 处理 | 证据 |
-| --- | --- | --- | --- |
-| pending | pending | pending | `review.md` |
+## Closeout Notes
 
-## 残余风险
+Do not commit unrelated mobile, Host, Relay, protocol, or prior task dirty paths as part of this preset task. `.coding-agent-harness/` is ignored in this repo, so the new local project presets are not Git-tracked by default.
 
-| 风险 | Owner | 是否接受 | 跟进 |
-| --- | --- | --- | --- |
-| pending | owner | pending | pending |
+No-commit reason: the actual preset packages are intentionally under ignored `.coding-agent-harness/`, while the main checkout has unrelated dirty work. Committing only the task record would not distribute the presets and could misrepresent the deliverable.
 
-## 经验沉淀反思
+Lifecycle blocker: `task-review` was attempted and refused by Harness because a governance-owned write scope is already dirty. The preset deliverable is usable locally; lifecycle submission is pending a distribution/commit boundary decision.
 
-| 问题 | 答案 |
-| --- | --- |
-| 是否完成经验候选检查？ | pending |
-| 经验候选详情文件 | `lesson_candidates.md` |
+## Lessons Reflection
 
-## 收口链接
-
-| 产物 | 链接 |
-| --- | --- |
-| 任务计划 | `task_plan.md` |
-| 审查记录 | `review.md` |
-| 进度记录 | `progress.md` |
+The useful reusable rule is not "always edit README/CHANGELOG"; it is "always make the documentation decision explicit and auditable." This avoids noisy docs churn while preserving accountability.

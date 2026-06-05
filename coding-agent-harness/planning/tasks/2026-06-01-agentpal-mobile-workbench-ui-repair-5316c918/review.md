@@ -77,6 +77,10 @@ Scanner 会根据必需文件、章节、证据和这个严格提交块派生 `m
 | E-002 | command | TARGET:. | `git diff --check` passed. |
 | E-003 | command | TARGET:. | `Get-NetTCPConnection -LocalPort 8790,8081` showed Relay on `0.0.0.0:8790` and Expo on `::8081`. |
 | E-004 | diff | TARGET:apps/mobile/app/index.tsx | Old image-collage homepage removed; mobile workbench, empty states, feedback, current-session panel added. |
+| E-005 | command | TARGET:apps/mobile | `npm --prefix apps/mobile run typecheck` passed after 2026-06-04 conversation/settings UI fixes. |
+| E-006 | command | TARGET:. | `git diff --check` passed after 2026-06-04 fixes with Windows line-ending warnings only. |
+| E-007 | command | TARGET:apps/mobile | `npx expo export --platform ios --output-dir ../../tmp/expo-export-agentpal-ui-fix --clear` succeeded; Metro bundled 3892 modules. |
+| E-008 | diff | TARGET:apps/mobile/app/index.tsx | Conversation bottom inset uses measured composer height; first history load checks visible events; command picker reflects real `PickerRegistry` sync state. |
 
 ## 无重要发现声明
 
@@ -88,6 +92,7 @@ Scanner 会根据必需文件、章节、证据和这个严格提交块派生 `m
 | --- | --- | --- | --- |
 | 手机真实视觉仍需人工确认 | user/coordinator | yes | 用户重新连接 Expo Go 并发送截图或反馈。 |
 | 防火墙或不同网段可能阻止真机访问 8081/8790 | user/coordinator | yes | 必要时放行端口或改用 tunnel/USB 方案。 |
+| 真机键盘高度和第三方输入法工具栏仍可能影响视觉 | user/coordinator | yes | 用户截图确认；如仍遮挡，继续基于实际键盘高度调 inset。 |
 
 ## Lifecycle Queue Routing（生命周期队列路由）
 

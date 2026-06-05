@@ -7,61 +7,53 @@
 | Role | Status | Permission | Authorized By | Authorized At | Scope | Worktree / Branch | Reuse |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | reviewer subagent | allowed by default | read-only | harness task policy | task creation | current task review | n/a | allowed within this task |
-| worker subagent | not authorized | write only after user approval | pending | pending | pending | pending | allowed only within approved task/scope |
+| worker subagent | not-needed | not requested | n/a | n/a | n/a | n/a | n/a |
 
 ## Subagent Delegation Decision
 
-任务开始时，coordinator 必须根据用户目标主动做这个判断，即使用户完全没有提到 subagent。
-不要假设用户知道 subagent 或 worker 是什么。如果分工有帮助，用白话说明收益，并向用户申请一次授权。
-可以直接对用户说 subagent 或 worker subagent；关键规则是 agent 不能等用户主动提出 subagent。
-如果任务已经明显拆成互不重叠的独立切片，implementation 前就应判断为 `ask-user`。如果还不知道精确文件路径，先确认路径，然后立刻申请独立执行助手授权。
-
 | Question | Decision | Reason | Next Action |
 | --- | --- | --- | --- |
-| Should a reviewer subagent be used? | yes / no | [为什么需要或不需要 reviewer] | 如果 yes，直接调用只读 reviewer，不需要额外申请。 |
-| Would a worker subagent materially help? | no / ask-user / already-authorized | [并行切片、独立实现、专项调查，或说明为什么不需要] | 如果 ask-user，直接问：“这个任务适合拆给 worker subagent 并行处理。是否授权我派一个 worker subagent，只修改 [scope]，只在 [worktree/branch] 内执行，我负责协调和最终审查？” |
+| Should a reviewer subagent be used? | no | 本轮仍在交互式 UI/协议修复阶段，主要风险由 typecheck、Rust check、Expo export 和真实 WebSocket/Codex history probe 覆盖。 | coordinator 自检并记录证据；需要最终 human 真机截图确认。 |
+| Would a worker subagent materially help? | no | 修改点横跨同一移动端入口、Relay hook、共享协议和 Host/Relay 事件链，拆 worker 会增加 dirty worktree 合并风险。 | 不申请 worker；coordinator 单线执行。 |
 
 ## User Authorization Decision
 
-如果上方 worker 决策是 `ask-user`，implementation 必须暂停，直到这里记录用户答案。
-已解决状态只能是 `authorized`、`denied` 或 `not-needed`。选择 `ask-user` 后不得继续保持 `pending`。
-
 | Gate | State | Decided By | Decided At | Scope | Worktree / Branch | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| worker subagent | pending | pending | pending | pending | pending | 只有直接问过用户后才能填写。 |
+| worker subagent | not-needed | coordinator | 2026-06-05 12:22 +08:00 | `apps/mobile/*`; `crates/{protocol,relay,host}` history/picker path | same checkout | 用户要求直接推进，当前任务不拆 worker。 |
 
 ## 决策表
 
 | 决策 | 选择 | 说明 |
 | --- | --- | --- |
-| 主执行者 | coordinator | coordinator 负责编排顺序、冲突判断和最终收口。 |
-| Subagent 模式 | none / reviewer-only / worker-worktree | 选择能满足任务的最小协作模式。 |
-| 审查模型 | self-check / predefined verifier / adversarial review | 说明为什么该审查层级足够。 |
-| Worktree 策略 | same checkout / dedicated worktree | 会改代码的 subagent 必须使用独立 worktree，并提交 handoff commit。 |
-| 冲突控制 | coordinator owns shared files | subagent 不得直接编辑 coordinator 管理的全局表或共享文件，除非获得明确锁。 |
-| 证据深度 | L0 / L1 / L2 / L3 | 按变更风险匹配证据深度。 |
+| 主执行者 | coordinator | coordinator 负责设计、代码、验证和收口。 |
+| Subagent 模式 | none | 当前共享文件多且 dirty tree 已存在，不引入并行写入。 |
+| 审查模型 | self-check + human visual confirmation | 机器验证覆盖协议和 bundle；移动 UI 仍需要用户真机截图确认。 |
+| Worktree 策略 | same checkout | 新任务已由 CLI 创建并提交任务包，后续只在当前 checkout 控制范围修改。 |
+| 冲突控制 | coordinator owns shared files | 不回滚无关 dirty；提交前单独整理边界。 |
+| 证据深度 | L2 | 需要静态检查、bundle、Rust check 和真实 history-request probe。 |
 
 ## 子代理 / Worker 合同
 
-如使用 subagent 或 worker，在这里写清楚输入包、写入范围、handoff 格式和最终集成 owner。
-
 | 角色 | 输入包 | 写入范围 | 交接要求 | 负责人 |
 | --- | --- | --- | --- | --- |
-| reviewer / worker / n/a | C-001 | read-only / path list / n/a | report / commit SHA / n/a | coordinator |
+| n/a | C-001..C-008 | n/a | n/a | coordinator |
 
 ## 证据计划
 
 | 证据层级 | 计划命令或检查 | 记录位置 | 完成条件 |
 | --- | --- | --- | --- |
-| L0 | [静态检查 / 小范围自检] | `progress.md` | [通过标准] |
-| L1 | [单元测试 / targeted check] | `progress.md` 或 `artifacts/INDEX.md` | [通过标准] |
-| L2 | [集成 / 浏览器 / 真实数据冒烟] | `artifacts/INDEX.md` | [通过标准] |
-| L3 | [发布前 / 生产等价验证 / 外部审查] | `review.md` 与 walkthrough | [通过标准] |
+| L0 | `git diff --check` scoped to touched files | `progress.md` | exit 0；允许 Windows 行尾 warning 时需注明。 |
+| L1 | `npm --prefix apps/mobile run typecheck` | `progress.md` | `tsc --noEmit` exit 0。 |
+| L1 | `cargo check -p agentpal-protocol -p agentpal-relay -p agentpal-host` 或 `cargo check --workspace` | `progress.md` | Rust 编译检查通过。 |
+| L2 | `npx expo export --platform ios --output-dir ../../tmp/expo-export-agentpal-session-ux --clear` | `progress.md` | Expo bundle 导出成功。 |
+| L2 | WebSocket `history-request` probe | `progress.md` | 目标 session 返回可见 `user-message` / `agent-message` / tool 事件，或明确记录 Codex 侧无 turns。 |
+| L3 | 用户 iOS/Android 真机截图复测 | `review.md` | 用户确认核心页面视觉、滚动、代码块和 picker 可接受。 |
 
 ## 暂停 / 升级条件
 
-- 所需工作超出已批准写入范围。
-- 共享表需要更新，但没有 coordinator lock。
-- 实际风险高于原计划，证据深度需要升级。
-- reviewer 发现会改变范围或方案的 P0/P1/P2 问题。
-- 环境无法提供关键证据，继续执行会变成猜测。
+- 所需工作超出移动端会话体验和最小历史 hydration。
+- Codex app-server API 返回结构与当前假设不一致，无法从 thread turns 转换历史。
+- Expo Go 因新依赖红屏，必须回退到 Expo Go 兼容实现。
+- Rust 协议改动影响其它调用方但无法完成联调。
+- 无法安全区分本任务改动和无关 dirty 变更。

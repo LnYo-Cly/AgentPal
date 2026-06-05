@@ -23,9 +23,9 @@ flowchart LR
 
 | Phase ID | Kind | Depends On | State | Completion | Output | Required Evidence | Exit Command | Actor | Evidence Status | Blocking Risk | Owner / Handoff |
 | --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- |
-| INIT-01 | init | none | planned | 0 | 任务计划和执行策略已确认 | `task_plan.md`; `execution_strategy.md` | `harness task-start 2026-06-05-agentpal-session-history-and-inbox-ux-redesign-af6730dc` | agent | missing | none | coordinator |
-| EXEC-01 | execution | INIT-01 | planned | 0 | 有边界的实现、文档切片和验证证据 | diff、commands、worker handoff 或 artifact path | `harness task-phase 2026-06-05-agentpal-session-history-and-inbox-ux-redesign-af6730dc EXEC-01 --state done --completion 100 --evidence present` | agent | missing | [risk] | [owner] |
-| GATE-01 | gate | EXEC-01 | planned | 0 | Agent Review Submission | `review.md`、progress update、lesson routing | `harness task-review 2026-06-05-agentpal-session-history-and-inbox-ux-redesign-af6730dc --message "<summary>"` | agent | missing | [risk] | coordinator |
+| INIT-01 | init | none | done | 100 | 任务计划、执行策略、设计方向和初始发现已确认 | `brief.md`; `task_plan.md`; `execution_strategy.md`; `findings.md` | `harness task-start 2026-06-05-agentpal-session-history-and-inbox-ux-redesign-af6730dc` | agent | present | none | coordinator |
+| EXEC-01 | execution | INIT-01 | done | 100 | 会话历史链路、会话页布局、首页/设置职责和验证证据 | diff、commands、artifact path | `harness task-phase 2026-06-05-agentpal-session-history-and-inbox-ux-redesign-af6730dc EXEC-01 --state done --completion 100 --evidence present` | agent | present | CLI lifecycle sync 因 governance dirty 拒绝覆盖，已在 progress 记录 | coordinator |
+| GATE-01 | gate | EXEC-01 | blocked | 0 | Agent Review Submission | `review.md`、progress update、lesson routing | `harness task-review 2026-06-05-agentpal-session-history-and-inbox-ux-redesign-af6730dc --message "<summary>"` | agent | partial | `npx --yes coding-agent-harness task-phase ...` 返回 governance sync owned path dirty；需先确认或清理既有 dirty 边界 | coordinator |
 | GATE-02 | gate | GATE-01 | planned | 0 | Human Review Confirmation | review packet 和人工确认 | `harness review-confirm 2026-06-05-agentpal-session-history-and-inbox-ux-redesign-af6730dc --confirm 2026-06-05-agentpal-session-history-and-inbox-ux-redesign-af6730dc` | human | missing | Agent 不能代办人工确认 | human |
 
 允许的 `State`：`planned`, `in_progress`, `review`, `blocked`, `done`, `skipped`。

@@ -4,14 +4,16 @@
 
 完成移动端首页修复：移除原型图拼接、页面级 Dynamic Island 和 mock 会话，改为真实工作台空状态/当前会话/审批/动态/输入/底部导航结构；同时修正真机访问电脑端 Relay 的默认地址和开发脚本。
 
+2026-06-04 延续修复：根据真机截图反馈，补齐会话页底部遮挡、自动历史加载、Markdown 阅读样式、技能/命令选择器真实同步状态、首页信息密度和设置页 Host 状态语义。
+
 ## 范围
 
 | 范围 | 详情 |
 | --- | --- |
-| 变更模块 | `apps/mobile` 首页、Relay hook、Relay URL 选择；根 `package.json` 开发脚本 |
+| 变更模块 | `apps/mobile` 首页、会话页、设置页、Relay hook、Relay URL 选择；根 `package.json` 开发脚本 |
 | 新增文件 | 无 |
 | 删除文件 | 无 |
-| 不在范围内 | 完整审批协议、Diff 详情页、命令/skill picker、语音输入、生产云 Relay |
+| 不在范围内 | 完整审批协议、Diff 详情页、语音输入、生产云 Relay |
 
 ## 验证
 
@@ -20,6 +22,7 @@
 | TypeScript | `npm --prefix apps/mobile run typecheck` | passed | `progress.md` |
 | Diff whitespace | `git diff --check` | passed | `progress.md` |
 | 本地监听 | `Get-NetTCPConnection -LocalPort 8790,8081` | Relay `0.0.0.0:8790`; Expo `::8081` | `progress.md` |
+| Expo bundle | `npx expo export --platform ios --output-dir ../../tmp/expo-export-agentpal-ui-fix --clear` | passed | `progress.md` |
 
 ## 审查结论
 

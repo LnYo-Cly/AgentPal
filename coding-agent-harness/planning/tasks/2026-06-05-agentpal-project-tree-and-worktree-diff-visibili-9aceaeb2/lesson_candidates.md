@@ -7,11 +7,11 @@
 | Field | Value |
 | --- | --- |
 | Schema version | lesson-candidate-v1 |
-| Task-level status | pending-review |
+| Task-level status | no-candidate-accepted |
 | Review gate | candidate-file-present |
-| Review decision | pending-human-review |
+| Review decision | agent-recommends-no-candidate |
 | Promotion state | not-promoted |
-| Closeout token | pending |
+| Closeout token | checked-none |
 | Source task | 2026-06-05-agentpal-project-tree-and-worktree-diff-visibili-9aceaeb2 |
 | Owner | coordinator |
 | Last updated | 2026-06-05 |
@@ -49,7 +49,7 @@
 
 ## No-Candidate Reason
 
-尚未判定。只有人工审查接受本任务没有可复用候选时，才填写这里。
+Agent 未提出需要 promotion 的可复用治理候选。本轮是一个产品功能切片：workspace snapshot、项目目录面板和 worktree diff 摘要属于 AgentPal 具体实现，不形成新的跨任务工程规则。人工审查仍可退回并要求沉淀。
 
 ## Promotion Notes
 
