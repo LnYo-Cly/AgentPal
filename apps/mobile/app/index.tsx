@@ -45,7 +45,7 @@ import "prismjs/components/prism-typescript.js";
 import "prismjs/components/prism-tsx.js";
 import "prismjs/components/prism-yaml.js";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AccessibilityInfo, FlatList, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text as NativeText, TextInput, useColorScheme, useWindowDimensions, View } from "react-native";
+import { AccessibilityInfo, AppState, FlatList, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text as NativeText, TextInput, useColorScheme, useWindowDimensions, View } from "react-native";
 import RenderHTML from "react-native-render-html";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -372,24 +372,37 @@ export default function HomeScreen() {
     }
   };
 
-  const refreshSelectedSession = () => {
+  const requestWorkspaceSnapshotSilently = useCallback((force = false) => {
+    if (!selectedSession || !relay.activeHost) {
+      return false;
+    }
+    const key = `${relay.activeHost.hostId}:${selectedSession.workspace}`;
+    const lastKick = workspaceSnapshotKickRef.current[key] ?? 0;
+    if (!force && Date.now() - lastKick < 8_000) {
+      return false;
+    }
+    workspaceSnapshotKickRef.current[key] = Date.now();
+    return relay.requestWorkspaceSnapshot(selectedSession.sessionId, selectedSession.workspace);
+  }, [relay.activeHost, relay.requestWorkspaceSnapshot, selectedSession]);
+
+  const refreshSelectedSession = useCallback(() => {
     if (!selectedSession) {
       showToast(setToast, "当前没有可刷新会话");
       return;
     }
     const requested = relay.loadLatestHistory(selectedSession.sessionId);
-    relay.requestWorkspaceSnapshot(selectedSession.sessionId, selectedSession.workspace);
+    requestWorkspaceSnapshotSilently(true);
     showToast(setToast, requested ? "正在刷新当前会话" : "暂时无法刷新");
-  };
+  }, [relay.loadLatestHistory, requestWorkspaceSnapshotSilently, selectedSession]);
 
-  const refreshWorkspaceSnapshot = () => {
+  const refreshWorkspaceSnapshot = useCallback(() => {
     if (!selectedSession) {
       showToast(setToast, "当前没有会话工作区");
       return;
     }
-    const requested = relay.requestWorkspaceSnapshot(selectedSession.sessionId, selectedSession.workspace);
+    const requested = requestWorkspaceSnapshotSilently(true);
     showToast(setToast, requested ? "正在读取项目目录和变更" : "Host 未连接，暂时无法读取");
-  };
+  }, [requestWorkspaceSnapshotSilently, selectedSession]);
 
   const openConversation = (sessionId?: string) => {
     if (sessionId) {
@@ -502,22 +515,34 @@ export default function HomeScreen() {
       return;
     }
     const key = `${relay.activeHost.hostId}:${selectedSession.workspace}`;
-    if (selectedWorkspaceSnapshot) {
+    const generatedAt = selectedWorkspaceSnapshot?.generatedAt ? Date.parse(selectedWorkspaceSnapshot.generatedAt) : Number.NaN;
+    const snapshotIsFresh = Number.isFinite(generatedAt) && Date.now() - generatedAt < 45_000;
+    if (selectedWorkspaceSnapshot && snapshotIsFresh) {
       return;
     }
     const lastKick = workspaceSnapshotKickRef.current[key] ?? 0;
     if (Date.now() - lastKick < 12_000) {
       return;
     }
-    workspaceSnapshotKickRef.current[key] = Date.now();
-    relay.requestWorkspaceSnapshot(selectedSession.sessionId, selectedSession.workspace);
+    requestWorkspaceSnapshotSilently();
   }, [
     relay.activeHost,
     relay.connectionState,
-    relay.requestWorkspaceSnapshot,
+    requestWorkspaceSnapshotSilently,
     selectedSession,
     selectedWorkspaceSnapshot
   ]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state !== "active" || activeTab !== "conversation" || !selectedSession || relay.connectionState !== "online") {
+        return;
+      }
+      relay.loadLatestHistory(selectedSession.sessionId);
+      requestWorkspaceSnapshotSilently();
+    });
+    return () => subscription.remove();
+  }, [activeTab, relay.connectionState, relay.loadLatestHistory, requestWorkspaceSnapshotSilently, selectedSession]);
 
   return (
     <ThemeProvider theme={activeTheme}>
@@ -557,6 +582,7 @@ export default function HomeScreen() {
               onSwitchSession={openSessionPicker}
               onRefresh={refreshSelectedSession}
               onRefreshWorkspace={refreshWorkspaceSnapshot}
+              onEnsureWorkspaceFresh={requestWorkspaceSnapshotSilently}
               onLoadOlder={() => {
                 if (!selectedSession) return;
                 relay.loadOlderHistory(selectedSession.sessionId);
@@ -1014,6 +1040,7 @@ function ConversationPage({
   onSwitchSession,
   onRefresh,
   onRefreshWorkspace,
+  onEnsureWorkspaceFresh,
   onLoadOlder,
   onAttach,
   onVoice,
@@ -1044,6 +1071,7 @@ function ConversationPage({
   onSwitchSession: () => void;
   onRefresh: () => void;
   onRefreshWorkspace: () => void;
+  onEnsureWorkspaceFresh: () => boolean;
   onLoadOlder: () => void;
   onAttach: () => void;
   onVoice: () => void;
@@ -1066,6 +1094,7 @@ function ConversationPage({
   const contentTopInset = headerHeight + panelTabsHeight + 12;
   const composerLift = keyboardVisible ? 8 : bottom + 10;
   const timelineBottomInset = composerLift + composerHeight + 24;
+  const workspaceBottomInset = timelineBottomInset + 96;
   const hasConversation = events.length > 0;
   const latestEventId = events[events.length - 1]?.id ?? null;
   const latestEvent = events[events.length - 1]?.payload ?? null;
@@ -1089,6 +1118,12 @@ function ConversationPage({
   useEffect(() => {
     setInitialLoadExpired(false);
   }, [session?.sessionId]);
+
+  useEffect(() => {
+    if (activePanel !== "chat" && session) {
+      onEnsureWorkspaceFresh();
+    }
+  }, [activePanel, onEnsureWorkspaceFresh, session]);
 
   useEffect(() => {
     if (!historyLoading || hasConversation || historyError) {
@@ -1120,8 +1155,17 @@ function ConversationPage({
 
   return (
     <>
-      <ConversationHeader top={top} hostOnline={hostOnline} session={session} sessionCount={sessions.length} onBack={onBack} onRefresh={onRefresh} onSwitchSession={onSwitchSession} />
-      <ConversationPanelTabs top={headerHeight} activePanel={activePanel} snapshot={workspaceSnapshot} onSelect={setActivePanel} onRefreshWorkspace={onRefreshWorkspace} />
+      <ConversationHeader
+        top={top}
+        hostOnline={hostOnline}
+        session={session}
+        sessionCount={sessions.length}
+        onBack={onBack}
+        onRefresh={activePanel === "chat" ? onRefresh : onRefreshWorkspace}
+        refreshLabel={activePanel === "chat" ? "刷新当前会话" : "刷新项目状态"}
+        onSwitchSession={onSwitchSession}
+      />
+      <ConversationPanelTabs top={headerHeight} activePanel={activePanel} snapshot={workspaceSnapshot} onSelect={setActivePanel} />
       {activePanel === "chat" ? (
         <FlatList
           ref={listRef}
@@ -1179,7 +1223,7 @@ function ConversationPage({
           session={session}
           snapshot={workspaceSnapshot}
           topInset={contentTopInset}
-          bottomInset={timelineBottomInset}
+          bottomInset={workspaceBottomInset}
           onRefresh={onRefreshWorkspace}
         />
       )}
@@ -1318,6 +1362,7 @@ function ConversationHeader({
   sessionCount,
   onBack,
   onRefresh,
+  refreshLabel,
   onSwitchSession
 }: {
   top: number;
@@ -1326,6 +1371,7 @@ function ConversationHeader({
   sessionCount: number;
   onBack: () => void;
   onRefresh: () => void;
+  refreshLabel: string;
   onSwitchSession: () => void;
 }) {
   const workspaceName = session ? compactWorkspaceName(session.workspace) : `${sessionCount} 个会话`;
@@ -1365,7 +1411,7 @@ function ConversationHeader({
         </Box>
         <Box alignItems="flex-end" gap="s">
           <StatusCapsule online={hostOnline} text={hostOnline ? "在线" : "离线"} />
-          <IconShell icon={RefreshCcw} tone="neutral" onPress={onRefresh} label="刷新当前会话" />
+          <IconShell icon={RefreshCcw} tone="neutral" onPress={onRefresh} label={refreshLabel} />
         </Box>
       </Box>
     </Box>
@@ -1376,52 +1422,47 @@ function ConversationPanelTabs({
   top,
   activePanel,
   snapshot,
-  onSelect,
-  onRefreshWorkspace
+  onSelect
 }: {
   top: number;
   activePanel: ConversationPanel;
   snapshot: WorkspaceSnapshot | null;
   onSelect: (panel: ConversationPanel) => void;
-  onRefreshWorkspace: () => void;
 }) {
   const dirtyCount = snapshot?.worktrees.filter((item) => item.dirty).length ?? 0;
   const treeCount = snapshot?.tree.length ?? 0;
   const items: Array<{ id: ConversationPanel; label: string; icon: IconComponent; badge?: string }> = [
     { id: "chat", label: "聊天", icon: Bot },
     { id: "project", label: "项目", icon: Folder, badge: treeCount ? String(treeCount) : undefined },
-    { id: "changes", label: "变更", icon: FileDiff, badge: dirtyCount ? String(dirtyCount) : undefined }
+    { id: "changes", label: snapshot && dirtyCount === 0 ? "干净" : "变更", icon: FileDiff, badge: dirtyCount ? String(dirtyCount) : undefined }
   ];
 
   return (
     <Box position="absolute" left={0} right={0} zIndex={18} backgroundColor="canvas" borderBottomWidth={1} borderColor="line" paddingHorizontal="m" paddingVertical="xs" style={{ top }}>
-      <Box flexDirection="row" alignItems="center" gap="s">
-        <Box flex={1} flexDirection="row" backgroundColor="surfaceMuted" borderRadius="round" padding="xs" gap="xs">
-          {items.map((item) => {
-            const active = item.id === activePanel;
-            const Icon = item.icon;
-            return (
-              <Pressable key={item.id} accessibilityRole="button" accessibilityState={{ selected: active }} onPress={() => onSelect(item.id)} style={{ flex: 1 }}>
-                {({ pressed }) => (
-                  <Box minHeight={34} borderRadius="round" backgroundColor={active ? "surface" : "transparent"} alignItems="center" justifyContent="center" flexDirection="row" gap="xs" style={{ opacity: pressed ? 0.7 : 1 }}>
-                    <Icon color={active ? theme.colors.accent : theme.colors.inkMuted} size={15} />
-                    <Text variant="caption" color={active ? "accent" : "inkMuted"} numberOfLines={1}>
-                      {item.label}
-                    </Text>
-                    {item.badge ? (
-                      <Box minWidth={18} height={18} borderRadius="round" backgroundColor={active ? "accentSoft" : "surface"} alignItems="center" justifyContent="center" paddingHorizontal="xs">
-                        <Text variant="caption" color={active ? "accent" : "inkMuted"}>
-                          {item.badge}
-                        </Text>
-                      </Box>
-                    ) : null}
-                  </Box>
-                )}
-              </Pressable>
-            );
-          })}
-        </Box>
-        <IconShell icon={RefreshCcw} tone="neutral" onPress={onRefreshWorkspace} label="刷新项目和变更" />
+      <Box flexDirection="row" backgroundColor="surfaceMuted" borderRadius="round" padding="xs" gap="xs">
+        {items.map((item) => {
+          const active = item.id === activePanel;
+          const Icon = item.icon;
+          return (
+            <Pressable key={item.id} accessibilityRole="button" accessibilityState={{ selected: active }} onPress={() => onSelect(item.id)} style={{ flex: 1 }}>
+              {({ pressed }) => (
+                <Box minHeight={34} borderRadius="round" backgroundColor={active ? "surface" : "transparent"} alignItems="center" justifyContent="center" flexDirection="row" gap="xs" style={{ opacity: pressed ? 0.7 : 1 }}>
+                  <Icon color={active ? theme.colors.accent : theme.colors.inkMuted} size={15} />
+                  <Text variant="caption" color={active ? "accent" : "inkMuted"} numberOfLines={1}>
+                    {item.label}
+                  </Text>
+                  {item.badge ? (
+                    <Box minWidth={18} height={18} borderRadius="round" backgroundColor={active ? "accentSoft" : "surface"} alignItems="center" justifyContent="center" paddingHorizontal="xs">
+                      <Text variant="caption" color={active ? "accent" : "inkMuted"}>
+                        {item.badge}
+                      </Text>
+                    </Box>
+                  ) : null}
+                </Box>
+              )}
+            </Pressable>
+          );
+        })}
       </Box>
     </Box>
   );
@@ -1458,7 +1499,7 @@ function WorkspacePanel({
       ) : !snapshot ? (
         <WorkspaceEmptyState title="正在等待项目快照" body="Host 会读取当前 workspace 的目录和 Git worktree 变更摘要。" onRefresh={onRefresh} />
       ) : mode === "project" ? (
-        <ProjectTreePanel snapshot={snapshot} onRefresh={onRefresh} />
+        <ProjectTreePanel snapshot={snapshot} />
       ) : (
         <WorktreeChangesPanel snapshot={snapshot} onRefresh={onRefresh} />
       )}
@@ -1485,20 +1526,20 @@ function WorkspaceEmptyState({ title, body, onRefresh }: { title: string; body: 
   );
 }
 
-function ProjectTreePanel({ snapshot, onRefresh }: { snapshot: WorkspaceSnapshot; onRefresh: () => void }) {
+function ProjectTreePanel({ snapshot }: { snapshot: WorkspaceSnapshot }) {
   const directories = snapshot.tree.filter((entry) => entry.kind === "directory").length;
   const files = snapshot.tree.filter((entry) => entry.kind === "file").length;
   const visibleTree = snapshot.tree.slice(0, 180);
+  const snapshotTime = formatTime(snapshot.generatedAt);
 
   return (
     <>
       <WorkspaceSummaryCard
         icon={Folder}
         title={snapshot.rootName}
-        body={snapshot.workspace}
-        meta={`${directories} 个目录 · ${files} 个文件${snapshot.treeTruncated ? " · 已截断" : ""}`}
+        body={displayWorkspacePath(snapshot.workspace)}
+        meta={`${directories} 个目录 · ${files} 个文件${snapshot.treeTruncated ? " · 已截断" : ""} · ${snapshotTime}`}
         tone="blue"
-        onRefresh={onRefresh}
       />
       {snapshot.error ? <SystemLine text={snapshot.error} tone="danger" /> : null}
       <Box backgroundColor="surface" borderRadius="m" borderWidth={1} borderColor="line" overflow="hidden">
@@ -1533,23 +1574,25 @@ function ProjectTreeRow({ entry }: { entry: ProjectTreeEntry }) {
 }
 
 function WorktreeChangesPanel({ snapshot, onRefresh }: { snapshot: WorkspaceSnapshot; onRefresh: () => void }) {
-  const dirtyWorktrees = snapshot.worktrees.filter((item) => item.dirty).length;
-  const filesChanged = snapshot.worktrees.reduce((sum, item) => sum + item.filesChanged, 0);
-  const additions = snapshot.worktrees.reduce((sum, item) => sum + item.additions, 0);
-  const deletions = snapshot.worktrees.reduce((sum, item) => sum + item.deletions, 0);
+  const dirtyWorktrees = snapshot.worktrees.filter((item) => item.dirty);
+  const filesChanged = dirtyWorktrees.reduce((sum, item) => sum + item.filesChanged, 0);
+  const additions = dirtyWorktrees.reduce((sum, item) => sum + item.additions, 0);
+  const deletions = dirtyWorktrees.reduce((sum, item) => sum + item.deletions, 0);
+  const snapshotTime = formatTime(snapshot.generatedAt);
 
   return (
     <>
       <WorkspaceSummaryCard
         icon={FileDiff}
-        title={dirtyWorktrees ? `${dirtyWorktrees} 个 worktree 有变更` : "所有 worktree 干净"}
-        body={snapshot.workspace}
-        meta={`${filesChanged} 个文件 · +${additions} / -${deletions}`}
-        tone={dirtyWorktrees ? "amber" : "green"}
-        onRefresh={onRefresh}
+        title={dirtyWorktrees.length ? `${dirtyWorktrees.length} 个 worktree 有变更` : "当前 worktree 干净"}
+        body={displayWorkspacePath(snapshot.workspace)}
+        meta={dirtyWorktrees.length ? `${filesChanged} 个文件 · +${additions} / -${deletions} · ${snapshotTime}` : `${snapshot.worktrees.length} 个 worktree · ${snapshotTime}`}
+        tone={dirtyWorktrees.length ? "amber" : "green"}
       />
-      {snapshot.worktrees.length ? (
-        snapshot.worktrees.map((worktree) => <WorktreeCard key={worktree.path} worktree={worktree} />)
+      {dirtyWorktrees.length ? (
+        dirtyWorktrees.map((worktree) => <WorktreeCard key={worktree.path} worktree={worktree} />)
+      ) : snapshot.worktrees.length ? (
+        <CleanWorktreeList worktrees={snapshot.worktrees} generatedAt={snapshot.generatedAt} />
       ) : (
         <WorkspaceEmptyState title="未发现 worktree" body="Host 没有从当前 workspace 读取到 Git worktree 信息。" onRefresh={onRefresh} />
       )}
@@ -1562,15 +1605,13 @@ function WorkspaceSummaryCard({
   title,
   body,
   meta,
-  tone,
-  onRefresh
+  tone
 }: {
   icon: IconComponent;
   title: string;
   body: string;
   meta: string;
   tone: Tone;
-  onRefresh: () => void;
 }) {
   return (
     <Box backgroundColor="surface" borderRadius="l" borderWidth={1} borderColor="line" padding="m" gap="m" style={softShadow(false)}>
@@ -1586,7 +1627,6 @@ function WorkspaceSummaryCard({
             {body}
           </Text>
         </Box>
-        <IconShell icon={RefreshCcw} tone="neutral" onPress={onRefresh} label="刷新项目状态" />
       </Box>
       <Text variant="caption" color={toneToken(tone)}>
         {meta}
@@ -1595,9 +1635,43 @@ function WorkspaceSummaryCard({
   );
 }
 
+function CleanWorktreeList({ worktrees, generatedAt }: { worktrees: WorktreeSummary[]; generatedAt: string }) {
+  const visible = worktrees.slice(0, 6);
+  return (
+    <Box backgroundColor="surface" borderRadius="m" borderWidth={1} borderColor="line" overflow="hidden">
+      <Box minHeight={44} paddingHorizontal="m" flexDirection="row" alignItems="center" justifyContent="space-between" borderBottomWidth={1} borderColor="line">
+        <Box flexDirection="row" alignItems="center" gap="s">
+          <CheckCircle2 color={theme.colors.success} size={18} />
+          <Text variant="section">没有待审变更</Text>
+        </Box>
+        <Text variant="caption">{formatTime(generatedAt)}</Text>
+      </Box>
+      {visible.map((worktree, index) => (
+        <Box key={worktree.path} minHeight={48} flexDirection="row" alignItems="center" gap="s" paddingHorizontal="m" borderTopWidth={index === 0 ? 0 : 1} borderColor="line">
+          <GitBranch color={theme.colors.inkMuted} size={17} />
+          <Box flex={1}>
+            <Text variant="body" numberOfLines={1}>
+              {worktree.branch ?? "detached"}
+            </Text>
+            <Text variant="caption" numberOfLines={1}>
+              {displayWorkspacePath(worktree.path)}
+            </Text>
+          </Box>
+          <StatusChip label="干净" tone="green" icon={CheckCircle2} />
+        </Box>
+      ))}
+      {worktrees.length > visible.length ? (
+        <Box minHeight={40} justifyContent="center" paddingHorizontal="m" borderTopWidth={1} borderColor="line">
+          <Text variant="caption">还有 {worktrees.length - visible.length} 个干净 worktree。</Text>
+        </Box>
+      ) : null}
+    </Box>
+  );
+}
+
 function WorktreeCard({ worktree }: { worktree: WorktreeSummary }) {
   const tone: Tone = worktree.error ? "danger" : worktree.dirty ? "amber" : "green";
-  const visibleFiles = worktree.files.slice(0, 8);
+  const visibleFiles = worktree.files.slice(0, 6);
 
   return (
     <Box backgroundColor="surface" borderRadius="m" borderWidth={1} borderColor="line" overflow="hidden">
@@ -1611,7 +1685,7 @@ function WorktreeCard({ worktree }: { worktree: WorktreeSummary }) {
               {worktree.branch ?? "detached"}
             </Text>
             <Text variant="caption" numberOfLines={1}>
-              {worktree.path}
+              {displayWorkspacePath(worktree.path)}
             </Text>
           </Box>
           <StatusChip label={worktree.dirty ? "有变更" : "干净"} tone={tone} icon={worktree.dirty ? FileDiff : CheckCircle2} />
@@ -1663,18 +1737,27 @@ function MetricPill({ label, value, tone = "neutral" }: { label: string; value: 
 
 function DiffFileRow({ file }: { file: WorktreeSummary["files"][number] }) {
   const tone: Tone = file.risk === "high" ? "danger" : file.risk === "medium" ? "amber" : "neutral";
+  const hasStats = file.additions > 0 || file.deletions > 0;
   return (
-    <Box minHeight={42} flexDirection="row" alignItems="center" gap="s" paddingHorizontal="m" borderTopWidth={1} borderColor="line">
+    <Box minHeight={40} flexDirection="row" alignItems="center" gap="s" paddingHorizontal="m" borderTopWidth={1} borderColor="line">
       <FileText color={theme.colors[toneToken(tone)]} size={16} />
       <Text variant="caption" flex={1} numberOfLines={1}>
         {file.path}
       </Text>
-      <Text variant="caption" color="success">
-        +{file.additions}
-      </Text>
-      <Text variant="caption" color="danger">
-        -{file.deletions}
-      </Text>
+      {hasStats ? (
+        <>
+          <Text variant="caption" color="success">
+            +{file.additions}
+          </Text>
+          <Text variant="caption" color="danger">
+            -{file.deletions}
+          </Text>
+        </>
+      ) : (
+        <Text variant="caption" color="inkMuted">
+          变更
+        </Text>
+      )}
     </Box>
   );
 }
@@ -2940,55 +3023,19 @@ function SessionPickerSheet({
             <IconShell icon={X} tone="neutral" label="关闭会话选择" onPress={onClose} />
           </Box>
 
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingBottom: 4 }}>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 4 }}>
             {sortedSessions.length > 0 ? (
-              sortedSessions.map((session) => {
-                const selected = session.sessionId === selectedSessionId;
-                const tone = sessionTone(session.state);
-                return (
-                  <Pressable key={session.sessionId} accessibilityRole="button" onPress={() => onSelect(session.sessionId)}>
-                    {({ pressed }) => (
-                      <Box
-                        borderRadius="m"
-                        borderWidth={1}
-                        borderColor={selected ? "accent" : "line"}
-                        backgroundColor="surface"
-                        padding="m"
-                        gap="s"
-                        style={{ opacity: pressed ? 0.72 : 1 }}
-                      >
-                        <Box flexDirection="row" alignItems="center" gap="s">
-                          <Box width={42} height={42} borderRadius="m" backgroundColor={toneSoftToken(tone)} alignItems="center" justifyContent="center">
-                            <Bot color={theme.colors[toneToken(tone)]} size={20} />
-                          </Box>
-                          <Box flex={1} gap="xs">
-                            <Box flexDirection="row" alignItems="center" justifyContent="space-between" gap="s">
-                              <Text variant="section" numberOfLines={1} flex={1}>
-                                {session.title ?? "未命名会话"}
-                              </Text>
-                              {selected ? (
-                                <Text variant="caption" color="accent">
-                                  当前
-                                </Text>
-                              ) : null}
-                            </Box>
-                            <Text variant="caption" numberOfLines={1}>
-                              {agentLabel(session.agentKind)} · {compactWorkspaceName(session.workspace)}
-                            </Text>
-                          </Box>
-                        </Box>
-                        <Box flexDirection="row" alignItems="center" gap="s" flexWrap="wrap">
-                          <StatusChip label={stateLabel(session.state)} tone={tone} icon={TerminalSquare} />
-                          {session.pendingApprovals > 0 ? <StatusChip label={`${session.pendingApprovals} 审批`} tone="danger" icon={ShieldAlert} /> : null}
-                          <Text variant="caption" color="inkMuted">
-                            {formatRelativeTime(session.updatedAt)}
-                          </Text>
-                        </Box>
-                      </Box>
-                    )}
-                  </Pressable>
-                );
-              })
+              <Box backgroundColor="surface" borderRadius="m" borderWidth={1} borderColor="line" overflow="hidden">
+                {sortedSessions.map((session, index) => (
+                  <SessionPickerRow
+                    key={session.sessionId}
+                    session={session}
+                    selected={session.sessionId === selectedSessionId}
+                    first={index === 0}
+                    onPress={() => onSelect(session.sessionId)}
+                  />
+                ))}
+              </Box>
             ) : (
               <Box borderRadius="m" borderWidth={1} borderColor="line" backgroundColor="surface" padding="l" gap="xs">
                 <Text variant="section">暂无会话</Text>
@@ -3001,6 +3048,68 @@ function SessionPickerSheet({
         </Box>
       </View>
     </Modal>
+  );
+}
+
+function SessionPickerRow({
+  session,
+  selected,
+  first,
+  onPress
+}: {
+  session: SessionSummary;
+  selected: boolean;
+  first: boolean;
+  onPress: () => void;
+}) {
+  const tone = sessionTone(session.state);
+  return (
+    <Pressable accessibilityRole="button" accessibilityState={{ selected }} onPress={onPress}>
+      {({ pressed }) => (
+        <Box
+          minHeight={76}
+          flexDirection="row"
+          alignItems="center"
+          gap="s"
+          paddingHorizontal="m"
+          paddingVertical="s"
+          borderTopWidth={first ? 0 : 1}
+          borderLeftWidth={selected ? 3 : 0}
+          borderColor={selected ? "accent" : "line"}
+          backgroundColor={selected ? "accentSoft" : "surface"}
+          style={{ opacity: pressed ? 0.72 : 1 }}
+        >
+          <Box width={38} height={38} borderRadius="m" backgroundColor={toneSoftToken(tone)} alignItems="center" justifyContent="center">
+            <Bot color={theme.colors[toneToken(tone)]} size={19} />
+          </Box>
+          <Box flex={1} gap="xs">
+            <Text variant="section" numberOfLines={1}>
+              {session.title ?? "未命名会话"}
+            </Text>
+            <Text variant="caption" numberOfLines={1}>
+              {agentLabel(session.agentKind)} · {compactWorkspaceName(session.workspace)}
+            </Text>
+          </Box>
+          <Box alignItems="flex-end" gap="xs">
+            {selected ? (
+              <Text variant="caption" color="accent">
+                当前
+              </Text>
+            ) : (
+              <Text variant="caption" color="inkMuted">
+                {formatRelativeTime(session.updatedAt)}
+              </Text>
+            )}
+            <Box flexDirection="row" alignItems="center" gap="xs">
+              {session.pendingApprovals > 0 ? <ShieldAlert color={theme.colors.danger} size={14} /> : null}
+              <Text variant="caption" color={toneToken(tone)}>
+                {stateLabel(session.state)}
+              </Text>
+            </Box>
+          </Box>
+        </Box>
+      )}
+    </Pressable>
   );
 }
 
@@ -4329,8 +4438,12 @@ function significantCommandLines(command: string) {
 }
 
 function compactWorkspaceName(path: string) {
-  const normalized = path.replace(/[\\/]+$/, "");
+  const normalized = displayWorkspacePath(path).replace(/[\\/]+$/, "");
   return normalized.split(/[\\/]/).filter(Boolean).pop() ?? normalized;
+}
+
+function displayWorkspacePath(path: string) {
+  return path.replace(/^\\\\\?\\/, "").replace(/\//g, "\\");
 }
 
 function matchingWorkspaceSnapshot(
