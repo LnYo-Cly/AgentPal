@@ -107,3 +107,17 @@ Scanner 会根据必需文件、章节、证据和这个严格提交块派生 `m
 ## 最终信心依据（Final Confidence Basis）
 
 [说明最终信心来自哪些证据、审查层级和已关闭发现。发布前最终审查不能只依赖 self-only。]
+
+## Agent Review Submission
+
+| Field | Value |
+| --- | --- |
+| Submission ID | ARS-202606051759 |
+| Submitted At | 2026-06-05 17:59 |
+| Submitted By | agent |
+| Task Key | TASKS/2026-06-06-agentpal-project-explorer-expand-and-file-previe-393118ff |
+| Materials Checklist Hash | 6ba3392ee3e9a96f |
+| Evidence Summary | Implemented project tree folder expand/collapse and read-only file preview. Mobile sends file-preview-request; Relay forwards it; Host validates workspace boundary, rejects binary/outside-workspace files, and returns text previews. Code commit: 1888a74. Evidence: npm --prefix apps/mobile run typecheck; cargo check --workspace with CARGO_TARGET_DIR=tmp/target-file-preview-check; cargo fmt; git diff --check; npx expo export --platform ios --output-dir ../../tmp/expo-export-file-preview --clear; WebSocket file-preview probe returned apps/mobile/app/index.tsx content in 13ms. |
+| Open Findings Count | 0 |
+| Scanner Version | task-scanner/2026-05-25-phase-kind |
+| Target | TARGET:coding-agent-harness/planning/tasks/2026-06-06-agentpal-project-explorer-expand-and-file-previe-393118ff |

@@ -1,6 +1,6 @@
 # AgentPal project explorer expand and file preview - 进度
 
-## 状态：进行中
+## 状态：审查中
 
 `## 状态` 是受控机器字段，只能使用以下值之一：
 
@@ -50,6 +50,13 @@
 ### [2026-06-05 17:52] - task-log
 
 - 做了什么：Implemented project folder expand/collapse, read-only Host file preview protocol, mobile preview sheet, and compact conversation panel tabs. Evidence: npm --prefix apps/mobile run typecheck passed; CARGO_TARGET_DIR=tmp/target-file-preview-check cargo check --workspace passed; git diff --check passed with CRLF warnings only; npx expo export --platform ios --output-dir ../../tmp/expo-export-file-preview --clear passed; WebSocket file-preview probe returned apps/mobile/app/index.tsx content with language=tsx and truncated=true.
+- 验证结果：已记录
+- 下一步：继续执行
+- 证据：n/a
+
+### [2026-06-05 17:59] - task-review
+
+- 做了什么：Implemented project tree folder expand/collapse and read-only file preview. Mobile sends file-preview-request; Relay forwards it; Host validates workspace boundary, rejects binary/outside-workspace files, and returns text previews. Code commit: 1888a74. Evidence: npm --prefix apps/mobile run typecheck; cargo check --workspace with CARGO_TARGET_DIR=tmp/target-file-preview-check; cargo fmt; git diff --check; npx expo export --platform ios --output-dir ../../tmp/expo-export-file-preview --clear; WebSocket file-preview probe returned apps/mobile/app/index.tsx content in 13ms.
 - 验证结果：已记录
 - 下一步：继续执行
 - 证据：n/a
