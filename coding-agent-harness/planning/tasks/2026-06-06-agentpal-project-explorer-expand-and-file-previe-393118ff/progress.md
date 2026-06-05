@@ -46,3 +46,10 @@
 - 验证结果：已记录
 - 下一步：继续执行
 - 证据：n/a
+
+### [2026-06-05 17:52] - task-log
+
+- 做了什么：Implemented project folder expand/collapse, read-only Host file preview protocol, mobile preview sheet, and compact conversation panel tabs. Evidence: npm --prefix apps/mobile run typecheck passed; CARGO_TARGET_DIR=tmp/target-file-preview-check cargo check --workspace passed; git diff --check passed with CRLF warnings only; npx expo export --platform ios --output-dir ../../tmp/expo-export-file-preview --clear passed; WebSocket file-preview probe returned apps/mobile/app/index.tsx content with language=tsx and truncated=true.
+- 验证结果：已记录
+- 下一步：继续执行
+- 证据：n/a
