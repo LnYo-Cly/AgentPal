@@ -171,6 +171,34 @@ pub struct WorkspaceSnapshot {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct FilePreviewRequest {
+    pub request_id: String,
+    pub host_id: HostId,
+    pub session_id: Option<SessionId>,
+    pub workspace: String,
+    pub path: String,
+    pub max_bytes: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FilePreview {
+    pub request_id: String,
+    pub host_id: HostId,
+    pub workspace: String,
+    pub path: String,
+    pub name: String,
+    pub language: Option<String>,
+    pub size_bytes: u64,
+    pub truncated: bool,
+    pub content: Option<String>,
+    #[serde(with = "time::serde::rfc3339")]
+    pub generated_at: OffsetDateTime,
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ProjectTreeEntry {
     pub path: String,
     pub name: String,
@@ -332,6 +360,12 @@ pub enum RelayClientMessage {
     WorkspaceSnapshot {
         snapshot: WorkspaceSnapshot,
     },
+    FilePreviewRequest {
+        request: FilePreviewRequest,
+    },
+    FilePreview {
+        preview: FilePreview,
+    },
     PickerRegistry {
         registry: PickerRegistry,
     },
@@ -374,6 +408,12 @@ pub enum RelayServerMessage {
     },
     WorkspaceSnapshot {
         snapshot: WorkspaceSnapshot,
+    },
+    FilePreviewRequest {
+        request: FilePreviewRequest,
+    },
+    FilePreview {
+        preview: FilePreview,
     },
     HistoryPage {
         page: HistoryPage,

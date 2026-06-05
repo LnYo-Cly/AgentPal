@@ -8,11 +8,11 @@ use std::{
 };
 
 use agentpal_protocol::{
-    AgentKind, AgentPalEnvelope, ClientCommand, ClientCommandKind, DiffFileSummary, HistoryRequest,
-    HostStatus, PairingPayload, PickerExecuteMode, PickerItemKind, PickerRegistry,
-    PickerRegistryItem, PickerTrigger, ProjectEntryKind, ProjectTreeEntry, RelayClientMessage,
-    RelayClientRole, RelayServerMessage, RiskLevel, SessionEvent, SessionState, SessionSummary,
-    WorkspaceSnapshot, WorktreeSummary,
+    AgentKind, AgentPalEnvelope, ClientCommand, ClientCommandKind, DiffFileSummary, FilePreview,
+    FilePreviewRequest, HistoryRequest, HostStatus, PairingPayload, PickerExecuteMode,
+    PickerItemKind, PickerRegistry, PickerRegistryItem, PickerTrigger, ProjectEntryKind,
+    ProjectTreeEntry, RelayClientMessage, RelayClientRole, RelayServerMessage, RiskLevel,
+    SessionEvent, SessionState, SessionSummary, WorkspaceSnapshot, WorktreeSummary,
 };
 use clap::Args;
 use futures_util::{SinkExt, StreamExt, stream::SplitSink};
@@ -592,6 +592,26 @@ async fn run_connect_loop(
                             SessionEvent::Error {
                                 message: error.to_string(),
                                 phase: Some("workspace-request".to_owned()),
+                            },
+                        )
+                        .await;
+                    }
+                }
+                RelayServerMessage::FilePreviewRequest { request } => {
+                    if request.host_id != host_for_commands {
+                        continue;
+                    }
+                    if let Err(error) =
+                        publish_file_preview(&relay_writer_for_commands, request).await
+                    {
+                        let _ = publish_session_event(
+                            &relay_writer_for_commands,
+                            &host_for_commands,
+                            &session_for_commands,
+                            &seq_for_commands,
+                            SessionEvent::Error {
+                                message: error.to_string(),
+                                phase: Some("file-preview-request".to_owned()),
                             },
                         )
                         .await;
@@ -1601,6 +1621,92 @@ async fn publish_workspace_snapshot(
     Ok(())
 }
 
+async fn publish_file_preview(
+    relay_write: &Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
+    request: FilePreviewRequest,
+) -> anyhow::Result<()> {
+    let preview = build_file_preview(&request).await;
+    relay_send(relay_write, &RelayClientMessage::FilePreview { preview }).await?;
+    Ok(())
+}
+
+async fn build_file_preview(request: &FilePreviewRequest) -> FilePreview {
+    let workspace_root = canonical_workspace_path(&request.workspace);
+    let requested_path = workspace_root.join(request.path.replace('\\', "/"));
+    let generated_at = OffsetDateTime::now_utc();
+    let name = requested_path
+        .file_name()
+        .and_then(|item| item.to_str())
+        .unwrap_or(&request.path)
+        .to_owned();
+    let language = language_for_path(&request.path);
+
+    let mut preview = FilePreview {
+        request_id: request.request_id.clone(),
+        host_id: request.host_id.clone(),
+        workspace: workspace_root.to_string_lossy().to_string(),
+        path: request.path.clone(),
+        name,
+        language,
+        size_bytes: 0,
+        truncated: false,
+        content: None,
+        generated_at,
+        error: None,
+    };
+
+    let resolved_path = match requested_path.canonicalize() {
+        Ok(path) => path,
+        Err(error) => {
+            preview.error = Some(format!("无法读取文件: {error}"));
+            return preview;
+        }
+    };
+
+    if !resolved_path.starts_with(&workspace_root) {
+        preview.error = Some("文件不在当前 workspace 内，已拒绝预览。".to_owned());
+        return preview;
+    }
+
+    let metadata = match std::fs::metadata(&resolved_path) {
+        Ok(metadata) => metadata,
+        Err(error) => {
+            preview.error = Some(format!("无法读取文件信息: {error}"));
+            return preview;
+        }
+    };
+    preview.size_bytes = metadata.len();
+
+    if metadata.is_dir() {
+        preview.error = Some("这是文件夹，不支持作为文件预览。".to_owned());
+        return preview;
+    }
+
+    let max_bytes = request.max_bytes.clamp(1024, 131_072) as usize;
+    let bytes = match std::fs::read(&resolved_path) {
+        Ok(bytes) => bytes,
+        Err(error) => {
+            preview.error = Some(format!("文件读取失败: {error}"));
+            return preview;
+        }
+    };
+
+    if looks_binary(&bytes) {
+        preview.error = Some("该文件像二进制内容，暂不在手机端预览。".to_owned());
+        return preview;
+    }
+
+    let truncated = bytes.len() > max_bytes;
+    let visible_bytes = if truncated {
+        &bytes[..max_bytes]
+    } else {
+        bytes.as_slice()
+    };
+    preview.content = Some(String::from_utf8_lossy(visible_bytes).to_string());
+    preview.truncated = truncated;
+    preview
+}
+
 async fn build_workspace_snapshot(
     host_id: &str,
     workspace: &str,
@@ -1640,6 +1746,35 @@ async fn build_workspace_snapshot(
 fn canonical_workspace_path(workspace: &str) -> PathBuf {
     let input = PathBuf::from(workspace);
     input.canonicalize().unwrap_or(input)
+}
+
+fn looks_binary(bytes: &[u8]) -> bool {
+    bytes.iter().take(4096).any(|byte| *byte == 0)
+}
+
+fn language_for_path(path: &str) -> Option<String> {
+    let lower = path.to_lowercase();
+    let extension = Path::new(&lower)
+        .extension()
+        .and_then(|item| item.to_str())?;
+    let language = match extension {
+        "bash" | "sh" | "zsh" => "bash",
+        "css" => "css",
+        "diff" | "patch" => "diff",
+        "html" | "htm" | "xml" => "markup",
+        "js" | "cjs" | "mjs" => "javascript",
+        "json" => "json",
+        "jsx" => "jsx",
+        "md" | "markdown" => "markdown",
+        "ps1" | "psm1" => "powershell",
+        "py" => "python",
+        "rs" => "rust",
+        "ts" => "typescript",
+        "tsx" => "tsx",
+        "yaml" | "yml" => "yaml",
+        _ => extension,
+    };
+    Some(language.to_owned())
 }
 
 fn collect_project_tree(

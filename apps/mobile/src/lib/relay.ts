@@ -71,6 +71,29 @@ export type WorkspaceSnapshot = {
   error?: string | null;
 };
 
+export type FilePreviewRequest = {
+  requestId: string;
+  hostId: string;
+  sessionId?: string | null;
+  workspace: string;
+  path: string;
+  maxBytes: number;
+};
+
+export type FilePreview = {
+  requestId: string;
+  hostId: string;
+  workspace: string;
+  path: string;
+  name: string;
+  language?: string | null;
+  sizeBytes: number;
+  truncated: boolean;
+  content?: string | null;
+  generatedAt: string;
+  error?: string | null;
+};
+
 export type ProjectTreeEntry = {
   path: string;
   name: string;
@@ -112,6 +135,8 @@ export type RelayServerMessage =
   | { type: "history-request"; request: HistoryRequest }
   | { type: "workspace-request"; request: WorkspaceRequest }
   | { type: "workspace-snapshot"; snapshot: WorkspaceSnapshot }
+  | { type: "file-preview-request"; request: FilePreviewRequest }
+  | { type: "file-preview"; preview: FilePreview }
   | { type: "history-page"; page: HistoryPage }
   | { type: "picker-registry"; registry: PickerRegistry }
   | { type: "relay-notice"; message: string }
@@ -132,7 +157,8 @@ export type RelayClientMessage =
   | { type: "register"; role: "mobile"; clientId: string; hostId?: string | null }
   | { type: "client-command"; command: ClientCommand }
   | { type: "history-request"; request: HistoryRequest }
-  | { type: "workspace-request"; request: WorkspaceRequest };
+  | { type: "workspace-request"; request: WorkspaceRequest }
+  | { type: "file-preview-request"; request: FilePreviewRequest };
 
 export type PickerRegistryItem = {
   id: string;
@@ -223,9 +249,24 @@ export function makeWorkspaceRequest(hostId: string, sessionId?: string | null, 
     hostId,
     sessionId: sessionId ?? null,
     workspace: workspace ?? null,
-    maxDepth: 3,
-    maxEntries: 220
+    maxDepth: 5,
+    maxEntries: 500
   };
+}
+
+export function makeFilePreviewRequest(hostId: string, sessionId: string | null | undefined, workspace: string, path: string, maxBytes = 65536): FilePreviewRequest {
+  return {
+    requestId: `file-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    hostId,
+    sessionId: sessionId ?? null,
+    workspace,
+    path,
+    maxBytes
+  };
+}
+
+export function filePreviewKey(hostId: string, workspace: string, path: string) {
+  return `${hostId}:${workspace}:${path}`;
 }
 
 function isAndroidEmulator() {

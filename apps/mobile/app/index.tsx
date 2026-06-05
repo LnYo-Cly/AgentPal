@@ -49,9 +49,9 @@ import { AccessibilityInfo, AppState, FlatList, Keyboard, KeyboardAvoidingView, 
 import RenderHTML from "react-native-render-html";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useAgentPalRelay } from "@/hooks/useAgentPalRelay";
+import { useAgentPalRelay, type FilePreviewState } from "@/hooks/useAgentPalRelay";
 import { clearStoredPairing, loadStoredPairing, PairingPayload, parsePairingInput, saveStoredPairing } from "@/lib/pairing";
-import { ConnectionState, HostStatus, PickerRegistryItem, ProjectTreeEntry, SessionEvent, SessionEventEnvelope, SessionState, SessionSummary, WorkspaceSnapshot, WorktreeSummary } from "@/lib/relay";
+import { ConnectionState, HostStatus, PickerRegistryItem, ProjectTreeEntry, SessionEvent, SessionEventEnvelope, SessionState, SessionSummary, WorkspaceSnapshot, WorktreeSummary, filePreviewKey } from "@/lib/relay";
 import { applyThemePalette, Box, ResolvedThemeMode, Text, theme, ThemePreference } from "@/theme";
 
 type ActiveTab = "home" | "conversation" | "settings";
@@ -128,6 +128,12 @@ type CodeDetail = {
   language: string;
   code: string;
 };
+type FilePreviewTarget = {
+  hostId: string;
+  workspace: string;
+  sessionId: string | null;
+  entry: ProjectTreeEntry;
+};
 type ConversationListItem =
   | { kind: "context"; id: string; session: SessionSummary }
   | { kind: "history"; id: string }
@@ -168,6 +174,7 @@ export default function HomeScreen() {
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [toolDetail, setToolDetail] = useState<ToolDetail | null>(null);
   const [codeDetail, setCodeDetail] = useState<CodeDetail | null>(null);
+  const [filePreviewTarget, setFilePreviewTarget] = useState<FilePreviewTarget | null>(null);
   const [commandPickerMode, setCommandPickerMode] = useState<CommandPickerMode | null>(null);
   const [sessionPickerOpen, setSessionPickerOpen] = useState(false);
   const [conversationComposerHeight, setConversationComposerHeight] = useState(112);
@@ -210,6 +217,9 @@ export default function HomeScreen() {
     () => matchingWorkspaceSnapshot(relay.workspaceSnapshots, relay.activeHost?.hostId ?? null, selectedSession?.workspace ?? null),
     [relay.activeHost?.hostId, relay.workspaceSnapshots, selectedSession?.workspace]
   );
+  const selectedFilePreviewState = filePreviewTarget
+    ? relay.filePreviews[filePreviewKey(filePreviewTarget.hostId, filePreviewTarget.workspace, filePreviewTarget.entry.path)] ?? null
+    : null;
   const pickerSheetState = useMemo<PickerSheetState>(
     () => ({
       synced: !!selectedPickerRegistry,
@@ -404,6 +414,27 @@ export default function HomeScreen() {
     showToast(setToast, requested ? "正在读取项目目录和变更" : "Host 未连接，暂时无法读取");
   }, [requestWorkspaceSnapshotSilently, selectedSession]);
 
+  const openFilePreview = useCallback(
+    (snapshot: WorkspaceSnapshot, entry: ProjectTreeEntry) => {
+      if (!selectedSession) {
+        showToast(setToast, "当前没有会话，无法预览文件");
+        return;
+      }
+      const target = {
+        hostId: snapshot.hostId,
+        workspace: snapshot.workspace,
+        sessionId: selectedSession.sessionId,
+        entry
+      };
+      setFilePreviewTarget(target);
+      const requested = relay.requestFilePreview(selectedSession.sessionId, snapshot.workspace, entry.path);
+      if (!requested) {
+        showToast(setToast, "Host 未连接，暂时无法读取文件");
+      }
+    },
+    [relay.requestFilePreview, selectedSession]
+  );
+
   const openConversation = (sessionId?: string) => {
     if (sessionId) {
       setSelectedSessionId(sessionId);
@@ -583,6 +614,7 @@ export default function HomeScreen() {
               onRefresh={refreshSelectedSession}
               onRefreshWorkspace={refreshWorkspaceSnapshot}
               onEnsureWorkspaceFresh={requestWorkspaceSnapshotSilently}
+              onOpenFilePreview={openFilePreview}
               onLoadOlder={() => {
                 if (!selectedSession) return;
                 relay.loadOlderHistory(selectedSession.sessionId);
@@ -656,6 +688,13 @@ export default function HomeScreen() {
           />
           <ToolDetailSheet detail={toolDetail} bottom={insets.bottom} onClose={() => setToolDetail(null)} />
           <CodeDetailSheet detail={codeDetail} bottom={insets.bottom} onCopy={copyCode} onClose={() => setCodeDetail(null)} />
+          <FilePreviewSheet
+            target={filePreviewTarget}
+            state={selectedFilePreviewState}
+            bottom={insets.bottom}
+            onCopy={copyCode}
+            onClose={() => setFilePreviewTarget(null)}
+          />
           {toast ? <Toast message={toast.text} bottom={activeTab === "conversation" ? insets.bottom + conversationComposerHeight + 40 : insets.bottom + 92} /> : null}
         </Box>
       </KeyboardAvoidingView>
@@ -1041,6 +1080,7 @@ function ConversationPage({
   onRefresh,
   onRefreshWorkspace,
   onEnsureWorkspaceFresh,
+  onOpenFilePreview,
   onLoadOlder,
   onAttach,
   onVoice,
@@ -1072,6 +1112,7 @@ function ConversationPage({
   onRefresh: () => void;
   onRefreshWorkspace: () => void;
   onEnsureWorkspaceFresh: () => boolean;
+  onOpenFilePreview: (snapshot: WorkspaceSnapshot, entry: ProjectTreeEntry) => void;
   onLoadOlder: () => void;
   onAttach: () => void;
   onVoice: () => void;
@@ -1090,8 +1131,8 @@ function ConversationPage({
   const [initialLoadExpired, setInitialLoadExpired] = useState(false);
   const [activePanel, setActivePanel] = useState<ConversationPanel>("chat");
   const headerHeight = top + 84;
-  const panelTabsHeight = 56;
-  const contentTopInset = headerHeight + panelTabsHeight + 12;
+  const panelTabsHeight = 48;
+  const contentTopInset = headerHeight + panelTabsHeight + 10;
   const composerLift = keyboardVisible ? 8 : bottom + 10;
   const timelineBottomInset = composerLift + composerHeight + 24;
   const workspaceBottomInset = timelineBottomInset + 96;
@@ -1225,6 +1266,7 @@ function ConversationPage({
           topInset={contentTopInset}
           bottomInset={workspaceBottomInset}
           onRefresh={onRefreshWorkspace}
+          onOpenFilePreview={onOpenFilePreview}
         />
       )}
       {activePanel === "chat" && showNewMessages ? <NewMessagesButton bottom={timelineBottomInset + 10} onPress={() => scrollToConversationBottom(true)} /> : null}
@@ -1431,10 +1473,10 @@ function ConversationPanelTabs({
 }) {
   const dirtyCount = snapshot?.worktrees.filter((item) => item.dirty).length ?? 0;
   const treeCount = snapshot?.tree.length ?? 0;
-  const items: Array<{ id: ConversationPanel; label: string; icon: IconComponent; badge?: string }> = [
+  const items: Array<{ id: ConversationPanel; label: string; icon: IconComponent; badge?: string; clean?: boolean }> = [
     { id: "chat", label: "聊天", icon: Bot },
     { id: "project", label: "项目", icon: Folder, badge: treeCount ? String(treeCount) : undefined },
-    { id: "changes", label: snapshot && dirtyCount === 0 ? "干净" : "变更", icon: FileDiff, badge: dirtyCount ? String(dirtyCount) : undefined }
+    { id: "changes", label: "变更", icon: FileDiff, badge: dirtyCount ? String(dirtyCount) : undefined, clean: !!snapshot && dirtyCount === 0 }
   ];
 
   return (
@@ -1446,7 +1488,7 @@ function ConversationPanelTabs({
           return (
             <Pressable key={item.id} accessibilityRole="button" accessibilityState={{ selected: active }} onPress={() => onSelect(item.id)} style={{ flex: 1 }}>
               {({ pressed }) => (
-                <Box minHeight={34} borderRadius="round" backgroundColor={active ? "surface" : "transparent"} alignItems="center" justifyContent="center" flexDirection="row" gap="xs" style={{ opacity: pressed ? 0.7 : 1 }}>
+                <Box minHeight={32} borderRadius="round" backgroundColor={active ? "surface" : "transparent"} alignItems="center" justifyContent="center" flexDirection="row" gap="xs" style={{ opacity: pressed ? 0.7 : 1 }}>
                   <Icon color={active ? theme.colors.accent : theme.colors.inkMuted} size={15} />
                   <Text variant="caption" color={active ? "accent" : "inkMuted"} numberOfLines={1}>
                     {item.label}
@@ -1457,6 +1499,8 @@ function ConversationPanelTabs({
                         {item.badge}
                       </Text>
                     </Box>
+                  ) : item.clean ? (
+                    <Box width={7} height={7} borderRadius="round" backgroundColor="success" />
                   ) : null}
                 </Box>
               )}
@@ -1474,7 +1518,8 @@ function WorkspacePanel({
   snapshot,
   topInset,
   bottomInset,
-  onRefresh
+  onRefresh,
+  onOpenFilePreview
 }: {
   mode: Exclude<ConversationPanel, "chat">;
   session: SessionSummary | null;
@@ -1482,6 +1527,7 @@ function WorkspacePanel({
   topInset: number;
   bottomInset: number;
   onRefresh: () => void;
+  onOpenFilePreview: (snapshot: WorkspaceSnapshot, entry: ProjectTreeEntry) => void;
 }) {
   return (
     <ScrollView
@@ -1499,7 +1545,7 @@ function WorkspacePanel({
       ) : !snapshot ? (
         <WorkspaceEmptyState title="正在等待项目快照" body="Host 会读取当前 workspace 的目录和 Git worktree 变更摘要。" onRefresh={onRefresh} />
       ) : mode === "project" ? (
-        <ProjectTreePanel snapshot={snapshot} />
+        <ProjectTreePanel snapshot={snapshot} onOpenFilePreview={onOpenFilePreview} />
       ) : (
         <WorktreeChangesPanel snapshot={snapshot} onRefresh={onRefresh} />
       )}
@@ -1526,11 +1572,23 @@ function WorkspaceEmptyState({ title, body, onRefresh }: { title: string; body: 
   );
 }
 
-function ProjectTreePanel({ snapshot }: { snapshot: WorkspaceSnapshot }) {
+function ProjectTreePanel({ snapshot, onOpenFilePreview }: { snapshot: WorkspaceSnapshot; onOpenFilePreview: (snapshot: WorkspaceSnapshot, entry: ProjectTreeEntry) => void }) {
+  const [expandedPaths, setExpandedPaths] = useState<Record<string, boolean>>({});
   const directories = snapshot.tree.filter((entry) => entry.kind === "directory").length;
   const files = snapshot.tree.filter((entry) => entry.kind === "file").length;
-  const visibleTree = snapshot.tree.slice(0, 180);
+  const visibleTree = useMemo(() => visibleProjectTree(snapshot.tree, expandedPaths), [expandedPaths, snapshot.tree]);
+  const childPaths = useMemo(() => projectTreeChildPathSet(snapshot.tree), [snapshot.tree]);
   const snapshotTime = formatTime(snapshot.generatedAt);
+  const toggleFolder = (entry: ProjectTreeEntry) => {
+    setExpandedPaths((current) => ({
+      ...current,
+      [entry.path]: !current[entry.path]
+    }));
+  };
+
+  useEffect(() => {
+    setExpandedPaths({});
+  }, [snapshot.requestId, snapshot.workspace]);
 
   return (
     <>
@@ -1548,7 +1606,16 @@ function ProjectTreePanel({ snapshot }: { snapshot: WorkspaceSnapshot }) {
           <Text variant="caption">{formatTime(snapshot.generatedAt)}</Text>
         </Box>
         {visibleTree.length ? (
-          visibleTree.map((entry, index) => <ProjectTreeRow key={`${entry.path}-${index}`} entry={entry} />)
+          visibleTree.map((entry, index) => (
+            <ProjectTreeRow
+              key={`${entry.path}-${index}`}
+              entry={entry}
+              expanded={!!expandedPaths[entry.path]}
+              hasChildren={childPaths.has(entry.path)}
+              onToggleFolder={toggleFolder}
+              onOpenFile={() => onOpenFilePreview(snapshot, entry)}
+            />
+          ))
         ) : (
           <Box padding="m">
             <Text variant="body" color="inkMuted">
@@ -1557,19 +1624,57 @@ function ProjectTreePanel({ snapshot }: { snapshot: WorkspaceSnapshot }) {
           </Box>
         )}
       </Box>
+      {snapshot.treeTruncated ? <SystemLine text="项目快照已截断，部分深层目录可能需要刷新后才能显示。" tone="neutral" /> : null}
     </>
   );
 }
 
-function ProjectTreeRow({ entry }: { entry: ProjectTreeEntry }) {
+function ProjectTreeRow({
+  entry,
+  expanded,
+  hasChildren,
+  onToggleFolder,
+  onOpenFile
+}: {
+  entry: ProjectTreeEntry;
+  expanded: boolean;
+  hasChildren: boolean;
+  onToggleFolder: (entry: ProjectTreeEntry) => void;
+  onOpenFile: () => void;
+}) {
   const Icon = entry.kind === "directory" ? Folder : FileText;
+  const isDirectory = entry.kind === "directory";
+  const handlePress = () => {
+    if (isDirectory) {
+      if (hasChildren) {
+        onToggleFolder(entry);
+      }
+      return;
+    }
+    onOpenFile();
+  };
+
   return (
-    <Box minHeight={38} flexDirection="row" alignItems="center" gap="s" paddingRight="m" borderTopWidth={1} borderColor="line" style={{ paddingLeft: 14 + entry.depth * 14 }}>
-      <Icon color={entry.kind === "directory" ? theme.colors.cobalt : theme.colors.inkMuted} size={16} />
-      <Text variant="caption" color={entry.kind === "directory" ? "ink" : "inkMuted"} numberOfLines={1} flex={1}>
-        {entry.name}
-      </Text>
-    </Box>
+    <Pressable accessibilityRole="button" accessibilityLabel={isDirectory ? `${expanded ? "收起" : "展开"}文件夹 ${entry.name}` : `预览文件 ${entry.name}`} onPress={handlePress}>
+      {({ pressed }) => (
+        <Box minHeight={42} flexDirection="row" alignItems="center" gap="s" paddingRight="m" borderTopWidth={1} borderColor="line" style={{ paddingLeft: 14 + entry.depth * 16, opacity: pressed ? 0.68 : 1 }}>
+          {isDirectory ? (
+            hasChildren ? (
+              expanded ? <ChevronDown color={theme.colors.inkMuted} size={15} /> : <ChevronRight color={theme.colors.inkMuted} size={15} />
+            ) : (
+              <Box width={15} />
+            )
+          ) : (
+            <Box width={15} />
+          )}
+          <Icon color={isDirectory ? theme.colors.cobalt : theme.colors.inkMuted} size={17} />
+          <Text variant="caption" color={isDirectory ? "ink" : "inkMuted"} numberOfLines={1} flex={1}>
+            {entry.name}
+          </Text>
+          {isDirectory ? null : <ChevronRight color={theme.colors.inkMuted} size={16} />}
+        </Box>
+      )}
+    </Pressable>
   );
 }
 
@@ -3325,6 +3430,106 @@ function CodeDetailSheet({ detail, bottom, onCopy, onClose }: { detail: CodeDeta
   );
 }
 
+function FilePreviewSheet({
+  target,
+  state,
+  bottom,
+  onCopy,
+  onClose
+}: {
+  target: FilePreviewTarget | null;
+  state: FilePreviewState | null;
+  bottom: number;
+  onCopy: (text: string) => void;
+  onClose: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+  const { width } = useWindowDimensions();
+  const preview = state?.preview ?? null;
+  const content = preview?.content ?? "";
+  const language = preview?.language ?? (target ? languageForFileName(target.entry.name) : "text");
+  const codeViewportWidth = Math.max(320, width - 32);
+  const codeWidth = content ? codeContentWidth(content, codeViewportWidth) : codeViewportWidth;
+  const loading = !!state?.loading;
+  const error = state?.error ?? preview?.error ?? null;
+
+  useEffect(() => {
+    setCopied(false);
+  }, [target?.entry.path, content]);
+
+  const handleCopy = () => {
+    if (!content) {
+      return;
+    }
+    onCopy(content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1200);
+  };
+
+  return (
+    <Modal visible={!!target} animationType="slide" transparent onRequestClose={onClose}>
+      <View style={{ flex: 1, backgroundColor: "rgba(15,23,42,0.34)", justifyContent: "flex-end" }}>
+        {target ? (
+          <Box backgroundColor="canvas" borderTopLeftRadius="l" borderTopRightRadius="l" paddingHorizontal="m" paddingTop="m" gap="m" style={{ paddingBottom: bottom + 14, maxHeight: "84%" }}>
+            <Box flexDirection="row" alignItems="center" gap="m">
+              <Box width={42} height={42} borderRadius="m" backgroundColor="cobaltSoft" alignItems="center" justifyContent="center">
+                <FileText color={theme.colors.cobalt} size={22} />
+              </Box>
+              <Box flex={1}>
+                <Text variant="title" numberOfLines={1}>
+                  {target.entry.name}
+                </Text>
+                <Text variant="caption" numberOfLines={1}>
+                  {target.entry.path}
+                </Text>
+              </Box>
+              <CodeAction icon={Copy} label={copied ? "已复制" : "复制"} active={copied} onPress={handleCopy} />
+              <IconShell icon={X} tone="neutral" label="关闭文件预览" onPress={onClose} />
+            </Box>
+
+            <Box flexDirection="row" alignItems="center" gap="s" flexWrap="wrap">
+              <StatusChip label={loading ? "读取中" : error ? "不可预览" : "已读取"} tone={loading ? "blue" : error ? "danger" : "green"} icon={loading ? RefreshCcw : error ? ShieldAlert : CheckCircle2} />
+              <StatusChip label={language || "text"} tone="neutral" icon={Code2} />
+              {preview ? <StatusChip label={formatBytes(preview.sizeBytes)} tone="neutral" icon={FileText} /> : null}
+              {preview?.truncated ? <StatusChip label="已截断" tone="amber" icon={ShieldAlert} /> : null}
+            </Box>
+
+            {error ? (
+              <DetailField label="预览状态" value={error} />
+            ) : loading && !content ? (
+              <Box minHeight={220} borderRadius="m" borderWidth={1} borderColor="line" backgroundColor="surfaceMuted" alignItems="center" justifyContent="center" gap="s">
+                <RefreshCcw color={theme.colors.inkMuted} size={28} />
+                <Text variant="section">正在读取文件</Text>
+                <Text variant="caption" color="inkMuted">
+                  Host 正在返回只读预览。
+                </Text>
+              </Box>
+            ) : content ? (
+              <Box borderRadius="m" overflow="hidden" borderWidth={1} borderColor="line">
+                <Box minHeight={36} paddingHorizontal="m" flexDirection="row" alignItems="center" justifyContent="space-between" style={{ backgroundColor: githubDark.header }}>
+                  <Text variant="caption" color="terminalText" numberOfLines={1}>
+                    {language || "text"}
+                  </Text>
+                  <Text variant="caption" color="terminalText" style={{ color: githubDark.muted }}>
+                    横向滑动查看长行
+                  </Text>
+                </Box>
+                <ScrollView nestedScrollEnabled style={{ maxHeight: 520, backgroundColor: githubDark.bg }} showsVerticalScrollIndicator>
+                  <ScrollView horizontal showsHorizontalScrollIndicator>
+                    <HighlightedCode code={content} language={language || "text"} width={codeWidth} />
+                  </ScrollView>
+                </ScrollView>
+              </Box>
+            ) : (
+              <DetailField label="预览状态" value="暂无文件内容。" />
+            )}
+          </Box>
+        ) : null}
+      </View>
+    </Modal>
+  );
+}
+
 function DetailField({ label, value, monospace = false, compact = false, maxHeight }: { label: string; value: string; monospace?: boolean; compact?: boolean; maxHeight?: number }) {
   const content = (
     <Text variant={compact ? "caption" : "body"} color={monospace ? "terminalText" : "ink"}>
@@ -4435,6 +4640,84 @@ function significantCommandLines(command: string) {
   const lines = command.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
   const meaningful = lines.filter((line) => !/^\$ErrorActionPreference\s*=/.test(line));
   return meaningful.length > 0 ? meaningful : lines;
+}
+
+function visibleProjectTree(entries: ProjectTreeEntry[], expandedPaths: Record<string, boolean>) {
+  return entries.filter((entry) => {
+    if (entry.depth === 0) {
+      return true;
+    }
+    return projectTreeAncestors(entry.path).every((ancestor) => expandedPaths[ancestor]);
+  });
+}
+
+function projectTreeChildPathSet(entries: ProjectTreeEntry[]) {
+  const directoryPaths = new Set(entries.filter((entry) => entry.kind === "directory").map((entry) => entry.path));
+  const parents = new Set<string>();
+  for (const entry of entries) {
+    const parent = projectTreeParentPath(entry.path);
+    if (parent && directoryPaths.has(parent)) {
+      parents.add(parent);
+    }
+  }
+  return parents;
+}
+
+function projectTreeAncestors(path: string) {
+  const parts = path.split("/").filter(Boolean);
+  const ancestors: string[] = [];
+  for (let index = 1; index < parts.length; index += 1) {
+    ancestors.push(parts.slice(0, index).join("/"));
+  }
+  return ancestors;
+}
+
+function projectTreeParentPath(path: string) {
+  const normalized = path.replace(/\\/g, "/");
+  const index = normalized.lastIndexOf("/");
+  return index > 0 ? normalized.slice(0, index) : null;
+}
+
+function languageForFileName(name: string) {
+  const extension = name.toLowerCase().split(".").pop() ?? "";
+  const map: Record<string, string> = {
+    cjs: "javascript",
+    css: "css",
+    diff: "diff",
+    htm: "markup",
+    html: "markup",
+    js: "javascript",
+    json: "json",
+    jsx: "jsx",
+    markdown: "markdown",
+    md: "markdown",
+    mjs: "javascript",
+    patch: "diff",
+    ps1: "powershell",
+    py: "python",
+    rs: "rust",
+    sh: "bash",
+    ts: "typescript",
+    tsx: "tsx",
+    xml: "markup",
+    yaml: "yaml",
+    yml: "yaml",
+    zsh: "bash"
+  };
+  return map[extension] ?? extension ?? "text";
+}
+
+function formatBytes(value: number) {
+  if (!Number.isFinite(value) || value <= 0) {
+    return "0 B";
+  }
+  if (value < 1024) {
+    return `${value} B`;
+  }
+  if (value < 1024 * 1024) {
+    return `${(value / 1024).toFixed(value < 10 * 1024 ? 1 : 0)} KB`;
+  }
+  return `${(value / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function compactWorkspaceName(path: string) {

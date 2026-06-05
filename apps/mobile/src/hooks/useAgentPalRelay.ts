@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   ConnectionState,
+  FilePreview,
   HostStatus,
   PickerRegistry,
   RelayClientMessage,
@@ -11,6 +12,8 @@ import {
   SessionSummary,
   WorkspaceSnapshot,
   defaultRelayUrl,
+  filePreviewKey,
+  makeFilePreviewRequest,
   makeHistoryRequest,
   makeInputCommand,
   makeWorkspaceRequest
@@ -33,8 +36,16 @@ type SessionHistory = {
   latestRequestId: string | null;
 };
 
+export type FilePreviewState = {
+  loading: boolean;
+  preview: FilePreview | null;
+  error: string | null;
+  requestId: string | null;
+};
+
 const historyPageSize = 30;
 const historyTimeoutMs = 9000;
+const filePreviewTimeoutMs = 9000;
 
 export function useAgentPalRelay(url = defaultRelayUrl(), pairedHostId?: string | null) {
   const socketRef = useRef<WebSocket | null>(null);
@@ -47,6 +58,7 @@ export function useAgentPalRelay(url = defaultRelayUrl(), pairedHostId?: string 
   const [sessionHistory, setSessionHistory] = useState<Record<string, SessionHistory>>({});
   const [pickerRegistries, setPickerRegistries] = useState<Record<string, PickerRegistry>>({});
   const [workspaceSnapshots, setWorkspaceSnapshots] = useState<Record<string, WorkspaceSnapshot>>({});
+  const [filePreviews, setFilePreviews] = useState<Record<string, FilePreviewState>>({});
   const [lastError, setLastError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -75,7 +87,7 @@ export function useAgentPalRelay(url = defaultRelayUrl(), pairedHostId?: string 
       socket.onmessage = (message) => {
         try {
           const parsed = JSON.parse(String(message.data)) as RelayServerMessage;
-          applyServerMessage(parsed, setHosts, setSessions, setTimeline, setSessionHistory, setPickerRegistries, setWorkspaceSnapshots, setLastError);
+          applyServerMessage(parsed, setHosts, setSessions, setTimeline, setSessionHistory, setPickerRegistries, setWorkspaceSnapshots, setFilePreviews, setLastError);
         } catch (error) {
           setLastError(error instanceof Error ? error.message : "Relay message parse failed");
         }
@@ -242,6 +254,50 @@ export function useAgentPalRelay(url = defaultRelayUrl(), pairedHostId?: string 
     [activeHost]
   );
 
+  const requestFilePreview = useCallback(
+    (sessionId: string | null | undefined, workspace: string, path: string) => {
+      const socket = socketRef.current;
+      const hostId = activeHost?.hostId;
+      if (!hostId || !socket || socket.readyState !== WebSocket.OPEN) {
+        return false;
+      }
+      const request = makeFilePreviewRequest(hostId, sessionId, workspace, path);
+      const key = filePreviewKey(hostId, workspace, path);
+      setFilePreviews((items) => ({
+        ...items,
+        [key]: {
+          loading: true,
+          preview: items[key]?.preview ?? null,
+          error: null,
+          requestId: request.requestId
+        }
+      }));
+      sendRaw(socket, {
+        type: "file-preview-request",
+        request
+      });
+      setTimeout(() => {
+        setFilePreviews((items) => {
+          const current = items[key];
+          if (!current?.loading || current.requestId !== request.requestId) {
+            return items;
+          }
+          return {
+            ...items,
+            [key]: {
+              ...current,
+              loading: false,
+              error: "文件预览加载超时",
+              requestId: null
+            }
+          };
+        });
+      }, filePreviewTimeoutMs);
+      return true;
+    },
+    [activeHost]
+  );
+
   const reconnect = useCallback(() => {
     setHosts([]);
     setSessions([]);
@@ -249,6 +305,7 @@ export function useAgentPalRelay(url = defaultRelayUrl(), pairedHostId?: string 
     setSessionHistory({});
     setPickerRegistries({});
     setWorkspaceSnapshots({});
+    setFilePreviews({});
     setConnectionState("connecting");
     setLastError(null);
     setReconnectNonce((value) => value + 1);
@@ -263,12 +320,14 @@ export function useAgentPalRelay(url = defaultRelayUrl(), pairedHostId?: string 
     sessionHistory,
     pickerRegistries,
     workspaceSnapshots,
+    filePreviews,
     activeHost,
     activeSession,
     lastError,
     reconnect,
     submit,
     requestWorkspaceSnapshot,
+    requestFilePreview,
     loadLatestHistory,
     loadOlderHistory
   };
@@ -286,6 +345,7 @@ function applyServerMessage(
   setSessionHistory: (updater: (items: Record<string, SessionHistory>) => Record<string, SessionHistory>) => void,
   setPickerRegistries: (updater: (items: Record<string, PickerRegistry>) => Record<string, PickerRegistry>) => void,
   setWorkspaceSnapshots: (updater: (items: Record<string, WorkspaceSnapshot>) => Record<string, WorkspaceSnapshot>) => void,
+  setFilePreviews: (updater: (items: Record<string, FilePreviewState>) => Record<string, FilePreviewState>) => void,
   setLastError: (value: string | null) => void
 ) {
   switch (message.type) {
@@ -353,6 +413,21 @@ function applyServerMessage(
         [workspaceSnapshotKey(message.snapshot.hostId, message.snapshot.workspace)]: message.snapshot
       }));
       break;
+    case "file-preview":
+      setLastError(null);
+      setFilePreviews((items) => {
+        const key = filePreviewKey(message.preview.hostId, message.preview.workspace, message.preview.path);
+        return {
+          ...items,
+          [key]: {
+            loading: false,
+            preview: message.preview,
+            error: message.preview.error ?? null,
+            requestId: null
+          }
+        };
+      });
+      break;
     case "error":
       setLastError(message.message);
       break;
@@ -360,6 +435,7 @@ function applyServerMessage(
     case "client-command":
     case "history-request":
     case "workspace-request":
+    case "file-preview-request":
       break;
     default:
       setLastError(null);

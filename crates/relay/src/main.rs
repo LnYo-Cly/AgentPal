@@ -240,6 +240,14 @@ async fn handle_client_message(message: RelayClientMessage, state: &AppState) {
                 .tx
                 .send(RelayServerMessage::WorkspaceSnapshot { snapshot });
         }
+        RelayClientMessage::FilePreviewRequest { request } => {
+            let _ = state
+                .tx
+                .send(RelayServerMessage::FilePreviewRequest { request });
+        }
+        RelayClientMessage::FilePreview { preview } => {
+            let _ = state.tx.send(RelayServerMessage::FilePreview { preview });
+        }
         RelayClientMessage::PickerRegistry { registry } => {
             state
                 .snapshot
