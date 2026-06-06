@@ -7,9 +7,9 @@
 | Field | Value |
 | --- | --- |
 | Schema version | lesson-candidate-v1 |
-| Task-level status | pending-review |
+| Task-level status | no-candidate-accepted |
 | Review gate | candidate-file-present |
-| Review decision | pending-human-review |
+| Review decision | accepted-no-candidate |
 | Promotion state | not-promoted |
 | Closeout token | pending |
 | Source task | 2026-06-06-agentpal-mobile-workbench-and-sessions-ia-correc-a2978171 |
@@ -49,7 +49,7 @@
 
 ## No-Candidate Reason
 
-尚未判定。只有人工审查接受本任务没有可复用候选时，才填写这里。
+本轮是 AgentPal 移动端特定的信息架构修正，复用价值主要体现在当前任务的 `visual_map.md` 页面职责边界中；暂不沉淀为全局 lesson。
 
 ## Promotion Notes
 
