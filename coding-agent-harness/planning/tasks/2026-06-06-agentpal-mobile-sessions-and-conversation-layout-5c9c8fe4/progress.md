@@ -22,13 +22,6 @@
 
 证据较长或数量较多时，不要粘贴全文；放入 `artifacts/INDEX.md` 并在这里引用 ID。
 
-### [YYYY-MM-DD HH:MM] - [阶段名称]
-
-- 做了什么：[具体操作]
-- 验证结果：[运行了什么检查，结果如何]
-- 下一步：[下一步动作]
-- 证据：[type:path:summary]
-
 ## 残余
 
 - 真机视觉仍需用户在 iOS / Android Expo Go 里复测，尤其是安全区、底部 composer 与长列表滚动手感。
@@ -60,6 +53,6 @@
 ### [2026-06-06 13:16] - task-review
 
 - 做了什么：Agent review ready: sessions page is now a project/session index, conversation panel tabs are fixed in the header, workspace project and changes panels use compact context headers, and typecheck/export/harness/diff checks passed.
-- 验证结果：已记录
-- 下一步：继续执行
-- 证据：n/a
+- 验证结果：已提交 agent review；Harness 指出本文件仍有模板示例块，已清理。
+- 下一步：重新运行 Harness check 和 task-review。
+- 证据：review:coding-agent-harness/planning/tasks/2026-06-06-agentpal-mobile-sessions-and-conversation-layout-5c9c8fe4/review.md:Agent review packet submitted.
