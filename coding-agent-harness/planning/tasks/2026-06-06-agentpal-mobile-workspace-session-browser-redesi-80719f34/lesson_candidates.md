@@ -7,11 +7,11 @@
 | Field | Value |
 | --- | --- |
 | Schema version | lesson-candidate-v1 |
-| Task-level status | pending-review |
+| Task-level status | no-candidate-accepted |
 | Review gate | candidate-file-present |
-| Review decision | pending-human-review |
+| Review decision | accepted-no-candidate |
 | Promotion state | not-promoted |
-| Closeout token | pending |
+| Closeout token | checked-none:auto-no-candidate |
 | Source task | 2026-06-06-agentpal-mobile-workspace-session-browser-redesi-80719f34 |
 | Owner | coordinator |
 | Last updated | 2026-06-06 |
@@ -49,7 +49,7 @@
 
 ## No-Candidate Reason
 
-尚未判定。只有人工审查接受本任务没有可复用候选时，才填写这里。
+本任务沉淀的是 AgentPal 当前产品信息架构，不是可跨任务复用的工程流程或治理规则；相关设计判断已记录在 `findings.md` 和 `visual_map.md`。
 
 ## Promotion Notes
 

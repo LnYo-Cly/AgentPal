@@ -9,6 +9,7 @@ Visual Map Contract: v1.0
 | ID | Type | Purpose | Required For Understanding | Source Evidence | Promotion Candidate |
 | --- | --- | --- | --- | --- | --- |
 | MAP-01 | phase | 展示执行阶段和依赖关系 | yes | `task_plan.md` | no |
+| MAP-02 | decision | 展示 Codex 桌面信息结构如何投影到手机端 | yes | 用户截图、`task_plan.md` | no |
 
 ## 阶段关系图（Phase Graph）
 
@@ -24,7 +25,7 @@ flowchart LR
 | Phase ID | Kind | Depends On | State | Completion | Output | Required Evidence | Exit Command | Actor | Evidence Status | Blocking Risk | Owner / Handoff |
 | --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- |
 | INIT-01 | init | none | done | 100 | 任务计划和执行策略已确认 | `task_plan.md`; `execution_strategy.md` | `harness task-start 2026-06-06-agentpal-mobile-workspace-session-browser-redesi-80719f34` | agent | present | none | coordinator |
-| EXEC-01 | execution | INIT-01 | planned | 0 | 有边界的实现、文档切片和验证证据 | diff、commands、worker handoff 或 artifact path | `harness task-phase 2026-06-06-agentpal-mobile-workspace-session-browser-redesi-80719f34 EXEC-01 --state done --completion 100 --evidence present` | agent | missing | [risk] | [owner] |
+| EXEC-01 | execution | INIT-01 | planned | 0 | 移动端会话入口改为项目分组 session 浏览器，并调整详情分段语义 | diff、typecheck、Expo export、Harness check | `harness task-phase 2026-06-06-agentpal-mobile-workspace-session-browser-redesi-80719f34 EXEC-01 --state done --completion 100 --evidence present` | agent | missing | session workspace 数据不足时需降级为单组 | coordinator |
 | GATE-01 | gate | EXEC-01 | planned | 0 | Agent Review Submission | `review.md`、progress update、lesson routing | `harness task-review 2026-06-06-agentpal-mobile-workspace-session-browser-redesi-80719f34 --message "<summary>"` | agent | missing | [risk] | coordinator |
 | GATE-02 | gate | GATE-01 | planned | 0 | Human Review Confirmation | review packet 和人工确认 | `harness review-confirm 2026-06-06-agentpal-mobile-workspace-session-browser-redesi-80719f34 --confirm 2026-06-06-agentpal-mobile-workspace-session-browser-redesi-80719f34` | human | missing | Agent 不能代办人工确认 | human |
 
@@ -48,3 +49,23 @@ flowchart LR
 - state：状态机或生命周期。
 - topology：repo、服务、worker、worktree 拓扑。
 - decision：方案分叉和决策树。
+
+## MAP-02 Codex Desktop 到 AgentPal Mobile 的信息结构投影
+
+```mermaid
+flowchart TB
+  desktop["Codex desktop\nleft project sidebar"] --> concept["Project / workspace is the session container"]
+  concept --> mobileSessions["AgentPal bottom tab: 会话\nproject-grouped session browser"]
+  mobileSessions --> projectGroup["Project card\nworkspace path + active sessions + recent sessions"]
+  projectGroup --> sessionDetail["Session detail\n聊天 / 文件 / 变更"]
+  sessionDetail --> chat["聊天\nmessages + tools + approvals"]
+  sessionDetail --> files["文件\ncurrent workspace tree + file preview"]
+  sessionDetail --> diff["变更\ncurrent repo worktree/diff summary"]
+```
+
+设计约束：
+
+- `项目` 在全局导航层代表工作区/session 容器。
+- `文件` 在会话详情层代表当前工作区目录树。
+- `变更` 在会话详情层代表当前仓库 worktree/diff。
+- 手机端不复制桌面左侧栏；用底部 `会话` 入口和项目分组卡片承载同样的信息关系。
