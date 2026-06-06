@@ -114,3 +114,17 @@ Scanner 会根据必需文件、章节、证据和这个严格提交块派生 `m
 ## 最终信心依据（Final Confidence Basis）
 
 信心来自 TypeScript、Expo export、diff check 和 Harness check；最终视觉仍需用户在真机 Expo Go 中确认。
+
+## Agent Review Submission
+
+| Field | Value |
+| --- | --- |
+| Submission ID | ARS-202606060722 |
+| Submitted At | 2026-06-06 07:22 |
+| Submitted By | agent |
+| Task Key | TASKS/2026-06-06-agentpal-mobile-workspace-session-browser-redesi-80719f34 |
+| Materials Checklist Hash | 16f27eab461cde69 |
+| Evidence Summary | Mobile sessions now browse by workspace/project; conversation detail uses chat/files/changes semantics. Typecheck, Expo export, diff check, and Harness check passed. |
+| Open Findings Count | 0 |
+| Scanner Version | task-scanner/2026-05-25-phase-kind |
+| Target | TARGET:coding-agent-harness/planning/tasks/2026-06-06-agentpal-mobile-workspace-session-browser-redesi-80719f34 |

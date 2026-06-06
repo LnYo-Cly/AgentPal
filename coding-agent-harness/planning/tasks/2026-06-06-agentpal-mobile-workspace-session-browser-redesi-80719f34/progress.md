@@ -1,6 +1,6 @@
 # AgentPal mobile workspace session browser redesign - 进度
 
-## 状态：进行中
+## 状态：审查中
 
 `## 状态` 是受控机器字段，只能使用以下值之一：
 
@@ -64,3 +64,10 @@
 - 证据：command:TARGET:apps/mobile export to tmp/expo-export-session-browser:通过
 - 证据：command:TARGET:git diff --check:通过，仅有 Windows CRLF 提示
 - 证据：command:TARGET:npx --yes coding-agent-harness check --profile target-project .:通过；dirty-state 来自待提交改动，另有历史 adoption-needed warning
+
+### [2026-06-06 07:22] - task-review
+
+- 做了什么：Mobile sessions now browse by workspace/project; conversation detail uses chat/files/changes semantics. Typecheck, Expo export, diff check, and Harness check passed.
+- 验证结果：已记录
+- 下一步：继续执行
+- 证据：n/a
