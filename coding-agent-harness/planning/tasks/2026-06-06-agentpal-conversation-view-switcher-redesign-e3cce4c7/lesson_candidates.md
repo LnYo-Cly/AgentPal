@@ -7,9 +7,9 @@
 | Field | Value |
 | --- | --- |
 | Schema version | lesson-candidate-v1 |
-| Task-level status | pending-review |
+| Task-level status | no-candidate-accepted |
 | Review gate | candidate-file-present |
-| Review decision | pending-human-review |
+| Review decision | self-reviewed-no-candidate |
 | Promotion state | not-promoted |
 | Closeout token | pending |
 | Source task | 2026-06-06-agentpal-conversation-view-switcher-redesign-e3cce4c7 |
@@ -49,7 +49,7 @@
 
 ## No-Candidate Reason
 
-尚未判定。只有人工审查接受本任务没有可复用候选时，才填写这里。
+本轮是单文件会话页布局修正，结论依赖当前 UI 层级和用户反馈，不形成可复用的跨任务工程规则或治理标准。
 
 ## Promotion Notes
 
