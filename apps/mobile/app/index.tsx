@@ -1131,8 +1131,7 @@ function ConversationPage({
   const [initialLoadExpired, setInitialLoadExpired] = useState(false);
   const [activePanel, setActivePanel] = useState<ConversationPanel>("chat");
   const headerHeight = top + 84;
-  const panelTabsHeight = 48;
-  const contentTopInset = headerHeight + panelTabsHeight + 10;
+  const contentTopInset = headerHeight + 12;
   const composerLift = keyboardVisible ? 8 : bottom + 10;
   const timelineBottomInset = composerLift + composerHeight + 24;
   const workspaceBottomInset = timelineBottomInset + 96;
@@ -1206,7 +1205,6 @@ function ConversationPage({
         refreshLabel={activePanel === "chat" ? "刷新当前会话" : "刷新项目状态"}
         onSwitchSession={onSwitchSession}
       />
-      <ConversationPanelTabs top={headerHeight} activePanel={activePanel} snapshot={workspaceSnapshot} onSelect={setActivePanel} />
       {activePanel === "chat" ? (
         <FlatList
           ref={listRef}
@@ -1252,6 +1250,7 @@ function ConversationPage({
             gap: 14
           }}
           scrollIndicatorInsets={{ bottom: timelineBottomInset, top: contentTopInset }}
+          ListHeaderComponent={<ConversationPanelTabs activePanel={activePanel} onSelect={setActivePanel} />}
           ListFooterComponent={<View style={{ height: timelineBottomInset }} />}
           bounces
           alwaysBounceVertical={false}
@@ -1267,6 +1266,8 @@ function ConversationPage({
           bottomInset={workspaceBottomInset}
           onRefresh={onRefreshWorkspace}
           onOpenFilePreview={onOpenFilePreview}
+          activePanel={activePanel}
+          onSelectPanel={setActivePanel}
         />
       )}
       {activePanel === "chat" && showNewMessages ? <NewMessagesButton bottom={timelineBottomInset + 10} onPress={() => scrollToConversationBottom(true)} /> : null}
@@ -1461,47 +1462,43 @@ function ConversationHeader({
 }
 
 function ConversationPanelTabs({
-  top,
   activePanel,
-  snapshot,
   onSelect
 }: {
-  top: number;
   activePanel: ConversationPanel;
-  snapshot: WorkspaceSnapshot | null;
   onSelect: (panel: ConversationPanel) => void;
 }) {
-  const dirtyCount = snapshot?.worktrees.filter((item) => item.dirty).length ?? 0;
-  const treeCount = snapshot?.tree.length ?? 0;
-  const items: Array<{ id: ConversationPanel; label: string; icon: IconComponent; badge?: string; clean?: boolean }> = [
+  const items: Array<{ id: ConversationPanel; label: string; icon: IconComponent }> = [
     { id: "chat", label: "聊天", icon: Bot },
-    { id: "project", label: "项目", icon: Folder, badge: treeCount ? String(treeCount) : undefined },
-    { id: "changes", label: "变更", icon: FileDiff, badge: dirtyCount ? String(dirtyCount) : undefined, clean: !!snapshot && dirtyCount === 0 }
+    { id: "project", label: "项目", icon: Folder },
+    { id: "changes", label: "变更", icon: FileDiff }
   ];
 
   return (
-    <Box position="absolute" left={0} right={0} zIndex={18} backgroundColor="canvas" borderBottomWidth={1} borderColor="line" paddingHorizontal="m" paddingVertical="xs" style={{ top }}>
-      <Box flexDirection="row" backgroundColor="surfaceMuted" borderRadius="round" padding="xs" gap="xs">
+    <Box paddingTop="xs" paddingBottom="s" alignItems="center">
+      <Box width="100%" maxWidth={360} flexDirection="row" backgroundColor="surface" borderRadius="round" borderWidth={1} borderColor="line" padding="xs" gap="xs">
         {items.map((item) => {
           const active = item.id === activePanel;
           const Icon = item.icon;
           return (
-            <Pressable key={item.id} accessibilityRole="button" accessibilityState={{ selected: active }} onPress={() => onSelect(item.id)} style={{ flex: 1 }}>
+            <Pressable key={item.id} accessibilityRole="tab" accessibilityState={{ selected: active }} onPress={() => onSelect(item.id)} style={{ flex: 1 }}>
               {({ pressed }) => (
-                <Box minHeight={32} borderRadius="round" backgroundColor={active ? "surface" : "transparent"} alignItems="center" justifyContent="center" flexDirection="row" gap="xs" style={{ opacity: pressed ? 0.7 : 1 }}>
+                <Box
+                  minHeight={34}
+                  borderRadius="round"
+                  backgroundColor={active ? "navActive" : "transparent"}
+                  borderWidth={1}
+                  borderColor={active ? "accent" : "transparent"}
+                  alignItems="center"
+                  justifyContent="center"
+                  flexDirection="row"
+                  gap="xs"
+                  style={{ opacity: pressed ? 0.72 : 1 }}
+                >
                   <Icon color={active ? theme.colors.accent : theme.colors.inkMuted} size={15} />
-                  <Text variant="caption" color={active ? "accent" : "inkMuted"} numberOfLines={1}>
+                  <Text variant="caption" color={active ? "accent" : "inkMuted"} numberOfLines={1} style={{ fontWeight: active ? "700" : "500" }}>
                     {item.label}
                   </Text>
-                  {item.badge ? (
-                    <Box minWidth={18} height={18} borderRadius="round" backgroundColor={active ? "accentSoft" : "surface"} alignItems="center" justifyContent="center" paddingHorizontal="xs">
-                      <Text variant="caption" color={active ? "accent" : "inkMuted"}>
-                        {item.badge}
-                      </Text>
-                    </Box>
-                  ) : item.clean ? (
-                    <Box width={7} height={7} borderRadius="round" backgroundColor="success" />
-                  ) : null}
                 </Box>
               )}
             </Pressable>
@@ -1519,7 +1516,9 @@ function WorkspacePanel({
   topInset,
   bottomInset,
   onRefresh,
-  onOpenFilePreview
+  onOpenFilePreview,
+  activePanel,
+  onSelectPanel
 }: {
   mode: Exclude<ConversationPanel, "chat">;
   session: SessionSummary | null;
@@ -1528,6 +1527,8 @@ function WorkspacePanel({
   bottomInset: number;
   onRefresh: () => void;
   onOpenFilePreview: (snapshot: WorkspaceSnapshot, entry: ProjectTreeEntry) => void;
+  activePanel: ConversationPanel;
+  onSelectPanel: (panel: ConversationPanel) => void;
 }) {
   return (
     <ScrollView
@@ -1540,6 +1541,7 @@ function WorkspacePanel({
       }}
       keyboardShouldPersistTaps="handled"
     >
+      <ConversationPanelTabs activePanel={activePanel} onSelect={onSelectPanel} />
       {!session ? (
         <WorkspaceEmptyState title="暂无工作区" body="连接 Host 并选择会话后，会显示项目目录和 worktree 变更。" onRefresh={onRefresh} />
       ) : !snapshot ? (
