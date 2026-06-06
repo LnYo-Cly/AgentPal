@@ -96,3 +96,17 @@
 ## 最终信心依据（Final Confidence Basis）
 
 信心来自小范围 diff、TypeScript 检查、Expo iOS bundle export 和 diff check。最终视觉效果需要用户在真机上确认。
+
+## Agent Review Submission
+
+| Field | Value |
+| --- | --- |
+| Submission ID | ARS-202606060523 |
+| Submitted At | 2026-06-06 05:23 |
+| Submitted By | agent |
+| Task Key | TASKS/2026-06-06-agentpal-conversation-view-switcher-redesign-e3cce4c7 |
+| Materials Checklist Hash | 65759a1f9359b242 |
+| Evidence Summary | Agent review submitted for conversation view switcher redesign. Code commit 9a09f31 moved the Chat/Project/Changes switcher into content, removed top badges, and passed typecheck, Expo iOS export, and diff check. |
+| Open Findings Count | 0 |
+| Scanner Version | task-scanner/2026-05-25-phase-kind |
+| Target | TARGET:coding-agent-harness/planning/tasks/2026-06-06-agentpal-conversation-view-switcher-redesign-e3cce4c7 |

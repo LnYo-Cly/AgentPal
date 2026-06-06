@@ -1,6 +1,6 @@
 # AgentPal conversation view switcher redesign - 进度
 
-## 状态：进行中
+## 状态：审查中
 
 ## 进度记录
 
@@ -31,3 +31,10 @@
 - 证据：command:apps/mobile:typecheck passed
 - 证据：command:apps/mobile:Expo iOS export passed
 - 证据：command:apps/mobile:diff check passed with CRLF warning only
+
+### [2026-06-06 05:23] - task-review
+
+- 做了什么：Agent review submitted for conversation view switcher redesign. Code commit 9a09f31 moved the Chat/Project/Changes switcher into content, removed top badges, and passed typecheck, Expo iOS export, and diff check.
+- 验证结果：已记录
+- 下一步：继续执行
+- 证据：n/a
