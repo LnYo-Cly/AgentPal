@@ -63,3 +63,8 @@
 - 验证结果：已记录
 - 下一步：继续执行
 - 证据：screenshot:user:workbench-sessions-layout-feedback
+
+
+## Tombstone Log
+
+- 2026-06-06 14:34 task-reopen: Human visual review rejected the current Workbench/Sessions layout; continue UI information architecture refinement before confirmation. (coding-agent-harness/planning/tasks/2026-06-06-agentpal-mobile-sessions-and-conversation-layout-5c9c8fe4/progress.md)
