@@ -22,24 +22,17 @@
 
 证据较长或数量较多时，不要粘贴全文；放入 `artifacts/INDEX.md` 并在这里引用 ID。
 
-### [YYYY-MM-DD HH:MM] - [阶段名称]
-
-- 做了什么：[具体操作]
-- 验证结果：[运行了什么检查，结果如何]
-- 下一步：[下一步动作]
-- 证据：[type:path:summary]
-
 ## 残余
 
 - 真实“新会话”启动仍需 Host/Relay 协议支持，本任务只做现有 sessions 的移动端浏览结构。
 - Harness check 仍报告历史任务 `2026-06-01-agentpal-mobile-cold-visual-redesign-b37239ca` 的 brief 模板残留 warning，非本任务改动。
 
-## 协调者交接（Coordinator，启用模块并行时填写）
+## 协调者交接
 
-- Global sync status：pending-coordinator-pass / synced / n/a
-- Registry update needed：[module key, step, status, branch, updated / 不适用]
-- Harness Ledger update needed：[task plan path, review path, closeout status / 不适用]
-- 负责人：coordinator / 不适用
+- Global sync status：n/a
+- Registry update needed：不适用
+- Harness Ledger update needed：由 Harness lifecycle/review 命令生成与更新
+- 负责人：coordinator
 
 ### [2026-06-06 06:51] - task-start
 
@@ -71,3 +64,10 @@
 - 验证结果：已记录
 - 下一步：继续执行
 - 证据：n/a
+
+### [2026-06-06 15:24] - progress cleanup
+
+- 做了什么：清理 `progress.md` 默认模板进度项，避免 review 材料被 Harness 识别为未编辑模板。
+- 验证结果：待复跑 Harness check 与 task-review。
+- 下一步：重新验证并提交任务记录。
+- 证据：diff:TARGET:coding-agent-harness/planning/tasks/2026-06-06-agentpal-mobile-workspace-session-browser-redesi-80719f34/progress.md:移除默认进度模板残留
