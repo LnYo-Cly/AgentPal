@@ -845,28 +845,23 @@ function SessionsPage({
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
       contentContainerStyle={{
-        paddingTop: top + 18,
-        paddingHorizontal: 18,
+        paddingTop: top + 30,
+        paddingHorizontal: 16,
         paddingBottom: bottom + 176,
-        gap: 16
+        gap: 14
       }}
     >
       <Box flexDirection="row" alignItems="center" justifyContent="space-between">
         <Box flex={1} paddingRight="m">
           <Text variant="screenTitle">会话</Text>
           <Text variant="caption" numberOfLines={2}>
-            按项目恢复 Codex、Claude Code 和 OpenCode session
+            按项目选择和恢复 Codex、Claude Code、OpenCode 会话
           </Text>
         </Box>
         <StatusCapsule online={hostOnline} text={hostOnline ? "在线" : "离线"} />
       </Box>
 
-      <Box flexDirection="row" alignItems="center" gap="s">
-        <Box width={8} height={8} borderRadius="round" backgroundColor={hostOnline ? "success" : "inkMuted"} />
-        <Text variant="caption" color="inkMuted" numberOfLines={1}>
-          {hostLabelText}
-        </Text>
-      </Box>
+      <SessionsHostSummary online={hostOnline} label={hostLabelText} onOpenSettings={onOpenSettings} />
 
       <Box backgroundColor="surface" borderRadius="m" borderWidth={1} borderColor="line" paddingHorizontal="m" minHeight={48} justifyContent="center">
         <TextInput
@@ -910,18 +905,18 @@ function ProjectSessionGroupCard({
   selectedSessionId: string | null;
   onOpenSession: (sessionId: string) => void;
 }) {
-  const tone = workspaceGroupTone(group);
-  const visibleSessions = group.sessions.slice(0, 4);
+  const projectTone: Tone = group.pendingApprovals > 0 ? "danger" : group.activeCount > 0 ? "amber" : "green";
+  const visibleSessions = group.sessions.slice(0, 5);
   const extraCount = Math.max(0, group.sessions.length - visibleSessions.length);
 
   return (
     <Box backgroundColor="surface" borderRadius="m" borderWidth={1} borderColor="line" overflow="hidden">
-      <Box paddingHorizontal="m" paddingVertical="m" gap="s">
-        <Box flexDirection="row" alignItems="center" gap="m">
-          <Box width={42} height={42} borderRadius="m" backgroundColor={toneSoftToken(tone)} alignItems="center" justifyContent="center">
-            <Folder color={theme.colors[toneToken(tone)]} size={21} />
+      <Box paddingHorizontal="m" paddingVertical="m" gap="s" borderBottomWidth={1} borderColor="line">
+        <Box flexDirection="row" alignItems="center" gap="s">
+          <Box width={42} height={42} borderRadius="m" backgroundColor={toneSoftToken(projectTone)} alignItems="center" justifyContent="center">
+            <Folder color={theme.colors[toneToken(projectTone)]} size={21} />
           </Box>
-          <Box flex={1} gap="xs">
+          <Box flex={1}>
             <Text variant="title" numberOfLines={1}>
               {group.name}
             </Text>
@@ -929,15 +924,21 @@ function ProjectSessionGroupCard({
               {group.path}
             </Text>
           </Box>
-          <ToneCapsule tone={tone} text={workspaceGroupLabel(group)} />
+          <Box alignItems="flex-end" gap="xs">
+            <Text variant="caption" color="inkMuted">
+              {group.sessions.length} 个
+            </Text>
+            {group.pendingApprovals > 0 ? <SessionStateInline tone="danger" label={`${group.pendingApprovals} 审批`} /> : group.activeCount > 0 ? <SessionStateInline tone="amber" label={`${group.activeCount} 工作中`} /> : null}
+          </Box>
         </Box>
-        <Text variant="caption" color="inkMuted" numberOfLines={1}>
-          {group.sessions.length} 个会话 · 最近 {formatRelativeTime(group.latestAt)}
-          {group.pendingApprovals > 0 ? ` · ${group.pendingApprovals} 个审批` : ""}
-        </Text>
+        <Box flexDirection="row" alignItems="center" gap="s" flexWrap="wrap">
+          <WorkspaceGroupMetaPill icon={Bot} text={`${group.sessions.length} 会话`} />
+          <WorkspaceGroupMetaPill icon={Activity} text={formatRelativeTime(group.latestAt)} />
+          {group.failedCount > 0 ? <WorkspaceGroupMetaPill icon={ShieldAlert} text={`${group.failedCount} 失败`} tone="danger" /> : null}
+        </Box>
       </Box>
 
-      <Box borderTopWidth={1} borderColor="line">
+      <Box>
         {visibleSessions.map((session, index) => (
           <ProjectSessionRow
             key={session.sessionId}
@@ -959,6 +960,35 @@ function ProjectSessionGroupCard({
   );
 }
 
+function SessionsHostSummary({ online, label, onOpenSettings }: { online: boolean; label: string; onOpenSettings: () => void }) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel="打开 Host 设置" onPress={onOpenSettings}>
+      {({ pressed }) => (
+        <Box minHeight={48} borderRadius="m" backgroundColor="surface" borderWidth={1} borderColor="line" paddingHorizontal="m" flexDirection="row" alignItems="center" gap="s" style={{ opacity: pressed ? 0.72 : 1 }}>
+          <Monitor color={online ? theme.colors.success : theme.colors.inkMuted} size={19} />
+          <Box flex={1}>
+            <Text variant="caption" color="inkMuted" numberOfLines={1}>
+              {label}
+            </Text>
+          </Box>
+          <SessionStateInline tone={online ? "green" : "neutral"} label={online ? "Host 在线" : "未连接"} />
+        </Box>
+      )}
+    </Pressable>
+  );
+}
+
+function WorkspaceGroupMetaPill({ icon: Icon, text, tone = "neutral" }: { icon: IconComponent; text: string; tone?: Tone }) {
+  return (
+    <Box minHeight={28} borderRadius="round" backgroundColor={toneSoftToken(tone)} paddingHorizontal="s" flexDirection="row" alignItems="center" gap="xs">
+      <Icon color={theme.colors[toneToken(tone)]} size={14} />
+      <Text variant="caption" color={tone === "neutral" ? "inkMuted" : toneToken(tone)} numberOfLines={1}>
+        {text}
+      </Text>
+    </Box>
+  );
+}
+
 function ProjectSessionRow({
   session,
   selected,
@@ -975,18 +1005,18 @@ function ProjectSessionRow({
     <Pressable accessibilityRole="button" accessibilityState={{ selected }} accessibilityLabel={`打开${session.title ?? "会话"}`} onPress={onPress}>
       {({ pressed }) => (
         <Box
-          minHeight={58}
+          minHeight={62}
           flexDirection="row"
           alignItems="center"
           gap="s"
           paddingHorizontal="m"
           borderTopWidth={first ? 0 : 1}
           borderColor="line"
-          backgroundColor={selected ? "accentSoft" : "surface"}
+          backgroundColor={selected ? "navActive" : "surface"}
           style={{ opacity: pressed ? 0.72 : 1 }}
         >
-          <Box width={32} height={32} borderRadius="m" backgroundColor={toneSoftToken(tone)} alignItems="center" justifyContent="center">
-            <Bot color={theme.colors[toneToken(tone)]} size={17} />
+          <Box width={34} height={34} borderRadius="m" backgroundColor={toneSoftToken(tone)} alignItems="center" justifyContent="center">
+            <Bot color={theme.colors[toneToken(tone)]} size={18} />
           </Box>
           <Box flex={1} gap="xs">
             <Box flexDirection="row" alignItems="center" gap="s">
@@ -1003,7 +1033,7 @@ function ProjectSessionRow({
               {agentLabel(session.agentKind)} · {formatRelativeTime(session.updatedAt)}
             </Text>
           </Box>
-          <Box alignItems="flex-end" gap="xs" minWidth={52}>
+          <Box alignItems="flex-end" gap="xs" minWidth={46}>
             <SessionStateInline tone={tone} label={stateLabel(session.state)} />
             {session.pendingApprovals > 0 ? (
               <Text variant="caption" color="danger">
@@ -1360,11 +1390,11 @@ function ConversationPage({
   const [showNewMessages, setShowNewMessages] = useState(false);
   const [initialLoadExpired, setInitialLoadExpired] = useState(false);
   const [activePanel, setActivePanel] = useState<ConversationPanel>("chat");
-  const headerHeight = top + 84;
+  const headerHeight = top + 124;
   const contentTopInset = headerHeight + 12;
   const composerLift = keyboardVisible ? 8 : bottom + 10;
-  const timelineBottomInset = composerLift + composerHeight + 24;
-  const workspaceBottomInset = timelineBottomInset + 96;
+  const timelineBottomInset = composerLift + composerHeight + 56;
+  const workspaceBottomInset = timelineBottomInset + 72;
   const hasConversation = events.length > 0;
   const latestEventId = events[events.length - 1]?.id ?? null;
   const latestEvent = events[events.length - 1]?.payload ?? null;
@@ -1434,6 +1464,8 @@ function ConversationPage({
         onRefresh={activePanel === "chat" ? onRefresh : onRefreshWorkspace}
         refreshLabel={activePanel === "chat" ? "刷新当前会话" : "刷新文件和变更"}
         onSwitchSession={onSwitchSession}
+        activePanel={activePanel}
+        onSelectPanel={setActivePanel}
       />
       {activePanel === "chat" ? (
         <FlatList
@@ -1480,7 +1512,6 @@ function ConversationPage({
             gap: 14
           }}
           scrollIndicatorInsets={{ bottom: timelineBottomInset, top: contentTopInset }}
-          ListHeaderComponent={<ConversationPanelTabs activePanel={activePanel} onSelect={setActivePanel} />}
           ListFooterComponent={<View style={{ height: timelineBottomInset }} />}
           bounces
           alwaysBounceVertical={false}
@@ -1496,8 +1527,6 @@ function ConversationPage({
           bottomInset={workspaceBottomInset}
           onRefresh={onRefreshWorkspace}
           onOpenFilePreview={onOpenFilePreview}
-          activePanel={activePanel}
-          onSelectPanel={setActivePanel}
         />
       )}
       {activePanel === "chat" && showNewMessages ? <NewMessagesButton bottom={timelineBottomInset + 10} onPress={() => scrollToConversationBottom(true)} /> : null}
@@ -1636,7 +1665,9 @@ function ConversationHeader({
   onBack,
   onRefresh,
   refreshLabel,
-  onSwitchSession
+  onSwitchSession,
+  activePanel,
+  onSelectPanel
 }: {
   top: number;
   hostOnline: boolean;
@@ -1646,6 +1677,8 @@ function ConversationHeader({
   onRefresh: () => void;
   refreshLabel: string;
   onSwitchSession: () => void;
+  activePanel: ConversationPanel;
+  onSelectPanel: (panel: ConversationPanel) => void;
 }) {
   const workspaceName = session ? compactWorkspaceName(session.workspace) : `${sessionCount} 个会话`;
   return (
@@ -1659,7 +1692,7 @@ function ConversationHeader({
       borderBottomWidth={1}
       borderColor="line"
       paddingHorizontal="m"
-      paddingBottom="s"
+      paddingBottom="xs"
       style={{ paddingTop: top + 8 }}
     >
       <Box flexDirection="row" alignItems="center" gap="s">
@@ -1687,6 +1720,7 @@ function ConversationHeader({
           <IconShell icon={RefreshCcw} tone="neutral" onPress={onRefresh} label={refreshLabel} />
         </Box>
       </Box>
+      <ConversationPanelTabs activePanel={activePanel} onSelect={onSelectPanel} />
     </Box>
   );
 }
@@ -1700,25 +1734,23 @@ function ConversationPanelTabs({
 }) {
   const items: Array<{ id: ConversationPanel; label: string; icon: IconComponent }> = [
     { id: "chat", label: "聊天", icon: Bot },
-    { id: "project", label: "文件", icon: Folder },
+    { id: "project", label: "项目", icon: Folder },
     { id: "changes", label: "变更", icon: FileDiff }
   ];
 
   return (
-    <Box paddingTop="xs" paddingBottom="s" alignItems="center">
-      <Box width="100%" maxWidth={360} flexDirection="row" backgroundColor="surface" borderRadius="round" borderWidth={1} borderColor="line" padding="xs" gap="xs">
+    <Box paddingTop="s" alignItems="center">
+      <Box width="100%" flexDirection="row" backgroundColor="surfaceMuted" borderRadius="round" borderWidth={1} borderColor="line" padding="xs" gap="xs">
         {items.map((item) => {
           const active = item.id === activePanel;
           const Icon = item.icon;
           return (
             <Pressable key={item.id} accessibilityRole="tab" accessibilityState={{ selected: active }} onPress={() => onSelect(item.id)} style={{ flex: 1 }}>
               {({ pressed }) => (
-                <Box
-                  minHeight={34}
+                  <Box
+                  minHeight={32}
                   borderRadius="round"
-                  backgroundColor={active ? "navActive" : "transparent"}
-                  borderWidth={1}
-                  borderColor={active ? "accent" : "transparent"}
+                  backgroundColor={active ? "surface" : "transparent"}
                   alignItems="center"
                   justifyContent="center"
                   flexDirection="row"
@@ -1726,7 +1758,7 @@ function ConversationPanelTabs({
                   style={{ opacity: pressed ? 0.72 : 1 }}
                 >
                   <Icon color={active ? theme.colors.accent : theme.colors.inkMuted} size={15} />
-                  <Text variant="caption" color={active ? "accent" : "inkMuted"} numberOfLines={1} style={{ fontWeight: active ? "700" : "500" }}>
+                  <Text variant="caption" color={active ? "accent" : "inkMuted"} numberOfLines={1} style={{ fontWeight: active ? "700" : "600" }}>
                     {item.label}
                   </Text>
                 </Box>
@@ -1746,9 +1778,7 @@ function WorkspacePanel({
   topInset,
   bottomInset,
   onRefresh,
-  onOpenFilePreview,
-  activePanel,
-  onSelectPanel
+  onOpenFilePreview
 }: {
   mode: Exclude<ConversationPanel, "chat">;
   session: SessionSummary | null;
@@ -1757,8 +1787,6 @@ function WorkspacePanel({
   bottomInset: number;
   onRefresh: () => void;
   onOpenFilePreview: (snapshot: WorkspaceSnapshot, entry: ProjectTreeEntry) => void;
-  activePanel: ConversationPanel;
-  onSelectPanel: (panel: ConversationPanel) => void;
 }) {
   return (
     <ScrollView
@@ -1771,7 +1799,6 @@ function WorkspacePanel({
       }}
       keyboardShouldPersistTaps="handled"
     >
-      <ConversationPanelTabs activePanel={activePanel} onSelect={onSelectPanel} />
       {!session ? (
         <WorkspaceEmptyState title="暂无工作区" body="连接 Host 并选择会话后，会显示文件目录和 worktree 变更。" onRefresh={onRefresh} />
       ) : !snapshot ? (
@@ -1824,11 +1851,12 @@ function ProjectTreePanel({ snapshot, onOpenFilePreview }: { snapshot: Workspace
 
   return (
     <>
-      <WorkspaceSummaryCard
+      <WorkspaceCompactHeader
         icon={Folder}
         title={snapshot.rootName}
         body={displayWorkspacePath(snapshot.workspace)}
-        meta={`${directories} 个目录 · ${files} 个文件${snapshot.treeTruncated ? " · 已截断" : ""} · ${snapshotTime}`}
+        meta={`${directories} 个目录 · ${files} 个文件${snapshot.treeTruncated ? " · 已截断" : ""}`}
+        time={snapshotTime}
         tone="blue"
       />
       {snapshot.error ? <SystemLine text={snapshot.error} tone="danger" /> : null}
@@ -1919,11 +1947,12 @@ function WorktreeChangesPanel({ snapshot, onRefresh }: { snapshot: WorkspaceSnap
 
   return (
     <>
-      <WorkspaceSummaryCard
+      <WorkspaceCompactHeader
         icon={FileDiff}
         title={dirtyWorktrees.length ? `${dirtyWorktrees.length} 个 worktree 有变更` : "当前 worktree 干净"}
         body={displayWorkspacePath(snapshot.workspace)}
-        meta={dirtyWorktrees.length ? `${filesChanged} 个文件 · +${additions} / -${deletions} · ${snapshotTime}` : `${snapshot.worktrees.length} 个 worktree · ${snapshotTime}`}
+        meta={dirtyWorktrees.length ? `${filesChanged} 个文件 · +${additions} / -${deletions}` : `${snapshot.worktrees.length} 个 worktree`}
+        time={snapshotTime}
         tone={dirtyWorktrees.length ? "amber" : "green"}
       />
       {dirtyWorktrees.length ? (
@@ -1937,37 +1966,42 @@ function WorktreeChangesPanel({ snapshot, onRefresh }: { snapshot: WorkspaceSnap
   );
 }
 
-function WorkspaceSummaryCard({
+function WorkspaceCompactHeader({
   icon: Icon,
   title,
   body,
   meta,
+  time,
   tone
 }: {
   icon: IconComponent;
   title: string;
   body: string;
   meta: string;
+  time: string;
   tone: Tone;
 }) {
   return (
-    <Box backgroundColor="surface" borderRadius="l" borderWidth={1} borderColor="line" padding="m" gap="m" style={softShadow(false)}>
-      <Box flexDirection="row" alignItems="center" gap="m">
-        <Box width={48} height={48} borderRadius="m" backgroundColor={toneSoftToken(tone)} alignItems="center" justifyContent="center">
-          <Icon color={theme.colors[toneToken(tone)]} size={24} />
+    <Box backgroundColor="surface" borderRadius="m" borderWidth={1} borderColor="line" padding="m" gap="s">
+      <Box flexDirection="row" alignItems="center" gap="s">
+        <Box width={40} height={40} borderRadius="m" backgroundColor={toneSoftToken(tone)} alignItems="center" justifyContent="center">
+          <Icon color={theme.colors[toneToken(tone)]} size={21} />
         </Box>
-        <Box flex={1} gap="xs">
-          <Text variant="title" numberOfLines={1}>
+        <Box flex={1}>
+          <Text variant="section" numberOfLines={1}>
             {title}
           </Text>
           <Text variant="caption" numberOfLines={1}>
             {body}
           </Text>
         </Box>
+        <Text variant="caption" color="inkMuted">
+          {time}
+        </Text>
       </Box>
-      <Text variant="caption" color={toneToken(tone)}>
-        {meta}
-      </Text>
+      <Box flexDirection="row">
+        <StatusChip label={meta} tone={tone} icon={Activity} />
+      </Box>
     </Box>
   );
 }

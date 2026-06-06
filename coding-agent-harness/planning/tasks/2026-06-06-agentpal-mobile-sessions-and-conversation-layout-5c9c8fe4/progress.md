@@ -31,7 +31,7 @@
 
 ## 残余
 
-- [遗留问题；如无写“无”]
+- 真机视觉仍需用户在 iOS / Android Expo Go 里复测，尤其是安全区、底部 composer 与长列表滚动手感。
 
 ## 协调者交接（Coordinator，启用模块并行时填写）
 
@@ -46,3 +46,13 @@
 - 验证结果：已记录
 - 下一步：继续执行
 - 证据：n/a
+
+### [2026-06-06 20:45] - EXEC-01 implementation
+
+- 做了什么：调整 `apps/mobile/app/index.tsx` 的会话索引和会话详情布局：会话页改为更轻的 Host 摘要 + 项目 session 索引；会话详情将聊天 / 项目 / 变更切换固定到 header；项目和变更面板改用紧凑上下文头。
+- 验证结果：TypeScript 通过；Expo iOS export 通过；Harness target-project check 通过；`git diff --check` 无空白错误。
+- 下一步：执行 lifecycle phase 更新并提交本轮工作。
+- 证据：command:apps/mobile:`npm --prefix apps/mobile run typecheck` passed
+- 证据：command:apps/mobile:`npx expo export --platform ios --output-dir ../../tmp/expo-export-layout-check --clear` passed, exported `tmp/expo-export-layout-check`
+- 证据：command:.:`npx --yes coding-agent-harness check --profile target-project .` passed with non-blocking warnings: dirty-state for current uncommitted path and unrelated old task adoption-needed
+- 证据：command:.:`git diff --check` passed
