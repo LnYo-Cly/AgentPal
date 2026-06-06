@@ -56,3 +56,10 @@
 - 验证结果：已提交 agent review；Harness 指出本文件仍有模板示例块，已清理。
 - 下一步：重新运行 Harness check 和 task-review。
 - 证据：review:coding-agent-harness/planning/tasks/2026-06-06-agentpal-mobile-sessions-and-conversation-layout-5c9c8fe4/review.md:Agent review packet submitted.
+
+### [2026-06-06 14:25] - task-log
+
+- 做了什么：Human review feedback: Workbench and Sessions pages still feel unreasonable. Workbench should not be sparse when idle; Sessions should behave like a mobile project/session index rather than large nested cards. Continue refinement before review confirmation.
+- 验证结果：已记录
+- 下一步：继续执行
+- 证据：screenshot:user:workbench-sessions-layout-feedback
