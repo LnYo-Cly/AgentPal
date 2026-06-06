@@ -110,3 +110,17 @@ Scanner 会根据必需文件、章节、证据和这个严格提交块派生 `m
 ## 最终信心依据（Final Confidence Basis）
 
 当前信心来自单文件 diff 审查、TypeScript strict check、Expo iOS export 和无阻塞 finding。最终发布前仍需用户在真实手机上确认视觉和交互。
+
+## Agent Review Submission
+
+| Field | Value |
+| --- | --- |
+| Submission ID | ARS-202606061046 |
+| Submitted At | 2026-06-06 10:46 |
+| Submitted By | agent |
+| Task Key | TASKS/2026-06-06-agentpal-mobile-workbench-and-sessions-ia-correc-a2978171 |
+| Materials Checklist Hash | 79e68f6c827d65ed |
+| Evidence Summary | Workbench and sessions IA corrected; typecheck, diff check, and Expo iOS export passed. |
+| Open Findings Count | 0 |
+| Scanner Version | task-scanner/2026-05-25-phase-kind |
+| Target | TARGET:coding-agent-harness/planning/tasks/2026-06-06-agentpal-mobile-workbench-and-sessions-ia-correc-a2978171 |
