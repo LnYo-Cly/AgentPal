@@ -783,22 +783,26 @@ function HomePage({
 
       <HomeHostStrip activeHost={activeHost} hostOnline={hostOnline} connectionState={connectionState} onPress={onOpenSettings} />
 
-      {hasAttention ? (
-        <>
-          <HomeFocusCard focus={focus} session={activeSession} latestEvent={latestEvent} onPress={focus.target === "settings" ? onOpenSettings : onOpenConversation} />
-          <AttentionQueue
-            pendingApprovals={pendingApprovals}
-            failedSessions={failedSessions}
-            workingSessions={workingSessions}
-            waitingSessions={waitingSessions}
-            hostOnline={hostOnline}
-            onOpenConversation={onOpenConversation}
-            onOpenSettings={onOpenSettings}
-          />
-        </>
-      ) : (
-        <WorkbenchCurrentSessionCard session={activeSession} hostOnline={hostOnline} onOpenConversation={onOpenConversation} />
-      )}
+      <WorkbenchMetricGrid
+        workingSessions={workingSessions}
+        pendingApprovals={pendingApprovals}
+        failedSessions={failedSessions}
+        totalSessions={sessions.length}
+      />
+
+      {hasAttention ? <HomeFocusCard focus={focus} session={activeSession} latestEvent={latestEvent} onPress={focus.target === "settings" ? onOpenSettings : onOpenConversation} /> : null}
+
+      <AttentionQueue
+        pendingApprovals={pendingApprovals}
+        failedSessions={failedSessions}
+        workingSessions={workingSessions}
+        waitingSessions={waitingSessions}
+        hostOnline={hostOnline}
+        onOpenConversation={onOpenConversation}
+        onOpenSettings={onOpenSettings}
+      />
+
+      <WorkbenchCurrentSessionCard session={activeSession} hostOnline={hostOnline} onOpenConversation={onOpenConversation} />
 
       <Box gap="s">
         <SectionHeader title="最近事件" />
@@ -813,6 +817,61 @@ function HomePage({
         )}
       </Box>
     </ScrollView>
+  );
+}
+
+function WorkbenchMetricGrid({
+  workingSessions,
+  pendingApprovals,
+  failedSessions,
+  totalSessions
+}: {
+  workingSessions: number;
+  pendingApprovals: number;
+  failedSessions: number;
+  totalSessions: number;
+}) {
+  const metrics = [
+    { key: "working", label: "工作中", value: workingSessions, tone: workingSessions > 0 ? "amber" : "neutral", icon: Bot },
+    { key: "approvals", label: "待审批", value: pendingApprovals, tone: pendingApprovals > 0 ? "danger" : "neutral", icon: ShieldAlert },
+    { key: "failed", label: "失败", value: failedSessions, tone: failedSessions > 0 ? "danger" : "neutral", icon: ShieldAlert },
+    { key: "sessions", label: "会话", value: totalSessions, tone: totalSessions > 0 ? "green" : "neutral", icon: TerminalSquare }
+  ] as const;
+
+  return (
+    <Box flexDirection="row" flexWrap="wrap" gap="s">
+      {metrics.map((metric) => {
+        const Icon = metric.icon;
+        return (
+          <Box
+            key={metric.key}
+            minHeight={64}
+            borderRadius="m"
+            borderWidth={1}
+            borderColor="line"
+            backgroundColor="surface"
+            paddingHorizontal="m"
+            paddingVertical="s"
+            flexDirection="row"
+            alignItems="center"
+            gap="s"
+            style={{ flexBasis: "47%", flexGrow: 1 }}
+          >
+            <Box width={32} height={32} borderRadius="m" backgroundColor={toneSoftToken(metric.tone)} alignItems="center" justifyContent="center">
+              <Icon color={theme.colors[toneToken(metric.tone)]} size={17} />
+            </Box>
+            <Box flex={1}>
+              <Text variant="title" numberOfLines={1}>
+                {metric.value}
+              </Text>
+              <Text variant="caption" numberOfLines={1}>
+                {metric.label}
+              </Text>
+            </Box>
+          </Box>
+        );
+      })}
+    </Box>
   );
 }
 
@@ -845,17 +904,17 @@ function SessionsPage({
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
       contentContainerStyle={{
-        paddingTop: top + 30,
+        paddingTop: top + 16,
         paddingHorizontal: 16,
-        paddingBottom: bottom + 176,
-        gap: 14
+        paddingBottom: bottom + 190,
+        gap: 16
       }}
     >
       <Box flexDirection="row" alignItems="center" justifyContent="space-between">
         <Box flex={1} paddingRight="m">
           <Text variant="screenTitle">会话</Text>
           <Text variant="caption" numberOfLines={2}>
-            按项目选择和恢复 Codex、Claude Code、OpenCode 会话
+            按项目选择或恢复 Codex、Claude Code、OpenCode session
           </Text>
         </Box>
         <StatusCapsule online={hostOnline} text={hostOnline ? "在线" : "离线"} />
@@ -905,36 +964,39 @@ function ProjectSessionGroupCard({
   selectedSessionId: string | null;
   onOpenSession: (sessionId: string) => void;
 }) {
-  const projectTone: Tone = group.pendingApprovals > 0 ? "danger" : group.activeCount > 0 ? "amber" : "green";
-  const visibleSessions = group.sessions.slice(0, 5);
+  const projectTone: Tone = group.pendingApprovals > 0 ? "danger" : group.activeCount > 0 ? "amber" : "blue";
+  const visibleSessions = group.sessions.slice(0, 6);
   const extraCount = Math.max(0, group.sessions.length - visibleSessions.length);
 
   return (
     <Box backgroundColor="surface" borderRadius="m" borderWidth={1} borderColor="line" overflow="hidden">
-      <Box paddingHorizontal="m" paddingVertical="m" gap="s" borderBottomWidth={1} borderColor="line">
+      <Box minHeight={66} paddingHorizontal="m" paddingVertical="s" gap="xs" borderBottomWidth={1} borderColor="line">
         <Box flexDirection="row" alignItems="center" gap="s">
-          <Box width={42} height={42} borderRadius="m" backgroundColor={toneSoftToken(projectTone)} alignItems="center" justifyContent="center">
-            <Folder color={theme.colors[toneToken(projectTone)]} size={21} />
+          <Box width={34} height={34} borderRadius="m" backgroundColor={toneSoftToken(projectTone)} alignItems="center" justifyContent="center">
+            <Folder color={theme.colors[toneToken(projectTone)]} size={18} />
           </Box>
-          <Box flex={1}>
-            <Text variant="title" numberOfLines={1}>
-              {group.name}
+          <Box flex={1} gap="xs">
+            <Text variant="section" numberOfLines={1}>
+              {projectDisplayName(group)}
             </Text>
             <Text variant="caption" numberOfLines={1}>
               {group.path}
             </Text>
           </Box>
-          <Box alignItems="flex-end" gap="xs">
+          <Box alignItems="flex-end">
             <Text variant="caption" color="inkMuted">
-              {group.sessions.length} 个
+              {group.sessions.length} 个会话
             </Text>
-            {group.pendingApprovals > 0 ? <SessionStateInline tone="danger" label={`${group.pendingApprovals} 审批`} /> : group.activeCount > 0 ? <SessionStateInline tone="amber" label={`${group.activeCount} 工作中`} /> : null}
+            {group.pendingApprovals > 0 ? (
+              <Text variant="caption" color="danger">
+                {group.pendingApprovals} 审批
+              </Text>
+            ) : group.activeCount > 0 ? (
+              <Text variant="caption" color="amber">
+                {group.activeCount} 工作中
+              </Text>
+            ) : null}
           </Box>
-        </Box>
-        <Box flexDirection="row" alignItems="center" gap="s" flexWrap="wrap">
-          <WorkspaceGroupMetaPill icon={Bot} text={`${group.sessions.length} 会话`} />
-          <WorkspaceGroupMetaPill icon={Activity} text={formatRelativeTime(group.latestAt)} />
-          {group.failedCount > 0 ? <WorkspaceGroupMetaPill icon={ShieldAlert} text={`${group.failedCount} 失败`} tone="danger" /> : null}
         </Box>
       </Box>
 
@@ -5073,12 +5135,22 @@ function formatBytes(value: number) {
 }
 
 function compactWorkspaceName(path: string) {
-  const raw = path.trim();
-  if (!raw || raw === "." || raw === "unknown-workspace") {
+  const raw = path.replace(/^\\\\\?\\/, "").trim();
+  if (!raw || raw === "." || raw === "./" || raw === ".\\" || raw === "unknown-workspace") {
     return "当前项目";
   }
   const normalized = displayWorkspacePath(path).replace(/[\\/]+$/, "");
-  return normalized.split(/[\\/]/).filter(Boolean).pop() ?? normalized;
+  const name = normalized.split(/[\\/]/).filter(Boolean).pop() ?? normalized;
+  if (!name || name === "." || name === "当前工作目录" || name === "未知工作区") {
+    return "当前项目";
+  }
+  return name;
+}
+
+function projectDisplayName(group: Pick<WorkspaceSessionGroup, "name" | "path" | "workspace">) {
+  const candidates = [group.name, compactWorkspaceName(group.workspace), compactWorkspaceName(group.path)];
+  const readable = candidates.find((candidate) => candidate && candidate !== "." && candidate !== "当前工作目录" && candidate !== "未知工作区");
+  return readable ?? "当前项目";
 }
 
 function displayWorkspacePath(path: string) {
