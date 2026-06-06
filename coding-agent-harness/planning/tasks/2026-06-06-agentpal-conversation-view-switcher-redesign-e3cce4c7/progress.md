@@ -46,3 +46,10 @@
 - 验证结果：已记录
 - 下一步：继续执行
 - 证据：n/a
+
+### [2026-06-06 05:06] - task-log
+
+- 做了什么：Implemented conversation view switcher redesign. Moved Chat/Project/Changes control out of the fixed header bar and into each panel content as a lightweight segmented control. Removed count badges from the switcher so counts stay in project/change content. Evidence: npm --prefix apps/mobile run typecheck passed; git diff --check passed with CRLF warnings only; npx expo export --platform ios --output-dir ../../tmp/expo-export-switcher-redesign --clear passed. Code commit: 9a09f31.
+- 验证结果：已记录
+- 下一步：继续执行
+- 证据：n/a
