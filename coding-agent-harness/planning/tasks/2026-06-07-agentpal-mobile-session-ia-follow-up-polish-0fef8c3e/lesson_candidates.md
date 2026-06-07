@@ -7,11 +7,11 @@
 | Field | Value |
 | --- | --- |
 | Schema version | lesson-candidate-v1 |
-| Task-level status | pending-review |
+| Task-level status | no-candidate-accepted |
 | Review gate | candidate-file-present |
-| Review decision | pending-human-review |
+| Review decision | checked-none: 局部 UI follow-up，无可复用治理候选 |
 | Promotion state | not-promoted |
-| Closeout token | pending |
+| Closeout token | checked-none |
 | Source task | 2026-06-07-agentpal-mobile-session-ia-follow-up-polish-0fef8c3e |
 | Owner | coordinator |
 | Last updated | 2026-06-07 |
@@ -49,7 +49,7 @@
 
 ## No-Candidate Reason
 
-尚未判定。只有人工审查接受本任务没有可复用候选时，才填写这里。
+本轮是单一移动端界面的截图驱动 polish，发现已写入任务本地 `findings.md`；没有需要提升到共享治理标准或 lesson detail doc 的可复用经验。
 
 ## Promotion Notes
 

@@ -31,7 +31,7 @@
 
 ## 残余
 
-- [遗留问题；如无写“无”]
+- 无阻塞残余。真机 Expo Go 视觉确认仍属于 Human Review Confirmation。
 
 ## 协调者交接（Coordinator，启用模块并行时填写）
 
@@ -46,3 +46,16 @@
 - 验证结果：已记录
 - 下一步：继续执行
 - 证据：n/a
+
+### [2026-06-07 20:15] - implementation-and-evidence
+
+- 做了什么：提交 `e2b22d0`，调整会话页项目分组、新建 Codex 会话入口、空闲状态展示、路径压缩、中性按钮样式，并修复 web `AccessibilityInfo` 兼容白屏。
+- 验证结果：TypeScript、web export、Chrome CDP web 截图、iOS export、`git diff --check` 均通过；会话页 DOM 确认 `当前项目` 不存在、`就绪` 出现次数为 0、项目数为 1。
+- 下一步：推进 EXEC-01 到 done，提交 Agent Review Submission。
+- 证据：diff:apps/mobile/app/index.tsx:commit `e2b22d0` implements session IA follow-up and web compatibility guard
+- 证据：command:apps/mobile:`npm --prefix apps/mobile run typecheck` passed
+- 证据：command:apps/mobile:`npx expo export --platform web --output-dir ../../tmp/expo-web-ui-polish-followup --clear` passed
+- 证据：screenshot:tmp/web-home-ui-polish-followup-cdp.png:home/pending tab renders after web export
+- 证据：screenshot:tmp/web-sessions-ui-polish-followup-cdp.png:sessions tab shows independent new-session action, one project, no idle `就绪`
+- 证据：command:apps/mobile:`npx expo export --platform ios --output-dir ../../tmp/expo-export-ia-follow-up --clear` passed
+- 证据：command:.:`git diff --check` passed with CRLF conversion warning only
