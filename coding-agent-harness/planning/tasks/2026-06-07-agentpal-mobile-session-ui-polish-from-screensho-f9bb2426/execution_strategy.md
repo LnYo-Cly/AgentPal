@@ -56,7 +56,7 @@
 | L0 | `git diff --check` | `progress.md` | 无 whitespace error。 |
 | L1 | `npm --prefix apps/mobile run typecheck` | `progress.md` | TypeScript 通过。 |
 | L2 | `npx expo export --platform ios --output-dir ../../tmp/expo-export-ui-polish --clear` | `progress.md` | iOS bundle 导出成功。 |
-| L3 | [发布前 / 生产等价验证 / 外部审查] | `review.md` 与 walkthrough | [通过标准] |
+| L3 | 不适用 | n/a | 本任务不涉及发布前生产等价验证。 |
 
 ## 暂停 / 升级条件
 

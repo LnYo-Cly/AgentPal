@@ -19,14 +19,14 @@
 
 | Field | Value |
 | --- | --- |
-| Submission ID | [由 task-review 生成] |
-| Submitted At | [timestamp] |
-| Submitted By | [agent 或 coordinator 身份] |
+| Submission ID | ARS-202606071116 |
+| Submitted At | 2026-06-07 11:16 |
+| Submitted By | agent |
 | Task Key | 2026-06-07-agentpal-mobile-session-ui-polish-from-screensho-f9bb2426 |
-| Materials Checklist Hash | [由 task-review 生成；只作信息记录，不作为手工门禁] |
-| Evidence Summary | [测试、diff、运行和审查材料证据] |
-| Open Findings Count | [数字] |
-| Scanner Version | [生成时的 scanner 版本] |
+| Materials Checklist Hash | a5cfe9808f2b5c02 |
+| Evidence Summary | Mobile session UI polish ready for human review |
+| Open Findings Count | 0 |
+| Scanner Version | task-scanner/2026-05-25-phase-kind |
 
 ### Material Checklist（材料清单）
 
@@ -66,7 +66,7 @@ Scanner 会根据必需文件、章节、证据和这个严格提交块派生 `m
 
 ## 非阻塞备注（Non-Material Notes）
 
-- [不阻塞本轮目标但值得记录的问题；如无写“无”]
+- 真机截图级视觉复核需要用户在 Expo Go 中确认。
 
 ## 已检查证据（Evidence Checked）
 

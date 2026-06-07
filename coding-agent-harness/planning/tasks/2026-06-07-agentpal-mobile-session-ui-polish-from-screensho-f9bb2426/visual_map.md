@@ -8,7 +8,7 @@ Visual Map Contract: v1.0
 
 | ID | Type | Purpose | Required For Understanding | Source Evidence | Promotion Candidate |
 | --- | --- | --- | --- | --- | --- |
-| MAP-01 | phase | 展示执行阶段和依赖关系 | yes | `task_plan.md` | no |
+| MAP-01 | phase | 展示本次移动端 UI polish 的执行阶段和依赖关系 | yes | `task_plan.md` | no |
 
 ## 阶段关系图（Phase Graph）
 
@@ -24,7 +24,7 @@ flowchart LR
 | Phase ID | Kind | Depends On | State | Completion | Output | Required Evidence | Exit Command | Actor | Evidence Status | Blocking Risk | Owner / Handoff |
 | --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- |
 | INIT-01 | init | none | done | 100 | 任务计划和执行策略已确认 | `task_plan.md`; `execution_strategy.md` | `harness task-start 2026-06-07-agentpal-mobile-session-ui-polish-from-screensho-f9bb2426` | agent | present | none | coordinator |
-| EXEC-01 | execution | INIT-01 | done | 100 | 有边界的实现、文档切片和验证证据 | diff、commands、worker handoff 或 artifact path | `harness task-phase 2026-06-07-agentpal-mobile-session-ui-polish-from-screensho-f9bb2426 EXEC-01 --state done --completion 100 --evidence present` | agent | present | none | coordinator |
+| EXEC-01 | execution | INIT-01 | done | 100 | 移动端会话 UI polish 已实现并验证 | diff、typecheck、Expo export、diff check | `harness task-phase 2026-06-07-agentpal-mobile-session-ui-polish-from-screensho-f9bb2426 EXEC-01 --state done --completion 100 --evidence present` | agent | present | none | coordinator |
 | GATE-01 | gate | EXEC-01 | done | 100 | Agent Review Submission | `review.md`、progress update、lesson routing | `harness task-review 2026-06-07-agentpal-mobile-session-ui-polish-from-screensho-f9bb2426 --message "<summary>"` | agent | present | waits for lifecycle task-review command | coordinator |
 | GATE-02 | gate | GATE-01 | planned | 0 | Human Review Confirmation | review packet 和人工确认 | `harness review-confirm 2026-06-07-agentpal-mobile-session-ui-polish-from-screensho-f9bb2426 --confirm 2026-06-07-agentpal-mobile-session-ui-polish-from-screensho-f9bb2426` | human | missing | Agent 不能代办人工确认 | human |
 
