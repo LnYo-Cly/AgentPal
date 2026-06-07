@@ -265,18 +265,25 @@ export default function HomeScreen() {
       })
       .catch(() => {});
 
-    AccessibilityInfo.isReduceTransparencyEnabled()
-      .then((enabled) => {
-        if (mounted) setReduceTransparencyEnabled(enabled);
-      })
-      .catch(() => {
-        if (mounted) setReduceTransparencyEnabled(true);
-      });
+    if (typeof AccessibilityInfo.isReduceTransparencyEnabled === "function") {
+      AccessibilityInfo.isReduceTransparencyEnabled()
+        .then((enabled) => {
+          if (mounted) setReduceTransparencyEnabled(enabled);
+        })
+        .catch(() => {
+          if (mounted) setReduceTransparencyEnabled(true);
+        });
+    } else {
+      setReduceTransparencyEnabled(true);
+    }
 
-    const subscription = AccessibilityInfo.addEventListener("reduceTransparencyChanged", setReduceTransparencyEnabled);
+    const subscription =
+      typeof AccessibilityInfo.addEventListener === "function"
+        ? AccessibilityInfo.addEventListener("reduceTransparencyChanged", setReduceTransparencyEnabled)
+        : null;
     return () => {
       mounted = false;
-      subscription.remove();
+      subscription?.remove?.();
     };
   }, []);
 
@@ -812,8 +819,11 @@ function SessionsPage({
   onOpenSettings: () => void;
 }) {
   const [query, setQuery] = useState("");
-  const groups = useMemo(() => workspaceSessionGroups(sessions), [sessions]);
+  const newSession = useMemo(() => sessions.find(isNewSessionEntry) ?? null, [sessions]);
+  const groupedSessions = useMemo(() => sessions.filter((session) => !isNewSessionEntry(session)), [sessions]);
+  const groups = useMemo(() => workspaceSessionGroups(groupedSessions), [groupedSessions]);
   const filteredGroups = useMemo(() => filterWorkspaceSessionGroups(groups, query), [groups, query]);
+  const showNewSessionAction = !!newSession && newSessionMatchesQuery(newSession, query);
   const workingCount = sessions.filter(isWorkingSession).length;
   const approvalCount = sessions.reduce((sum, session) => sum + session.pendingApprovals, 0);
   const failedCount = sessions.filter((session) => session.state === "failed").length;
@@ -863,6 +873,8 @@ function SessionsPage({
         />
       </Box>
 
+      {showNewSessionAction ? <NewSessionActionCard session={newSession} onPress={() => onOpenSession(newSession.sessionId)} /> : null}
+
       <Box gap="s">
         <SectionHeader title="项目" action={query.trim() ? `${filteredGroups.length} 个匹配` : `${groups.length} 个`} />
         {filteredGroups.length ? (
@@ -874,13 +886,39 @@ function SessionsPage({
               onOpenSession={onOpenSession}
             />
           ))
-        ) : sessions.length ? (
+        ) : groupedSessions.length ? (
           <HomeEmptyLine icon={Folder} title="没有匹配结果" body="换个项目名、会话标题或 Agent 类型试试。" />
-        ) : (
+        ) : showNewSessionAction ? null : (
           <SessionsEmptyState hostOnline={hostOnline} onOpenSettings={onOpenSettings} />
         )}
       </Box>
     </ScrollView>
+  );
+}
+
+function NewSessionActionCard({ session, onPress }: { session: SessionSummary; onPress: () => void }) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel="新建 Codex 会话" onPress={onPress}>
+      {({ pressed }) => (
+        <Box minHeight={70} borderRadius="m" backgroundColor="surface" borderWidth={1} borderColor="line" paddingHorizontal="m" flexDirection="row" alignItems="center" gap="m" style={softShadow(pressed)}>
+          <Box width={40} height={40} borderRadius="m" backgroundColor="cobaltSoft" alignItems="center" justifyContent="center">
+            <Bot color={theme.colors.cobalt} size={20} />
+          </Box>
+          <Box flex={1} gap="xs">
+            <Text variant="section" numberOfLines={1}>
+              新建 Codex 会话
+            </Text>
+            <Text variant="caption" numberOfLines={1}>
+              {compactWorkspaceName(session.workspace)} · 发送第一条指令
+            </Text>
+          </Box>
+          <Text variant="caption" color="accent">
+            新建
+          </Text>
+          <ChevronRight color={theme.colors.inkMuted} size={18} />
+        </Box>
+      )}
+    </Pressable>
   );
 }
 
@@ -1008,14 +1046,14 @@ function ProjectSessionRow({
   first: boolean;
   onPress: () => void;
 }) {
-  const isNewSessionEntry = isFallbackCodexSession(session) && session.state === "idle" && session.pendingApprovals === 0;
-  const tone = isNewSessionEntry ? "blue" : sessionTone(session.state);
-  const title = isNewSessionEntry ? "新建 Codex 会话" : session.title ?? "未命名会话";
-  const meta = isNewSessionEntry ? "Codex · 发送第一条指令" : `${agentLabel(session.agentKind)} · ${formatRelativeTime(session.updatedAt)}`;
+  const newSessionEntry = isNewSessionEntry(session);
+  const tone = newSessionEntry ? "blue" : sessionTone(session.state);
+  const title = newSessionEntry ? "新建 Codex 会话" : session.title ?? "未命名会话";
+  const meta = newSessionEntry ? "Codex · 发送第一条指令" : `${agentLabel(session.agentKind)} · ${formatRelativeTime(session.updatedAt)}`;
   const statusLabel = session.pendingApprovals > 0 ? `${session.pendingApprovals} 审批` : stateLabel(session.state);
   const statusTone: Tone = session.pendingApprovals > 0 ? "danger" : tone;
   return (
-    <Pressable accessibilityRole="button" accessibilityState={{ selected }} accessibilityLabel={isNewSessionEntry ? "新建 Codex 会话" : `打开${session.title ?? "会话"}`} onPress={onPress}>
+    <Pressable accessibilityRole="button" accessibilityState={{ selected }} accessibilityLabel={newSessionEntry ? "新建 Codex 会话" : `打开${session.title ?? "会话"}`} onPress={onPress}>
       {({ pressed }) => (
         <Box
           minHeight={64}
@@ -1025,7 +1063,7 @@ function ProjectSessionRow({
           paddingHorizontal="m"
           borderTopWidth={first ? 0 : 1}
           borderColor="line"
-          backgroundColor={selected ? "navActive" : "surface"}
+          backgroundColor="surface"
           style={{ opacity: pressed ? 0.72 : 1 }}
         >
           <Box width={34} height={34} borderRadius="m" backgroundColor={toneSoftToken(tone)} alignItems="center" justifyContent="center">
@@ -1042,14 +1080,14 @@ function ProjectSessionRow({
               {meta}
             </Text>
           </Box>
-          <Box alignItems="flex-end" gap="xs" minWidth={54}>
-            {isNewSessionEntry ? (
+          <Box alignItems="flex-end" gap="xs" minWidth={sessionHasVisibleStatus(session) ? 54 : 18}>
+            {newSessionEntry ? (
               <Text variant="caption" color="accent" numberOfLines={1}>
                 新建
               </Text>
-            ) : (
+            ) : sessionHasVisibleStatus(session) ? (
               <SessionStateInline tone={statusTone} label={statusLabel} />
-            )}
+            ) : null}
           </Box>
           <ChevronRight color={theme.colors.inkMuted} size={18} />
         </Box>
@@ -3153,8 +3191,8 @@ function SettingsButton({ label, tone, onPress }: { label: string; tone: Tone; o
   return (
     <Pressable accessibilityRole="button" onPress={onPress} style={{ flex: 1 }}>
       {({ pressed }) => (
-        <Box minHeight={46} borderRadius="m" backgroundColor={filled ? "accent" : "surfaceMuted"} alignItems="center" justifyContent="center" style={{ opacity: pressed ? 0.68 : 1 }}>
-          <Text variant="section" color={filled ? "white" : "inkMuted"}>
+        <Box minHeight={46} borderRadius="m" backgroundColor={filled ? "accent" : "surface"} borderWidth={filled ? 0 : 1} borderColor={filled ? "transparent" : "line"} alignItems="center" justifyContent="center" style={{ opacity: pressed ? 0.68 : 1 }}>
+          <Text variant="section" color={filled ? "white" : "ink"}>
             {label}
           </Text>
         </Box>
@@ -4581,6 +4619,32 @@ function isFallbackCodexSession(session: SessionSummary) {
   return session.sessionId === "agentpal-codex-local";
 }
 
+function isNewSessionEntry(session: SessionSummary) {
+  return isFallbackCodexSession(session) && session.state === "idle" && session.pendingApprovals === 0;
+}
+
+function sessionHasVisibleStatus(session: SessionSummary) {
+  return session.pendingApprovals > 0 || session.state === "waiting-approval" || session.state === "running" || session.state === "thinking" || session.state === "failed" || session.state === "completed" || session.state === "offline";
+}
+
+function newSessionMatchesQuery(session: SessionSummary, query: string) {
+  const term = query.trim().toLowerCase();
+  if (!term) {
+    return true;
+  }
+  const haystack = [
+    "新建 Codex 会话",
+    "发送第一条指令",
+    agentLabel(session.agentKind),
+    compactWorkspaceName(session.workspace),
+    compactWorkspacePath(session.workspace),
+    session.workspace
+  ]
+    .join(" ")
+    .toLowerCase();
+  return haystack.includes(term);
+}
+
 function isThemePreference(value: string | null): value is ThemePreference {
   return value === "system" || value === "light" || value === "dark";
 }
@@ -4988,10 +5052,11 @@ function isCurrentWorkspacePlaceholder(path: string) {
 }
 
 function displayWorkspacePath(path: string) {
-  const normalized = path.replace(/^\\\\\?\\/, "").replace(/\//g, "\\").trim();
+  let normalized = path.replace(/^\\\\\?\\/, "").replace(/\//g, "\\").trim();
   if (!normalized || normalized === ".") {
     return "当前工作目录";
   }
+  normalized = normalized.replace(/\\+\.$/, "").replace(/\\+$/, "");
   if (normalized === "unknown-workspace") {
     return "未知工作区";
   }
@@ -5003,11 +5068,12 @@ function compactWorkspacePath(path: string) {
   if (isCurrentWorkspacePlaceholder(normalized)) {
     return normalized;
   }
-  const parts = normalized.split(/[\\/]/).filter(Boolean);
-  if (parts.length <= 3) {
+  const parts = normalized.split(/[\\/]/).filter((part) => part && part !== ".");
+  if (parts.length <= 2) {
     return normalized;
   }
-  return `...\\${parts.slice(-3).join("\\")}`;
+  const root = /^[A-Za-z]:$/.test(parts[0]) ? `${parts[0]}\\` : "";
+  return `${root}...\\${parts[parts.length - 1]}`;
 }
 
 function matchingWorkspaceSnapshot(
@@ -5029,11 +5095,15 @@ function matchingWorkspaceSnapshot(
 }
 
 function normalizeWorkspacePath(path: string) {
-  return path
+  let normalized = path
     .replace(/^\\\\\?\\/, "")
     .replace(/\\/g, "/")
-    .replace(/\/+$/, "")
-    .toLowerCase();
+    .trim();
+  normalized = normalized.replace(/\/+$/, "");
+  while (normalized.endsWith("/.")) {
+    normalized = normalized.slice(0, -2).replace(/\/+$/, "");
+  }
+  return normalized.toLowerCase();
 }
 
 function agentLabel(kind: SessionSummary["agentKind"]) {
