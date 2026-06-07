@@ -1,5 +1,6 @@
 tmp/
 .coding-agent-harness/
+.worktrees/
 .agents/
 skills-lock.json
 /ui/
