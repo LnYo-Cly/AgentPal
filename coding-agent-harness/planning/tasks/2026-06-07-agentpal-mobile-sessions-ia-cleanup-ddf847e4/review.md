@@ -99,3 +99,17 @@
 ## 最终信心依据（Final Confidence Basis）
 
 最终信心来自 TypeScript 检查、Expo iOS export、diff check、Harness check 和 self-review。发布/继续细化前仍需要用户真机确认视觉质量。
+
+## Agent Review Submission
+
+| Field | Value |
+| --- | --- |
+| Submission ID | ARS-202606070723 |
+| Submitted At | 2026-06-07 07:23 |
+| Submitted By | agent |
+| Task Key | TASKS/2026-06-07-agentpal-mobile-sessions-ia-cleanup-ddf847e4 |
+| Materials Checklist Hash | edb4260c566e683b |
+| Evidence Summary | AgentPal mobile IA cleanup ready for human review |
+| Open Findings Count | 0 |
+| Scanner Version | task-scanner/2026-05-25-phase-kind |
+| Target | TARGET:coding-agent-harness/planning/tasks/2026-06-07-agentpal-mobile-sessions-ia-cleanup-ddf847e4 |
