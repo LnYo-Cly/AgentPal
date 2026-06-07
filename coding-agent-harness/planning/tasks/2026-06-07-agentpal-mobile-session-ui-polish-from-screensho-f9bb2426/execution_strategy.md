@@ -18,8 +18,8 @@
 
 | Question | Decision | Reason | Next Action |
 | --- | --- | --- | --- |
-| Should a reviewer subagent be used? | yes / no | [为什么需要或不需要 reviewer] | 如果 yes，直接调用只读 reviewer，不需要额外申请。 |
-| Would a worker subagent materially help? | no / ask-user / already-authorized | [并行切片、独立实现、专项调查，或说明为什么不需要] | 如果 ask-user，直接问：“这个任务适合拆给 worker subagent 并行处理。是否授权我派一个 worker subagent，只修改 [scope]，只在 [worktree/branch] 内执行，我负责协调和最终审查？” |
+| Should a reviewer subagent be used? | no | 本次是单屏 UI polish，主要风险可由类型检查、Expo 导出和人工截图复核覆盖。 | coordinator 自检并记录证据。 |
+| Would a worker subagent materially help? | no | 改动集中在 `apps/mobile/app/index.tsx` 的同一组布局和状态 helper，并行拆分会增加冲突风险。 | 不申请 worker 授权。 |
 
 ## User Authorization Decision
 
@@ -28,16 +28,16 @@
 
 | Gate | State | Decided By | Decided At | Scope | Worktree / Branch | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| worker subagent | pending | pending | pending | pending | pending | 只有直接问过用户后才能填写。 |
+| worker subagent | not-needed | coordinator | 2026-06-07 | `apps/mobile/app/index.tsx` UI polish | same checkout | 单文件同屏协调改动，不拆 worker。 |
 
 ## 决策表
 
 | 决策 | 选择 | 说明 |
 | --- | --- | --- |
 | 主执行者 | coordinator | coordinator 负责编排顺序、冲突判断和最终收口。 |
-| Subagent 模式 | none / reviewer-only / worker-worktree | 选择能满足任务的最小协作模式。 |
-| 审查模型 | self-check / predefined verifier / adversarial review | 说明为什么该审查层级足够。 |
-| Worktree 策略 | same checkout / dedicated worktree | 会改代码的 subagent 必须使用独立 worktree，并提交 handoff commit。 |
+| Subagent 模式 | none | 选择能满足任务的最小协作模式。 |
+| 审查模型 | self-check | 截图反馈驱动的局部 UI 调整，类型检查和 Expo 导出足够覆盖编译/打包风险。 |
+| Worktree 策略 | same checkout | 会改代码的 subagent 必须使用独立 worktree，并提交 handoff commit。 |
 | 冲突控制 | coordinator owns shared files | subagent 不得直接编辑 coordinator 管理的全局表或共享文件，除非获得明确锁。 |
 | 证据深度 | L0 / L1 / L2 / L3 | 按变更风险匹配证据深度。 |
 
@@ -53,9 +53,9 @@
 
 | 证据层级 | 计划命令或检查 | 记录位置 | 完成条件 |
 | --- | --- | --- | --- |
-| L0 | [静态检查 / 小范围自检] | `progress.md` | [通过标准] |
-| L1 | [单元测试 / targeted check] | `progress.md` 或 `artifacts/INDEX.md` | [通过标准] |
-| L2 | [集成 / 浏览器 / 真实数据冒烟] | `artifacts/INDEX.md` | [通过标准] |
+| L0 | `git diff --check` | `progress.md` | 无 whitespace error。 |
+| L1 | `npm --prefix apps/mobile run typecheck` | `progress.md` | TypeScript 通过。 |
+| L2 | `npx expo export --platform ios --output-dir ../../tmp/expo-export-ui-polish --clear` | `progress.md` | iOS bundle 导出成功。 |
 | L3 | [发布前 / 生产等价验证 / 外部审查] | `review.md` 与 walkthrough | [通过标准] |
 
 ## 暂停 / 升级条件
