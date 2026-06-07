@@ -59,3 +59,10 @@
 - 证据：screenshot:tmp/web-sessions-ui-polish-followup-cdp.png:sessions tab shows independent new-session action, one project, no idle `就绪`
 - 证据：command:apps/mobile:`npx expo export --platform ios --output-dir ../../tmp/expo-export-ia-follow-up --clear` passed
 - 证据：command:.:`git diff --check` passed with CRLF conversion warning only
+
+### [2026-06-07 12:21] - task-log
+
+- 做了什么：Implemented and verified session IA follow-up
+- 验证结果：已记录
+- 下一步：继续执行
+- 证据：report:coding-agent-harness/planning/tasks/2026-06-07-agentpal-mobile-session-ia-follow-up-polish-0fef8c3e/artifacts/INDEX.md:typecheck web export CDP screenshots ios export and diff check passed
