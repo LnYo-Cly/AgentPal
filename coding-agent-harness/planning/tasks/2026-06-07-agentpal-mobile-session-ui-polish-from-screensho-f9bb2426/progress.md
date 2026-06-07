@@ -46,3 +46,10 @@
 - 验证结果：已记录
 - 下一步：继续执行
 - 证据：n/a
+
+### [2026-06-07 11:12] - task-log
+
+- 做了什么：Implemented mobile session UI polish and verified build checks
+- 验证结果：已记录
+- 下一步：继续执行
+- 证据：commit:TARGET:.:edf27fb fix(mobile): polish session list status UI
