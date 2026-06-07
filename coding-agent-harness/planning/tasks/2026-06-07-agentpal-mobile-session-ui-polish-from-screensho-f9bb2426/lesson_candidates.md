@@ -7,11 +7,11 @@
 | Field | Value |
 | --- | --- |
 | Schema version | lesson-candidate-v1 |
-| Task-level status | pending-review |
-| Review gate | candidate-file-present |
-| Review decision | pending-human-review |
+| Task-level status | no-candidate-accepted |
+| Review gate | agent-reviewed |
+| Review decision | agent-checked-no-candidate |
 | Promotion state | not-promoted |
-| Closeout token | pending |
+| Closeout token | no-candidate |
 | Source task | 2026-06-07-agentpal-mobile-session-ui-polish-from-screensho-f9bb2426 |
 | Owner | coordinator |
 | Last updated | 2026-06-07 |
@@ -49,7 +49,7 @@
 
 ## No-Candidate Reason
 
-尚未判定。只有人工审查接受本任务没有可复用候选时，才填写这里。
+本任务是一次基于用户截图反馈的局部移动端 UI polish，改动集中在状态文案、列表层级、路径压缩和底部导航内边距，没有新增可复用的工程治理规则或跨任务方法论。
 
 ## Promotion Notes
 

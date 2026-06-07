@@ -31,14 +31,14 @@
 
 ## 残余
 
-- [遗留问题；如无写“无”]
+- 真机截图级视觉复核未由工具自动截取；用户可在 Expo Go 热更新后确认。
 
 ## 协调者交接（Coordinator，启用模块并行时填写）
 
-- Global sync status：pending-coordinator-pass / synced / n/a
-- Registry update needed：[module key, step, status, branch, updated / 不适用]
-- Harness Ledger update needed：[task plan path, review path, closeout status / 不适用]
-- 负责人：coordinator / 不适用
+- Global sync status：n/a
+- Registry update needed：不适用
+- Harness Ledger update needed：由 Harness CLI 同步
+- 负责人：coordinator
 
 ### [2026-06-07 11:00] - task-start
 
