@@ -24,8 +24,8 @@ flowchart LR
 | Phase ID | Kind | Depends On | State | Completion | Output | Required Evidence | Exit Command | Actor | Evidence Status | Blocking Risk | Owner / Handoff |
 | --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- |
 | INIT-01 | init | none | done | 100 | 任务计划和执行策略已确认 | `task_plan.md`; `execution_strategy.md` | `harness task-start 2026-06-07-agentpal-mobile-session-ia-follow-up-polish-0fef8c3e` | agent | present | none | coordinator |
-| EXEC-01 | execution | INIT-01 | done | 100 | 有边界的实现、文档切片和验证证据 | diff、commands、worker handoff 或 artifact path | `harness task-phase 2026-06-07-agentpal-mobile-session-ia-follow-up-polish-0fef8c3e EXEC-01 --state done --completion 100 --evidence present` | agent | present | [risk] | [owner] |
-| GATE-01 | gate | EXEC-01 | done | 100 | Agent Review Submission | `review.md`、progress update、lesson routing | `harness task-review 2026-06-07-agentpal-mobile-session-ia-follow-up-polish-0fef8c3e --message "<summary>"` | agent | present | [risk] | coordinator |
+| EXEC-01 | execution | INIT-01 | done | 100 | 会话页 IA follow-up 已实现并提交 `e2b22d0` | `apps/mobile/app/index.tsx` diff; `artifacts/INDEX.md`; web screenshots; iOS export | `harness task-phase 2026-06-07-agentpal-mobile-session-ia-follow-up-polish-0fef8c3e EXEC-01 --state done --completion 100 --evidence present` | agent | present | none | coordinator |
+| GATE-01 | gate | EXEC-01 | done | 100 | Agent Review Submission `ARS-202606071222` 已生成 | `review.md`; `progress.md`; `lesson_candidates.md`; `artifacts/INDEX.md` | `harness task-review 2026-06-07-agentpal-mobile-session-ia-follow-up-polish-0fef8c3e --message "Mobile session IA follow-up verified and ready for human review"` | agent | present | none | coordinator |
 | GATE-02 | gate | GATE-01 | planned | 0 | Human Review Confirmation | review packet 和人工确认 | `harness review-confirm 2026-06-07-agentpal-mobile-session-ia-follow-up-polish-0fef8c3e --confirm 2026-06-07-agentpal-mobile-session-ia-follow-up-polish-0fef8c3e` | human | missing | Agent 不能代办人工确认 | human |
 
 允许的 `State`：`planned`, `in_progress`, `review`, `blocked`, `done`, `skipped`。

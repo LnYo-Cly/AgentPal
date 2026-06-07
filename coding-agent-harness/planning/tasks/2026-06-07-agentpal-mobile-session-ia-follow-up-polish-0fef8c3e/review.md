@@ -19,14 +19,14 @@
 
 | Field | Value |
 | --- | --- |
-| Submission ID | pending `harness task-review` |
-| Submitted At | pending `harness task-review` |
+| Submission ID | ARS-202606071222 |
+| Submitted At | 2026-06-07 12:22 |
 | Submitted By | agent |
-| Task Key | 2026-06-07-agentpal-mobile-session-ia-follow-up-polish-0fef8c3e |
-| Materials Checklist Hash | pending `harness task-review` |
-| Evidence Summary | Mobile session IA follow-up verified with typecheck, web/iOS export, CDP screenshots and diff check |
+| Task Key | TASKS/2026-06-07-agentpal-mobile-session-ia-follow-up-polish-0fef8c3e |
+| Materials Checklist Hash | 74b9cc69b7d9a491 |
+| Evidence Summary | Mobile session IA follow-up verified and ready for human review |
 | Open Findings Count | 0 |
-| Scanner Version | pending `harness task-review` |
+| Scanner Version | task-scanner/2026-05-25-phase-kind |
 
 ### Material Checklist（材料清单）
 
