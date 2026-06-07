@@ -8,6 +8,9 @@ pub type SessionId = String;
 pub type CommandId = String;
 pub type ApprovalId = String;
 pub type ClientId = String;
+pub type DeviceId = String;
+pub type DeviceToken = String;
+pub type PairId = String;
 pub type PairToken = String;
 pub type WorkspaceId = String;
 
@@ -340,7 +343,18 @@ pub enum RelayClientMessage {
     Register {
         role: RelayClientRole,
         client_id: ClientId,
+        #[serde(default)]
         host_id: Option<HostId>,
+        #[serde(default)]
+        device_id: Option<DeviceId>,
+        #[serde(default)]
+        device_token: Option<DeviceToken>,
+    },
+    PairCreate {
+        request: PairCreateRequest,
+    },
+    PairClaim {
+        request: PairClaimRequest,
     },
     HostStatus {
         status: HostStatus,
@@ -390,6 +404,12 @@ pub enum RelayServerMessage {
         sessions: Vec<SessionSummary>,
         picker_registries: Vec<PickerRegistry>,
         workspace_snapshots: Vec<WorkspaceSnapshot>,
+    },
+    PairCreated {
+        pairing: PairingPayload,
+    },
+    PairClaimed {
+        claim: PairClaimAccepted,
     },
     HostStatus {
         status: HostStatus,
@@ -456,11 +476,54 @@ pub struct HistoryPage {
 pub struct PairingPayload {
     pub version: u32,
     pub relay_url: String,
+    #[serde(default)]
+    pub pair_id: Option<PairId>,
     pub host_id: HostId,
     pub host_name: String,
     pub pair_token: PairToken,
-    #[serde(with = "time::serde::rfc3339::option")]
+    #[serde(default)]
+    pub device_id: Option<DeviceId>,
+    #[serde(default)]
+    pub device_token: Option<DeviceToken>,
+    #[serde(default, with = "time::serde::rfc3339::option")]
     pub expires_at: Option<OffsetDateTime>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PairCreateRequest {
+    pub host_id: HostId,
+    pub host_name: String,
+    pub relay_url: String,
+    #[serde(default)]
+    pub pair_id: Option<PairId>,
+    #[serde(default)]
+    pub pair_token: Option<PairToken>,
+    #[serde(default)]
+    pub expires_in_seconds: Option<u64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PairClaimRequest {
+    pub pair_id: PairId,
+    pub pair_token: PairToken,
+    pub mobile_client_id: ClientId,
+    #[serde(default)]
+    pub device_id: Option<DeviceId>,
+    #[serde(default)]
+    pub device_name: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PairClaimAccepted {
+    pub pair_id: PairId,
+    pub host_id: HostId,
+    pub host_name: String,
+    pub mobile_client_id: ClientId,
+    pub device_id: DeviceId,
+    pub device_token: DeviceToken,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

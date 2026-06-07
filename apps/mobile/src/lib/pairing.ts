@@ -1,3 +1,6 @@
+import * as SecureStore from "expo-secure-store";
+import { Platform } from "react-native";
+
 import { normalizeRelayUrl } from "@/lib/relay";
 
 const pairingStorageKey = "agentpal.pairing.v1";
@@ -70,6 +73,19 @@ export function currentPairingPayload() {
   return currentPairing;
 }
 
+export async function updateStoredPairing(updater: (pairing: PairingPayload) => PairingPayload | null) {
+  const current = currentPairing ?? await loadStoredPairing();
+  if (!current) {
+    return null;
+  }
+  const next = updater(current);
+  if (!next) {
+    return null;
+  }
+  await saveStoredPairing(next);
+  return next;
+}
+
 function parsePairUrl(value: string): PairingPayload {
   const parsed = new URL(value);
   const params = parsed.searchParams;
@@ -125,15 +141,35 @@ function setCurrentPairing(pairing: PairingPayload | null) {
 }
 
 async function getPairingStoreItem() {
-  return inMemoryPairing;
+  if (Platform.OS === "web") {
+    return webStorage()?.getItem(pairingStorageKey) ?? inMemoryPairing;
+  }
+  return SecureStore.getItemAsync(pairingStorageKey).catch(() => inMemoryPairing);
 }
 
 async function setPairingStoreItem(value: string) {
   inMemoryPairing = value;
+  if (Platform.OS === "web") {
+    webStorage()?.setItem(pairingStorageKey, value);
+    return;
+  }
+  await SecureStore.setItemAsync(pairingStorageKey, value).catch(() => undefined);
 }
 
 async function removePairingStoreItem() {
   inMemoryPairing = null;
+  if (Platform.OS === "web") {
+    webStorage()?.removeItem(pairingStorageKey);
+    return;
+  }
+  await SecureStore.deleteItemAsync(pairingStorageKey).catch(() => undefined);
 }
 
 let currentPairing: PairingPayload | null = null;
+
+function webStorage() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  return window.localStorage;
+}

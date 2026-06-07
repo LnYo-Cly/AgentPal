@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { currentPairingPayload } from "@/lib/pairing";
+import { currentPairingPayload, updateStoredPairing } from "@/lib/pairing";
 import {
   ConnectionState,
   FilePreview,
@@ -106,6 +106,28 @@ export function useAgentPalRelay(url = defaultRelayUrl(), pairedHostId?: string 
         try {
           const parsed = JSON.parse(String(message.data)) as RelayServerMessage;
           applyServerMessage(parsed, setHosts, setSessions, setTimeline, setSessionHistory, setPickerRegistries, setWorkspaceSnapshots, setFilePreviews, setLastError);
+          if (parsed.type === "pair-claimed") {
+            const claim = parsed.claim;
+            updateStoredPairing((pairing) => {
+              if (pairing.pairId !== claim.pairId || pairing.hostId !== claim.hostId) {
+                return null;
+              }
+              return {
+                ...pairing,
+                hostName: claim.hostName || pairing.hostName,
+                deviceId: claim.deviceId,
+                deviceToken: claim.deviceToken
+              };
+            })
+              .then((next) => {
+                if (next && socketRef.current === socket && socket.readyState === WebSocket.OPEN) {
+                  socket.close();
+                }
+              })
+              .catch((error) => {
+                setLastError(error instanceof Error ? error.message : "配对凭据保存失败");
+              });
+          }
         } catch (error) {
           setLastError(error instanceof Error ? error.message : "Relay message parse failed");
         }

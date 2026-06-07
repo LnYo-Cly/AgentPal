@@ -9,10 +9,10 @@ use std::{
 
 use agentpal_protocol::{
     AgentKind, AgentPalEnvelope, ClientCommand, ClientCommandKind, DiffFileSummary, FilePreview,
-    FilePreviewRequest, HistoryRequest, HostStatus, PairingPayload, PickerExecuteMode,
-    PickerItemKind, PickerRegistry, PickerRegistryItem, PickerTrigger, ProjectEntryKind,
-    ProjectTreeEntry, RelayClientMessage, RelayClientRole, RelayServerMessage, RiskLevel,
-    SessionEvent, SessionState, SessionSummary, WorkspaceSnapshot, WorktreeSummary,
+    FilePreviewRequest, HistoryRequest, HostStatus, PairCreateRequest, PairingPayload,
+    PickerExecuteMode, PickerItemKind, PickerRegistry, PickerRegistryItem, PickerTrigger,
+    ProjectEntryKind, ProjectTreeEntry, RelayClientMessage, RelayClientRole, RelayServerMessage,
+    RiskLevel, SessionEvent, SessionState, SessionSummary, WorkspaceSnapshot, WorktreeSummary,
 };
 use clap::Args;
 use futures_util::{SinkExt, StreamExt, stream::SplitSink};
@@ -96,6 +96,15 @@ pub struct CodexConnectArgs {
 
     #[arg(long, default_value_t = 0)]
     pub timeout_seconds: u64,
+
+    #[arg(long, default_value_t = false)]
+    pub create_pair: bool,
+
+    #[arg(long, default_value_t = 10)]
+    pub pair_expires_minutes: u64,
+
+    #[arg(long, default_value_t = false)]
+    pub no_qr: bool,
 }
 
 #[derive(Debug, Args)]
@@ -172,37 +181,15 @@ pub fn pair(args: CodexPairArgs) -> anyhow::Result<()> {
     let payload = PairingPayload {
         version: 1,
         relay_url,
+        pair_id: None,
         host_id: args.host_id,
         host_name,
         pair_token: Uuid::new_v4().to_string(),
+        device_id: None,
+        device_token: None,
         expires_at,
     };
-    let pair_url = pair_url(&payload);
-
-    println!("AgentPal pairing address:");
-    println!("{pair_url}");
-    println!();
-    println!("Manual fields:");
-    println!("  relay_url: {}", payload.relay_url);
-    println!("  host_id: {}", payload.host_id);
-    println!("  host_name: {}", payload.host_name);
-    println!("  pair_token: {}", payload.pair_token);
-    if let Some(expires_at) = payload.expires_at {
-        println!("  expires_at: {expires_at}");
-    } else {
-        println!("  expires_at: never");
-    }
-
-    if !args.no_qr {
-        let code = QrCode::new(pair_url.as_bytes())?;
-        let qr = code
-            .render::<unicode::Dense1x2>()
-            .quiet_zone(true)
-            .module_dimensions(2, 1)
-            .build();
-        println!();
-        println!("{qr}");
-    }
+    print_pairing_payload(&payload, args.no_qr)?;
 
     Ok(())
 }
@@ -407,7 +394,8 @@ async fn run_connect_loop(
     codex_websocket_url: &str,
 ) -> anyhow::Result<()> {
     tokio::time::sleep(Duration::from_millis(600)).await;
-    let (relay_socket, _) = connect_async(args.relay_url.as_str()).await?;
+    let relay_url = normalize_ws_url(&args.relay_url);
+    let (relay_socket, _) = connect_async(relay_url.as_str()).await?;
     let (codex_socket, _) = connect_async(codex_websocket_url).await?;
     let (relay_write, mut relay_read) = relay_socket.split();
     let (codex_write, codex_read) = codex_socket.split();
@@ -429,9 +417,32 @@ async fn run_connect_loop(
             role: RelayClientRole::Host,
             client_id: format!("{}-host", args.host_id),
             host_id: Some(args.host_id.clone()),
+            device_id: None,
+            device_token: None,
         },
     )
     .await?;
+    if args.create_pair {
+        let expires_in_seconds = if args.pair_expires_minutes == 0 {
+            None
+        } else {
+            Some(args.pair_expires_minutes.saturating_mul(60))
+        };
+        relay_send(
+            &relay_write,
+            &RelayClientMessage::PairCreate {
+                request: PairCreateRequest {
+                    host_id: host_id.clone(),
+                    host_name: host_name.to_owned(),
+                    relay_url: relay_url.clone(),
+                    pair_id: None,
+                    pair_token: None,
+                    expires_in_seconds,
+                },
+            },
+        )
+        .await?;
+    }
     publish_host_status(&relay_write, &host_id, host_name, workspace, 1).await?;
 
     send_codex_initialize(&codex_write).await?;
@@ -492,6 +503,7 @@ async fn run_connect_loop(
     let pending_for_commands = Arc::clone(&pending_thread_starts);
     let pending_loads_for_commands = Arc::clone(&pending_thread_loads);
     let workspace_for_commands = workspace_owned.clone();
+    let no_qr_for_commands = args.no_qr;
     let mut command_task = tokio::spawn(async move {
         while let Some(message) = relay_read.next().await {
             let message = match message {
@@ -504,6 +516,21 @@ async fn run_connect_loop(
                 continue;
             };
             match server_message {
+                RelayServerMessage::PairCreated { pairing } => {
+                    if pairing.host_id == host_for_commands {
+                        if let Err(error) = print_pairing_payload(&pairing, no_qr_for_commands) {
+                            eprintln!("Failed to render pairing payload: {error}");
+                        }
+                    }
+                }
+                RelayServerMessage::PairClaimed { claim } => {
+                    if claim.host_id == host_for_commands {
+                        eprintln!(
+                            "AgentPal mobile paired: {} ({})",
+                            claim.mobile_client_id, claim.device_id
+                        );
+                    }
+                }
                 RelayServerMessage::ClientCommand { command } => {
                     if command.host_id != host_for_commands {
                         continue;
@@ -616,6 +643,9 @@ async fn run_connect_loop(
                         )
                         .await;
                     }
+                }
+                RelayServerMessage::Error { message } => {
+                    eprintln!("AgentPal Relay error: {message}");
                 }
                 _ => {}
             }
@@ -2257,15 +2287,64 @@ fn default_lan_relay_url(port: u16, path: &str) -> anyhow::Result<String> {
     Ok(websocket_url(&ip.to_string(), port, path))
 }
 
+fn print_pairing_payload(payload: &PairingPayload, no_qr: bool) -> anyhow::Result<()> {
+    let pair_url = pair_url(payload);
+
+    println!("AgentPal pairing address:");
+    println!("{pair_url}");
+    println!();
+    println!("Manual fields:");
+    println!("  relay_url: {}", payload.relay_url);
+    if let Some(pair_id) = &payload.pair_id {
+        println!("  pair_id: {pair_id}");
+    }
+    println!("  host_id: {}", payload.host_id);
+    println!("  host_name: {}", payload.host_name);
+    println!("  pair_token: {}", payload.pair_token);
+    if let Some(device_id) = &payload.device_id {
+        println!("  device_id: {device_id}");
+    }
+    if payload.device_token.is_some() {
+        println!("  device_token: issued");
+    }
+    if let Some(expires_at) = payload.expires_at {
+        println!("  expires_at: {expires_at}");
+    } else {
+        println!("  expires_at: never");
+    }
+
+    if !no_qr {
+        let code = QrCode::new(pair_url.as_bytes())?;
+        let qr = code
+            .render::<unicode::Dense1x2>()
+            .quiet_zone(true)
+            .module_dimensions(2, 1)
+            .build();
+        println!();
+        println!("{qr}");
+    }
+
+    Ok(())
+}
+
 fn pair_url(payload: &PairingPayload) -> String {
     let mut url = url::Url::parse("agentpal://pair").expect("static pair url parses");
     {
         let mut query = url.query_pairs_mut();
         query.append_pair("v", &payload.version.to_string());
         query.append_pair("relayUrl", &payload.relay_url);
+        if let Some(pair_id) = &payload.pair_id {
+            query.append_pair("pairId", pair_id);
+        }
         query.append_pair("hostId", &payload.host_id);
         query.append_pair("hostName", &payload.host_name);
         query.append_pair("pairToken", &payload.pair_token);
+        if let Some(device_id) = &payload.device_id {
+            query.append_pair("deviceId", device_id);
+        }
+        if let Some(device_token) = &payload.device_token {
+            query.append_pair("deviceToken", device_token);
+        }
         if let Some(expires_at) = payload.expires_at {
             query.append_pair(
                 "expiresAt",
