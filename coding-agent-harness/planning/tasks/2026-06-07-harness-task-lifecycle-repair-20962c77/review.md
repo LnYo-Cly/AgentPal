@@ -101,3 +101,17 @@
 ## 最终信心依据（Final Confidence Basis）
 
 信心来自 Harness scanner 对队列的重新投影、Harness check、diff check 和逐任务材料修复。最终人工确认仍不能由 self-review 代替。
+
+## Agent Review Submission
+
+| Field | Value |
+| --- | --- |
+| Submission ID | ARS-202606070821 |
+| Submitted At | 2026-06-07 08:21 |
+| Submitted By | agent |
+| Task Key | TASKS/2026-06-07-harness-task-lifecycle-repair-20962c77 |
+| Materials Checklist Hash | 8157f3c0b5093ff3 |
+| Evidence Summary | Harness task lifecycle repair ready for human review |
+| Open Findings Count | 0 |
+| Scanner Version | task-scanner/2026-05-25-phase-kind |
+| Target | TARGET:coding-agent-harness/planning/tasks/2026-06-07-harness-task-lifecycle-repair-20962c77 |

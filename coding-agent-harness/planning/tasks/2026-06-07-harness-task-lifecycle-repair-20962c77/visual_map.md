@@ -25,7 +25,7 @@ flowchart LR
 | --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- |
 | INIT-01 | init | none | done | 100 | 任务计划和执行策略已确认 | `task_plan.md`; `execution_strategy.md` | `harness task-start 2026-06-07-harness-task-lifecycle-repair-20962c77` | agent | present | none | coordinator |
 | EXEC-01 | execution | INIT-01 | done | 100 | 历史任务缺材料和异常生命周期状态已修复 | diff、`harness status/check`、`git diff --check` | `harness task-phase 2026-06-07-harness-task-lifecycle-repair-20962c77 EXEC-01 --state done --completion 100 --evidence present` | agent | present | 不得代办 human review-confirm | coordinator |
-| GATE-01 | gate | EXEC-01 | planned | 0 | Agent Review Submission | `review.md`、progress update、lesson routing | `harness task-review 2026-06-07-harness-task-lifecycle-repair-20962c77 --message "<summary>"` | agent | present | 需先提交修复并复跑 check | coordinator |
+| GATE-01 | gate | EXEC-01 | done | 100 | Agent Review Submission | `review.md`、progress update、lesson routing | `harness task-review 2026-06-07-harness-task-lifecycle-repair-20962c77 --message "<summary>"` | agent | present | 需先提交修复并复跑 check | coordinator |
 | GATE-02 | gate | GATE-01 | planned | 0 | Human Review Confirmation | review packet 和人工确认 | `harness review-confirm 2026-06-07-harness-task-lifecycle-repair-20962c77 --confirm 2026-06-07-harness-task-lifecycle-repair-20962c77` | human | missing | Agent 不能代办人工确认 | human |
 
 允许的 `State`：`planned`, `in_progress`, `review`, `blocked`, `done`, `skipped`。
