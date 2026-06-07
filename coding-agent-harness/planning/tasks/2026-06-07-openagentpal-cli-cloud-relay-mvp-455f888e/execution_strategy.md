@@ -7,7 +7,7 @@
 | Role | Status | Permission | Authorized By | Authorized At | Scope | Worktree / Branch | Reuse |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | reviewer subagent | allowed by default | read-only | harness task policy | task creation | current task review | n/a | allowed within this task |
-| worker subagent | not authorized | write only after user approval | pending | pending | pending | pending | allowed only within approved task/scope |
+| worker subagent | authorized | write within bounded slice | user | 2026-06-07 | mobile pairing parser / relay URL compatibility only | `G:\My_Project\python\gitlab\pocket_agent\.worktrees\openagentpal-cloud-relay-mvp` / `work/openagentpal-cloud-relay-mvp` | allowed within this task/scope |
 
 ## Subagent Delegation Decision
 
@@ -18,8 +18,8 @@
 
 | Question | Decision | Reason | Next Action |
 | --- | --- | --- | --- |
-| Should a reviewer subagent be used? | yes / no | [为什么需要或不需要 reviewer] | 如果 yes，直接调用只读 reviewer，不需要额外申请。 |
-| Would a worker subagent materially help? | no / ask-user / already-authorized | [并行切片、独立实现、专项调查，或说明为什么不需要] | 如果 ask-user，直接问：“这个任务适合拆给 worker subagent 并行处理。是否授权我派一个 worker subagent，只修改 [scope]，只在 [worktree/branch] 内执行，我负责协调和最终审查？” |
+| Should a reviewer subagent be used? | yes | Cloud Relay 改变公网安全边界，需要对抗性审查；本轮先由 coordinator self-adversarial review，必要时再加只读 reviewer。 | 在 `review.md` 写 Confidence Challenge 和安全 findings。 |
+| Would a worker subagent materially help? | already-authorized | Rust protocol/relay/host 与 mobile pairing parser 写入范围可拆分；用户明确要求可并行就并行。 | 已派 worker 处理移动端 pairing 兼容切片。 |
 
 ## User Authorization Decision
 
@@ -28,18 +28,18 @@
 
 | Gate | State | Decided By | Decided At | Scope | Worktree / Branch | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| worker subagent | pending | pending | pending | pending | pending | 只有直接问过用户后才能填写。 |
+| worker subagent | authorized | user | 2026-06-07 | `apps/mobile/src/lib/pairing.ts`, `apps/mobile/src/lib/relay.ts`, `apps/mobile/src/hooks/useAgentPalRelay.ts` | `.worktrees/openagentpal-cloud-relay-mvp` / `work/openagentpal-cloud-relay-mvp` | worker 不得修改 Rust crates 或 Harness 文件。 |
 
 ## 决策表
 
 | 决策 | 选择 | 说明 |
 | --- | --- | --- |
 | 主执行者 | coordinator | coordinator 负责编排顺序、冲突判断和最终收口。 |
-| Subagent 模式 | none / reviewer-only / worker-worktree | 选择能满足任务的最小协作模式。 |
-| 审查模型 | self-check / predefined verifier / adversarial review | 说明为什么该审查层级足够。 |
-| Worktree 策略 | same checkout / dedicated worktree | 会改代码的 subagent 必须使用独立 worktree，并提交 handoff commit。 |
+| Subagent 模式 | worker-worktree + self adversarial review | 用户授权并行；worker 只处理移动端解析兼容，coordinator 处理 Rust 和集成。 |
+| 审查模型 | adversarial review | Cloud Relay 涉及公网连接和配对 token，必须挑战安全边界与残余。 |
+| Worktree 策略 | dedicated worktree | 主 checkout 只保留任务生命周期状态，所有实现集中在隔离 worktree 分支。 |
 | 冲突控制 | coordinator owns shared files | subagent 不得直接编辑 coordinator 管理的全局表或共享文件，除非获得明确锁。 |
-| 证据深度 | L0 / L1 / L2 / L3 | 按变更风险匹配证据深度。 |
+| 证据深度 | L2 | 覆盖 Rust workspace check、mobile typecheck、本地 WebSocket smoke、Harness check。 |
 
 ## 子代理 / Worker 合同
 
@@ -47,16 +47,17 @@
 
 | 角色 | 输入包 | 写入范围 | 交接要求 | 负责人 |
 | --- | --- | --- | --- | --- |
-| reviewer / worker / n/a | C-001 | read-only / path list / n/a | report / commit SHA / n/a | coordinator |
+| worker | C-004 | mobile pairing/relay files only | commit SHA, changed files, typecheck result, residual risk | worker subagent |
+| reviewer | C-001..C-005 + diff | read-only | material findings or no-finding statement | coordinator |
 
 ## 证据计划
 
 | 证据层级 | 计划命令或检查 | 记录位置 | 完成条件 |
 | --- | --- | --- | --- |
-| L0 | [静态检查 / 小范围自检] | `progress.md` | [通过标准] |
-| L1 | [单元测试 / targeted check] | `progress.md` 或 `artifacts/INDEX.md` | [通过标准] |
-| L2 | [集成 / 浏览器 / 真实数据冒烟] | `artifacts/INDEX.md` | [通过标准] |
-| L3 | [发布前 / 生产等价验证 / 外部审查] | `review.md` 与 walkthrough | [通过标准] |
+| L0 | `cargo fmt --check`; `git diff --check` | `progress.md` | 无格式/whitespace error。 |
+| L1 | `cargo check --workspace`; `npm --prefix apps/mobile run typecheck` | `progress.md` 或 `artifacts/INDEX.md` | Rust 和 mobile 类型检查通过。 |
+| L2 | 本地启动 `agentpal-relay`，用 Host/Mobile mock 或 CLI 完成 pair create/claim/command route smoke | `artifacts/INDEX.md` | 证明 mobile-style command 只路由到绑定 Host。 |
+| L3 | 不做生产发布；安全对抗审查写入 `review.md` | `review.md` 与 walkthrough | 公开 Beta 前残余风险明确列出。 |
 
 ## 暂停 / 升级条件
 

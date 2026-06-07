@@ -7,14 +7,14 @@
 | Field | Value |
 | --- | --- |
 | Schema version | lesson-candidate-v1 |
-| Task-level status | pending-review |
+| Task-level status | no-candidate-accepted |
 | Review gate | candidate-file-present |
-| Review decision | pending-human-review |
+| Review decision | no reusable governance lesson proposed by agent |
 | Promotion state | not-promoted |
-| Closeout token | pending |
+| Closeout token | checked-no-candidate |
 | Source task | 2026-06-07-openagentpal-cli-cloud-relay-mvp-455f888e |
 | Owner | coordinator |
-| Last updated | 2026-06-07 |
+| Last updated | 2026-06-07 23:46 +08:00 |
 
 ## Schema
 
@@ -49,7 +49,7 @@
 
 ## No-Candidate Reason
 
-尚未判定。只有人工审查接受本任务没有可复用候选时，才填写这里。
+本任务形成的是产品/实现层面的后续工作项，不是可直接沉淀为跨任务治理标准的新 lesson。已有 Harness 规则已覆盖 worktree、worker handoff、证据、review 和 residual routing；本轮只记录实现残余，不创建 lesson candidate。
 
 ## Promotion Notes
 

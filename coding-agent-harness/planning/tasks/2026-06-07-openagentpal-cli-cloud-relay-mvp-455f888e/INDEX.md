@@ -10,7 +10,7 @@ Task Contract: harness-task/v1
 | Budget | `complex` |
 | Preset | `none` |
 | Module | `n/a` |
-| Long-running | `no` |
+| Long-running | `yes` |
 | Created | 2026-06-07 |
 
 ## 任务审计元数据

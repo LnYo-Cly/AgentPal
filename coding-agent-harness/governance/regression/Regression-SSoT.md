@@ -6,12 +6,16 @@
 
 | Gate ID | 覆盖面 | 主入口 | 触发场景 | 证据深度 | 上次验证 | 当前结果 | 负责人 | 残余路由 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| RG-001 | [覆盖面名称] | `[命令、脚本、URL 或手工步骤]` | [哪些改动必须触发] | L2-local-smoke | YYYY-MM-DD | pass | [负责人] | `none` / [R-...] |
+| RG-001 | Cloud Relay MVP pair/create/claim/route | `cargo test -p agentpal-relay`; real local WebSocket smoke from task `2026-06-07-openagentpal-cli-cloud-relay-mvp-455f888e` | protocol/relay/host/mobile pairing, registration, routing, or device-token changes | L2-local-smoke | 2026-06-07 | pass-with-residual | coordinator | R-001; R-002; R-003; R-004 |
 
 ## 未关闭回归残余
 
 | 残余 ID | Gate ID | 问题 | 严重级别 | 负责人 | 创建日期 | 路由 | 状态 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| R-001 | RG-001 | No production Cloud Relay deployment evidence | P2 | backend owner | 2026-06-07 | public beta deployment task | open |
+| R-002 | RG-001 | Relay pair/device state is in-memory only | P2 | backend owner | 2026-06-07 | Redis/Postgres persistence task | open |
+| R-003 | RG-001 | No full E2E encryption, replay protection, device revocation, rate limiting, or audit log | P2 | security owner | 2026-06-07 | security hardening task | open |
+| R-004 | RG-001 | `oap` is source-mode wrapper, not production npm binary distribution | P3 | release owner | 2026-06-07 | npm distribution task | open |
 
 不要保留示例残余。只有真实未关闭回归风险才新增行。
 

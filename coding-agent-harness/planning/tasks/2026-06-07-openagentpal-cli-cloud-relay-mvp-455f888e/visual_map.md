@@ -24,8 +24,8 @@ flowchart LR
 | Phase ID | Kind | Depends On | State | Completion | Output | Required Evidence | Exit Command | Actor | Evidence Status | Blocking Risk | Owner / Handoff |
 | --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- |
 | INIT-01 | init | none | done | 100 | 任务计划和执行策略已确认 | `task_plan.md`; `execution_strategy.md` | `harness task-start 2026-06-07-openagentpal-cli-cloud-relay-mvp-455f888e` | agent | present | none | coordinator |
-| EXEC-01 | execution | INIT-01 | planned | 0 | 有边界的实现、文档切片和验证证据 | diff、commands、worker handoff 或 artifact path | `harness task-phase 2026-06-07-openagentpal-cli-cloud-relay-mvp-455f888e EXEC-01 --state done --completion 100 --evidence present` | agent | missing | [risk] | [owner] |
-| GATE-01 | gate | EXEC-01 | planned | 0 | Agent Review Submission | `review.md`、progress update、lesson routing | `harness task-review 2026-06-07-openagentpal-cli-cloud-relay-mvp-455f888e --message "<summary>"` | agent | missing | [risk] | coordinator |
+| EXEC-01 | execution | INIT-01 | done | 100 | Cloud Relay MVP implementation and local verification | code diff、ART-001..ART-007、worker handoff `4fc7e91` | `harness task-phase 2026-06-07-openagentpal-cli-cloud-relay-mvp-455f888e EXEC-01 --state done --completion 100 --evidence present` | agent | present | production relay/E2E/npm distribution deferred | coordinator |
+| GATE-01 | gate | EXEC-01 | review | 100 | Agent Review Submission | `review.md`、`progress.md`、`lesson_candidates.md`、`walkthrough.md` | `harness task-review 2026-06-07-openagentpal-cli-cloud-relay-mvp-455f888e --message "<summary>"` | agent | present | none | coordinator |
 | GATE-02 | gate | GATE-01 | planned | 0 | Human Review Confirmation | review packet 和人工确认 | `harness review-confirm 2026-06-07-openagentpal-cli-cloud-relay-mvp-455f888e --confirm 2026-06-07-openagentpal-cli-cloud-relay-mvp-455f888e` | human | missing | Agent 不能代办人工确认 | human |
 
 允许的 `State`：`planned`, `in_progress`, `review`, `blocked`, `done`, `skipped`。
