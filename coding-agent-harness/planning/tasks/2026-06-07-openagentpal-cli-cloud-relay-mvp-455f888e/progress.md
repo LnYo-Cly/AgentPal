@@ -1,6 +1,6 @@
 # OpenAgentPal CLI cloud relay MVP - 进度
 
-## 状态：进行中
+## 状态：审查中
 
 `## 状态` 是受控机器字段，只能使用以下值之一：
 
@@ -64,3 +64,10 @@
 - 下一步：先提交当前实现与任务材料，之后重试 `task-phase` 和 `task-review`；若仍被阻塞，在 closeout 中保留 no-commit reason。
 - 证据：command:TARGET:.:harness check --profile target-project . pass with dirty-state warning
 - 证据：command:TARGET:.:harness task-phase EXEC-01 failed due dirty governance write scope protection
+
+### [2026-06-07 16:08] - task-review
+
+- 做了什么：Agent review packet ready for Cloud Relay MVP; checks and WebSocket smoke passed; production deployment and E2E security are deferred residuals.
+- 验证结果：已记录
+- 下一步：继续执行
+- 证据：n/a
