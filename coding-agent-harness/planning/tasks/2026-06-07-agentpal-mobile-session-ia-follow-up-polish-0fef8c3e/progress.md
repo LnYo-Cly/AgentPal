@@ -1,6 +1,6 @@
 # AgentPal mobile session IA follow-up polish - 进度
 
-## 状态：进行中
+## 状态：审查中
 
 `## 状态` 是受控机器字段，只能使用以下值之一：
 
@@ -66,3 +66,10 @@
 - 验证结果：已记录
 - 下一步：继续执行
 - 证据：report:coding-agent-harness/planning/tasks/2026-06-07-agentpal-mobile-session-ia-follow-up-polish-0fef8c3e/artifacts/INDEX.md:typecheck web export CDP screenshots ios export and diff check passed
+
+### [2026-06-07 12:22] - task-review
+
+- 做了什么：Mobile session IA follow-up verified and ready for human review
+- 验证结果：已记录
+- 下一步：继续执行
+- 证据：n/a

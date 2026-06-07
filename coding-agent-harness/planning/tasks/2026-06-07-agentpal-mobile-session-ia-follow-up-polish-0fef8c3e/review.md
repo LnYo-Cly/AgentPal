@@ -114,3 +114,17 @@ Scanner 会根据必需文件、章节、证据和这个严格提交块派生 `m
 ## 最终信心依据（Final Confidence Basis）
 
 最终信心来自局部 diff 自检、TypeScript、Expo web export、Chrome CDP 页面文本与截图、Expo iOS export 和 `git diff --check`。本轮不是发布前生产等价验证；最终真机视觉仍由 Human Review Confirmation 覆盖。
+
+## Agent Review Submission
+
+| Field | Value |
+| --- | --- |
+| Submission ID | ARS-202606071222 |
+| Submitted At | 2026-06-07 12:22 |
+| Submitted By | agent |
+| Task Key | TASKS/2026-06-07-agentpal-mobile-session-ia-follow-up-polish-0fef8c3e |
+| Materials Checklist Hash | 74b9cc69b7d9a491 |
+| Evidence Summary | Mobile session IA follow-up verified and ready for human review |
+| Open Findings Count | 0 |
+| Scanner Version | task-scanner/2026-05-25-phase-kind |
+| Target | TARGET:coding-agent-harness/planning/tasks/2026-06-07-agentpal-mobile-session-ia-follow-up-polish-0fef8c3e |
