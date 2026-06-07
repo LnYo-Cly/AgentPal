@@ -1,6 +1,6 @@
 # AgentPal mobile session UI polish from screenshots - 进度
 
-## 状态：进行中
+## 状态：审查中
 
 `## 状态` 是受控机器字段，只能使用以下值之一：
 
@@ -60,3 +60,10 @@
 - 验证结果：已记录
 - 下一步：继续执行
 - 证据：command:TARGET:apps/mobile:npm --prefix apps/mobile run typecheck passed; npx expo export --platform ios --output-dir ../../tmp/expo-export-ui-polish --clear passed; git diff --check passed with CRLF warnings only
+
+### [2026-06-07 11:16] - task-review
+
+- 做了什么：Mobile session UI polish ready for human review
+- 验证结果：已记录
+- 下一步：继续执行
+- 证据：n/a
