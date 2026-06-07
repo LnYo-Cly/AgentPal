@@ -53,3 +53,10 @@
 - 验证结果：已记录
 - 下一步：继续执行
 - 证据：commit:TARGET:.:edf27fb fix(mobile): polish session list status UI
+
+### [2026-06-07 11:14] - task-log
+
+- 做了什么：Record UI polish verification commands
+- 验证结果：已记录
+- 下一步：继续执行
+- 证据：command:TARGET:apps/mobile:npm --prefix apps/mobile run typecheck passed; npx expo export --platform ios --output-dir ../../tmp/expo-export-ui-polish --clear passed; git diff --check passed with CRLF warnings only
