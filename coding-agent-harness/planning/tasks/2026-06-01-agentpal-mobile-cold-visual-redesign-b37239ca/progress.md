@@ -1,6 +1,6 @@
 # AgentPal mobile cold visual redesign - 进度
 
-## 状态：进行中
+## 状态：审查中
 
 ## 进度记录
 
@@ -21,6 +21,13 @@
 - Global sync status：n/a
 - Registry update needed：不适用
 - Harness Ledger update needed：CLI lifecycle write blocked by dirty-state; manual progress evidence recorded
+
+### 2026-06-07 16:04 - Harness lifecycle repair
+
+- 做了什么：修复 brief 模板残留、lesson no-candidate route、review open finding 和 stale dirty blocker；将任务状态统一为审查中。
+- 验证结果：`harness status --json .` 不再把本任务归入 missing-materials 或 blocked；仍等待用户真机视觉确认。
+- 下一步：用户确认移动端视觉结果后再走 human review-confirm / closeout。
+- 证据：command:TARGET:.:Harness status repair scan no longer reports mobile-cold missing-materials or blocked
 - 负责人：coordinator
 
 ### [2026-06-01 09:21] - task-start

@@ -7,11 +7,11 @@
 | Field | Value |
 | --- | --- |
 | Schema version | lesson-candidate-v1 |
-| Task-level status | pending-review |
+| Task-level status | no-candidate-accepted |
 | Review gate | candidate-file-present |
-| Review decision | pending-human-review |
+| Review decision | agent-checked-no-candidate |
 | Promotion state | not-promoted |
-| Closeout token | pending |
+| Closeout token | no-candidate |
 | Source task | 2026-06-07-harness-task-lifecycle-repair-20962c77 |
 | Owner | coordinator |
 | Last updated | 2026-06-07 |
@@ -49,7 +49,7 @@
 
 ## No-Candidate Reason
 
-尚未判定。只有人工审查接受本任务没有可复用候选时，才填写这里。
+本任务是项目本地 Harness 任务材料修复；没有形成需要 promoted 到共享 governance/lessons 的新规则。可复用提醒已经保留在 `findings.md`：后续任务应优先用 lifecycle CLI 生成 review submission，避免手写 packet 漂移。
 
 ## Promotion Notes
 

@@ -1,4 +1,15 @@
-# Progress
+# AgentPal project tree and worktree diff visibility - 进度
+
+## 状态：审查中
+
+`## 状态` 是受控机器字段，只能使用以下值之一：
+
+- `未开始`
+- `计划中`
+- `进行中`
+- `审查中`
+- `已阻塞`
+- `已完成`
 
 ## 2026-06-05
 
@@ -40,3 +51,9 @@
 - Attempted: `npx --yes coding-agent-harness task-start 2026-06-05-agentpal-project-tree-and-worktree-diff-visibili-9aceaeb2 .`
 - Result: failed with `Governance sync owned path in write scope is already dirty; refusing to overwrite user-owned changes.`
 - Handling: lifecycle state was recorded manually in this task package. Do not force lifecycle writes until the pre-existing governance dirty files are reviewed or separated.
+
+## 2026-06-07 Lifecycle Repair
+
+- Current repair pass found the repository clean and normalized this file to the controlled `## 状态：审查中` field so the scanner no longer classifies the task as unknown.
+- The old dirty write-scope note remains historical evidence, not a current blocker.
+- Human confirmation is still pending; this repair does not claim user review.

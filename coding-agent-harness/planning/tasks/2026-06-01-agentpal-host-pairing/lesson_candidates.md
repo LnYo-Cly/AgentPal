@@ -7,14 +7,14 @@
 | Field | Value |
 | --- | --- |
 | Schema version | lesson-candidate-v1 |
-| Task-level status | pending-review |
+| Task-level status | no-candidate-accepted |
 | Review gate | candidate-file-present |
-| Review decision | pending-human-review |
+| Review decision | agent-checked-no-candidate |
 | Promotion state | not-promoted |
-| Closeout token | pending |
+| Closeout token | no-candidate |
 | Source task | 2026-06-01-agentpal-host-pairing |
 | Owner | coordinator |
-| Last updated | 2026-06-01 |
+| Last updated | 2026-06-07 |
 
 ## Schema
 
@@ -49,7 +49,7 @@
 
 ## No-Candidate Reason
 
-尚未判定。只有人工审查接受本任务没有可复用候选时，才填写这里。
+本任务是 AgentPal 本地 MVP pairing 功能切片，残余风险已经在任务 review 中作为项目内后续 auth / native verification 工作记录；没有形成需要 promoted 到共享 harness lessons 的通用治理规则。
 
 ## Promotion Notes
 

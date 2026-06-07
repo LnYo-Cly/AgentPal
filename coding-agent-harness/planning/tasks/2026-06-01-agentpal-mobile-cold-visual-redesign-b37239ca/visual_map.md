@@ -25,7 +25,7 @@ flowchart LR
 | --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- |
 | INIT-01 | init | none | done | 100 | 任务计划和执行策略已确认 | `task_plan.md`; `execution_strategy.md` | `harness task-start 2026-06-01-agentpal-mobile-cold-visual-redesign-b37239ca` | agent | present | none | coordinator |
 | EXEC-01 | execution | INIT-01 | done | 100 | P0 mobile session UI fixes implemented | `apps/mobile/app/index.tsx`; `apps/mobile/src/hooks/useAgentPalRelay.ts`; `progress.md` | `harness task-phase 2026-06-01-agentpal-mobile-cold-visual-redesign-b37239ca EXEC-01 --state done --completion 100 --evidence present` | agent | present | CLI command blocked by dirty-state, manual evidence recorded | coordinator |
-| GATE-01 | gate | EXEC-01 | blocked | 0 | Agent Review Submission blocked until lifecycle CLI can write | `progress.md` no-commit reason and CLI failure record | `harness task-review 2026-06-01-agentpal-mobile-cold-visual-redesign-b37239ca --message "<summary>"` | agent | partial | `git status failed while inspecting transaction write scope` | coordinator |
+| GATE-01 | gate | EXEC-01 | review | 100 | Agent Review Submission materials repaired | `review.md`、progress update、lesson routing | `harness task-review 2026-06-01-agentpal-mobile-cold-visual-redesign-b37239ca --message "<summary>"` | agent | present | human visual confirmation still required | coordinator |
 | GATE-02 | gate | GATE-01 | planned | 0 | Human Review Confirmation | review packet 和人工确认 | `harness review-confirm 2026-06-01-agentpal-mobile-cold-visual-redesign-b37239ca --confirm 2026-06-01-agentpal-mobile-cold-visual-redesign-b37239ca` | human | missing | Agent 不能代办人工确认 | human |
 
 允许的 `State`：`planned`, `in_progress`, `review`, `blocked`, `done`, `skipped`。

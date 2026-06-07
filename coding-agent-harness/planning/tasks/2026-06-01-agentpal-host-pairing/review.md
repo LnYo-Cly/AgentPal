@@ -109,3 +109,17 @@
 ## 最终信心依据（Final Confidence Basis）
 
 信心来自 mobile/Rust typecheck、pair command smoke、local relay register smoke、Expo iOS export、真实 Codex 会话探针、历史分页探针和 self-review。发布前仍需用户真机验证扫码、移动端 UI 行为和真实 Host reconnect。
+
+## Agent Review Submission
+
+| Field | Value |
+| --- | --- |
+| Submission ID | ARS-202606071603 |
+| Submitted At | 2026-06-07 16:03 |
+| Submitted By | agent |
+| Task Key | TASKS/2026-06-01-agentpal-host-pairing |
+| Materials Checklist Hash | lifecycle-repair-202606071603 |
+| Evidence Summary | Host pairing self-review packet and no-candidate lesson decision repaired after scanner audit |
+| Open Findings Count | 0 |
+| Scanner Version | task-scanner/2026-05-25-phase-kind |
+| Target | TARGET:coding-agent-harness/planning/tasks/2026-06-01-agentpal-host-pairing |

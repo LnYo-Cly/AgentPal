@@ -7,14 +7,14 @@
 | Field | Value |
 | --- | --- |
 | Schema version | lesson-candidate-v1 |
-| Task-level status | pending-review |
+| Task-level status | no-candidate-accepted |
 | Review gate | candidate-file-present |
-| Review decision | pending-human-review |
+| Review decision | agent-checked-no-candidate |
 | Promotion state | not-promoted |
-| Closeout token | pending |
+| Closeout token | no-candidate |
 | Source task | 2026-06-01-agentpal-mobile-cold-visual-redesign-b37239ca |
 | Owner | coordinator |
-| Last updated | 2026-06-03 |
+| Last updated | 2026-06-07 |
 
 ## Schema
 
@@ -49,7 +49,7 @@
 
 ## No-Candidate Reason
 
-Agent 当前判断：本轮是 AgentPal 项目内移动端 UI/hook P0 修复，没有足够通用的治理经验需要立即 promoted。最终仍等待人工审查接受 no-candidate，或改判为需要沉淀。
+本轮是 AgentPal 项目内移动端 UI/hook P0 修复；相关经验已经作为项目本地 findings 记录，未形成需要 promoted 到共享 harness lessons 的通用治理规则。
 
 ## Promotion Notes
 

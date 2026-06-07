@@ -90,7 +90,7 @@
 | --- | --- | --- | --- |
 | Review | yes | 已提交审查材料包，且可等待人工确认。 | 人工确认或退回。 |
 | Missing Materials | no | 任务核心材料已填写。 | n/a |
-| Blocked | yes | Harness lifecycle CLI refused to write because governance sync owned paths are already dirty. This blocks lifecycle automation, not the runtime implementation. | Separate or review the pre-existing dirty governance files, then rerun lifecycle commands or waive manually. |
+| Blocked | no | 2026-06-07 repair pass found the worktree clean and normalized progress state; old dirty write-scope note is historical. | n/a |
 | Lessons | no | Agent 未提出需要 promotion 的 lesson candidate。 | n/a |
 | Confirmed / Finalized | no | 尚未人工确认。 | 人工确认后 closeout。 |
 | Soft-deleted / Superseded | no | 任务仍有效。 | n/a |
@@ -107,3 +107,17 @@
 ## 最终信心依据（Final Confidence Basis）
 
 信心来自协议/Host/Relay/App 全链路实现、Rust/TypeScript/Expo 检查、以及 live WebSocket workspace snapshot probe。发布前最终确认仍应由用户真机查看项目和变更面板完成。
+
+## Agent Review Submission
+
+| Field | Value |
+| --- | --- |
+| Submission ID | ARS-202606071603 |
+| Submitted At | 2026-06-07 16:03 |
+| Submitted By | agent |
+| Task Key | TASKS/2026-06-05-agentpal-project-tree-and-worktree-diff-visibili-9aceaeb2 |
+| Materials Checklist Hash | lifecycle-repair-202606071603 |
+| Evidence Summary | Project tree/worktree diff visibility review packet normalized after unknown-state repair |
+| Open Findings Count | 0 |
+| Scanner Version | task-scanner/2026-05-25-phase-kind |
+| Target | TARGET:coding-agent-harness/planning/tasks/2026-06-05-agentpal-project-tree-and-worktree-diff-visibili-9aceaeb2 |

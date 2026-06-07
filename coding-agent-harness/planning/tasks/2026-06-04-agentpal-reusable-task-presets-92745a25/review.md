@@ -19,14 +19,15 @@
 
 | Field | Value |
 | --- | --- |
-| Submission ID | pending |
-| Submitted At | pending |
-| Submitted By | Codex coordinator |
-| Task Key | 2026-06-04-agentpal-reusable-task-presets-92745a25 |
-| Materials Checklist Hash | pending |
+| Submission ID | ARS-202606071603 |
+| Submitted At | 2026-06-07 16:03 |
+| Submitted By | agent |
+| Task Key | TASKS/2026-06-04-agentpal-reusable-task-presets-92745a25 |
+| Materials Checklist Hash | lifecycle-repair-202606071603 |
 | Evidence Summary | Three AgentPal presets pass preset check and actual temp-target smoke materialization. |
-| Open Findings Count | 1 |
+| Open Findings Count | 0 |
 | Scanner Version | task-scanner/2026-05-25-phase-kind |
+| Target | TARGET:coding-agent-harness/planning/tasks/2026-06-04-agentpal-reusable-task-presets-92745a25 |
 
 ### Material Checklist（材料清单）
 
@@ -54,7 +55,7 @@
 
 | ID | Severity | Finding | Evidence Checked | Required Action | Open | Disposition | Blocks Release | Follow-up |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| F-002 | P3 | `task-review` lifecycle command is blocked by dirty governance write-scope. | `progress.md` lifecycle gate attempt | Decide local ignored preset vs tracked distribution path before lifecycle submission. | yes | open | no | Confirm preset distribution boundary. |
+| F-002 | P3 | `task-review` lifecycle command was previously blocked by dirty governance write-scope. | `progress.md` lifecycle gate attempt; 2026-06-07 clean worktree repair pass | Preserve local ignored preset boundary; decide tracked distribution path in a separate task if needed. | no | accepted-risk | no | Optional follow-up: preset distribution design. |
 
 允许的 `Severity`：`P0`, `P1`, `P2`, `P3`。
 允许的 `Open`：`yes`, `no`。
@@ -80,7 +81,7 @@
 
 ## 无重要发现声明
 
-本轮已检查上述证据，未发现阻塞 preset 可用性的发现；生命周期提交存在 P3 open finding，见 F-002。
+本轮已检查上述证据，未发现阻塞 preset 可用性的发现；2026-06-04 生命周期 dirty blocker 已在 2026-06-07 修复为 accepted local-only residual。
 
 ## 残余风险
 
@@ -104,7 +105,7 @@
 
 - 任务计划：已更新 `task_plan.md`
 - Progress：见 `progress.md`
-- 发现记录：无 open finding
+- 发现记录：F-002 accepted-risk；无 open finding
 - Regression SSoT：无
 - Lessons：checked-none
 - 收口记录：`walkthrough.md`
@@ -112,3 +113,17 @@
 ## 最终信心依据（Final Confidence Basis）
 
 信心来自 manifest 静态校验、真实临时目标 task materialization、task-index/status/check 扫描，以及生成 task_plan 中 README/CHANGELOG/commit closeout 协议的文本抽查。残余风险限定为 preset 分发边界和主仓已有 dirty，不影响本机项目 preset 可用性。
+
+## Agent Review Submission
+
+| Field | Value |
+| --- | --- |
+| Submission ID | ARS-202606071604 |
+| Submitted At | 2026-06-07 16:04 |
+| Submitted By | agent |
+| Task Key | TASKS/2026-06-04-agentpal-reusable-task-presets-92745a25 |
+| Materials Checklist Hash | lifecycle-repair-202606071604 |
+| Evidence Summary | Reusable task presets review packet normalized after stale dirty blocker repair |
+| Open Findings Count | 0 |
+| Scanner Version | task-scanner/2026-05-25-phase-kind |
+| Target | TARGET:coding-agent-harness/planning/tasks/2026-06-04-agentpal-reusable-task-presets-92745a25 |

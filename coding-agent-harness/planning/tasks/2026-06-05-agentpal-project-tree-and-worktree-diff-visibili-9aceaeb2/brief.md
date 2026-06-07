@@ -43,10 +43,10 @@
 ## 执行合同
 
 - Owner：coordinator
-- 生命周期状态：执行中
+- 生命周期状态：审查中
 - 必需文件：`INDEX.md`、`task_plan.md`、`execution_strategy.md`、`visual_map.md`、`progress.md`、`findings.md`、`review.md`
 - 完成条件：验证证据必须记录到 `progress.md`
 
 ## 当前下一步
 
-补齐协议数据类型和 Host 真实扫描能力，然后在移动端会话页新增项目/变更面板。
+任务材料已进入审查中；等待人工确认项目/变更面板是否满足移动端工作台需求。

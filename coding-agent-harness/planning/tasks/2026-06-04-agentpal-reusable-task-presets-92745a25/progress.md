@@ -1,6 +1,6 @@
 # AgentPal reusable task presets - 进度
 
-## 状态：已阻塞
+## 状态：审查中
 
 `## 状态` 是受控机器字段，只能使用以下值之一：
 
@@ -76,12 +76,19 @@
 - 下一步：保持本任务为 blocked/pending-review 材料状态，不绕过保护；需要先决定是否提交/清理当前任务记录与 ignored preset 分发边界。
 - 证据：command:TARGET:.:task-review blocked by dirty governance write scope
 
+### 2026-06-07 16:03 - lifecycle repair
+
+- 做了什么：复查当前工作树为 clean，保留 `.coding-agent-harness/` ignored preset 分发边界为 accepted local-only residual，并将过期 dirty write-scope blocker 从当前阻塞状态降级为历史记录。
+- 验证结果：preset 可用性的证据仍来自 2026-06-04 `preset check` 和 smoke materialization；当前修复不改变 preset 内容，也不把 ignored 本地 preset 伪装成已 Git 分发。
+- 下一步：等待人工决定是否需要团队共享 preset；如需要，应另开分发设计任务，而不是在本任务中混入提交。
+- 证据：command:TARGET:.:git status clean before Harness lifecycle repair
+
 ## 残余
 
 - 当前仓库已有无关 dirty：移动端、Host、Relay、protocol 及历史任务文件。它们不是本任务创建，preset 任务提交必须只包含 `.coding-agent-harness/presets/agentpal-*` 和本任务包。
 - `.coding-agent-harness/` 按项目 `.gitignore` 被忽略，因此新增 preset 是本机/本项目工作台可用内容，不会自动进入 GitHub 提交。
 - No-commit reason：本任务的核心产物位于 ignored `.coding-agent-harness/`；同时主仓存在 41 个无关 dirty path。为避免制造“任务记录已提交但实际 preset 未随 Git 分发”的误导，本轮不做任务提交。Owner：coordinator。下一步如要共享 preset，应先确认分发策略。
-- Lifecycle blocker：`task-review` 未执行成功，因为 Harness 拒绝覆盖 dirty write-scope。Owner：coordinator/user。解除条件：确认是否仅保留本地 ignored preset，或改成受控可提交/可分发 preset 包。
+- Lifecycle blocker：2026-06-04 的 `task-review` dirty write-scope blocker 已过期；2026-06-07 工作树 clean。剩余是产品/流程决策：是否仅保留本地 ignored preset，或另开受控可提交/可分发 preset 包。Owner：coordinator/user。
 
 ## 协调者交接（Coordinator，启用模块并行时填写）
 
