@@ -129,6 +129,8 @@ export type SessionEvent =
 
 export type RelayServerMessage =
   | { type: "snapshot"; hosts: HostStatus[]; sessions: SessionSummary[]; pickerRegistries?: PickerRegistry[]; workspaceSnapshots?: WorkspaceSnapshot[] }
+  | { type: "pair-created"; pairing: PairingPayload }
+  | { type: "pair-claimed"; claim: PairClaimAccepted }
   | { type: "host-status"; status: HostStatus }
   | { type: "session-event"; envelope: AgentPalEnvelope<SessionEvent> }
   | { type: "client-command"; command: ClientCommand }
@@ -154,7 +156,9 @@ export type ClientCommand = {
 };
 
 export type RelayClientMessage =
-  | { type: "register"; role: "mobile"; clientId: string; hostId?: string | null }
+  | { type: "register"; role: "mobile"; clientId: string; hostId?: string | null; deviceId?: string | null; deviceToken?: string | null }
+  | { type: "pair-create"; request: PairCreateRequest }
+  | { type: "pair-claim"; request: PairClaimRequest }
   | { type: "client-command"; command: ClientCommand }
   | { type: "history-request"; request: HistoryRequest }
   | { type: "workspace-request"; request: WorkspaceRequest }
@@ -194,6 +198,44 @@ export type HistoryPage = {
   hasMore: boolean;
   oldestSeq?: number | null;
   newestSeq?: number | null;
+};
+
+export type PairingPayload = {
+  version: number;
+  relayUrl: string;
+  pairId?: string | null;
+  hostId: string;
+  hostName: string;
+  pairToken: string;
+  deviceId?: string | null;
+  deviceToken?: string | null;
+  expiresAt?: string | null;
+};
+
+export type PairCreateRequest = {
+  hostId: string;
+  hostName: string;
+  relayUrl: string;
+  pairId?: string | null;
+  pairToken?: string | null;
+  expiresInSeconds?: number | null;
+};
+
+export type PairClaimRequest = {
+  pairId: string;
+  pairToken: string;
+  mobileClientId: string;
+  deviceId?: string | null;
+  deviceName?: string | null;
+};
+
+export type PairClaimAccepted = {
+  pairId: string;
+  hostId: string;
+  hostName: string;
+  mobileClientId: string;
+  deviceId: string;
+  deviceToken: string;
 };
 
 export type ConnectionState = "connecting" | "online" | "offline" | "error";

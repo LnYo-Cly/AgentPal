@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { currentPairingPayload } from "@/lib/pairing";
 import {
   ConnectionState,
   FilePreview,
@@ -50,6 +51,7 @@ const filePreviewTimeoutMs = 9000;
 export function useAgentPalRelay(url = defaultRelayUrl(), pairedHostId?: string | null) {
   const socketRef = useRef<WebSocket | null>(null);
   const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clientIdRef = useRef(`mobile-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
   const [reconnectNonce, setReconnectNonce] = useState(0);
   const [connectionState, setConnectionState] = useState<ConnectionState>("connecting");
   const [hosts, setHosts] = useState<HostStatus[]>([]);
@@ -76,12 +78,28 @@ export function useAgentPalRelay(url = defaultRelayUrl(), pairedHostId?: string 
       socket.onopen = () => {
         setConnectionState("online");
         setLastError(null);
+        const pairing = matchingPairingForConnection(url, pairedHostId ?? null);
+        const clientId = clientIdRef.current;
         sendRaw(socket, {
           type: "register",
           role: "mobile",
-          clientId: `mobile-${Date.now()}`,
-          hostId: pairedHostId ?? null
+          clientId,
+          hostId: pairedHostId ?? null,
+          deviceId: pairing?.deviceId ?? null,
+          deviceToken: pairing?.deviceToken ?? null
         });
+        if (pairing?.pairId && isCloudPairToken(pairing.pairToken) && !pairing.deviceToken) {
+          sendRaw(socket, {
+            type: "pair-claim",
+            request: {
+              pairId: pairing.pairId,
+              pairToken: pairing.pairToken,
+              mobileClientId: clientId,
+              deviceId: pairing.deviceId ?? null,
+              deviceName: "OpenAgentPal Mobile"
+            }
+          });
+        }
       };
 
       socket.onmessage = (message) => {
@@ -337,6 +355,21 @@ function sendRaw(socket: WebSocket, message: RelayClientMessage) {
   socket.send(JSON.stringify(message));
 }
 
+function matchingPairingForConnection(relayUrl: string, hostId: string | null) {
+  const pairing = currentPairingPayload();
+  if (!pairing || pairing.relayUrl !== relayUrl) {
+    return null;
+  }
+  if (hostId && pairing.hostId !== hostId) {
+    return null;
+  }
+  return pairing;
+}
+
+function isCloudPairToken(pairToken: string) {
+  return pairToken !== "manual" && pairToken !== "discovered";
+}
+
 function applyServerMessage(
   message: RelayServerMessage,
   setHosts: (updater: (items: HostStatus[]) => HostStatus[]) => void,
@@ -354,6 +387,10 @@ function applyServerMessage(
       setSessions(() => message.sessions);
       setPickerRegistries(() => Object.fromEntries((message.pickerRegistries ?? []).map((registry) => [registry.sessionId, registry])));
       setWorkspaceSnapshots(() => Object.fromEntries((message.workspaceSnapshots ?? []).map((snapshot) => [workspaceSnapshotKey(snapshot.hostId, snapshot.workspace), snapshot])));
+      setLastError(null);
+      break;
+    case "pair-created":
+    case "pair-claimed":
       setLastError(null);
       break;
     case "host-status":
