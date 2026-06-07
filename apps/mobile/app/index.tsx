@@ -19,6 +19,7 @@ import {
   QrCode,
   Paperclip,
   RefreshCcw,
+  Search,
   Send,
   Settings,
   Trash2,
@@ -128,6 +129,14 @@ type CodeDetail = {
   language: string;
   code: string;
 };
+type AttentionQueueItem = {
+  session: SessionSummary;
+  title: string;
+  body: string;
+  badge: string;
+  tone: Tone;
+  icon: IconComponent;
+};
 type FilePreviewTarget = {
   hostId: string;
   workspace: string;
@@ -210,8 +219,6 @@ export default function HomeScreen() {
   const glassModule = useMemo(() => loadGlassModule(), []);
   const glassDiagnostics = useMemo(() => getGlassDiagnostics(reduceTransparencyEnabled, glassModule), [glassModule, reduceTransparencyEnabled]);
   const nativeGlassEnabled = glassDiagnostics.enabled && !!glassModule?.GlassView;
-  const latestVisibleEvent = useMemo(() => latestVisibleTimelineEvent(relay.timeline), [relay.timeline]);
-  const latestHomeEvent = useMemo(() => latestVisibleEvent ?? (focusSession ? sessionStatusEvent(focusSession) : null), [focusSession, latestVisibleEvent]);
   const conversationEvents = useMemo(
     () => (selectedSession ? buildConversationEvents(relay.sessionHistory[selectedSession.sessionId]?.events ?? [], pendingTurns[selectedSession.sessionId]) : []),
     [pendingTurns, relay.sessionHistory, selectedSession]
@@ -598,10 +605,9 @@ export default function HomeScreen() {
               connectionState={relay.connectionState}
               activeHost={relay.activeHost}
               sessions={sessions}
-              activeSession={focusSession}
               pendingApprovals={pendingApprovals}
-              latestEvent={latestHomeEvent}
               onOpenConversation={openConversation}
+              onOpenSessions={() => setActiveTab("sessions")}
               onOpenSettings={() => setActiveTab("settings")}
             />
           ) : activeTab === "sessions" ? (
@@ -731,10 +737,9 @@ function HomePage({
   connectionState,
   activeHost,
   sessions,
-  activeSession,
   pendingApprovals,
-  latestEvent,
   onOpenConversation,
+  onOpenSessions,
   onOpenSettings
 }: {
   top: number;
@@ -743,135 +748,47 @@ function HomePage({
   connectionState: ConnectionState;
   activeHost: HostStatus | null;
   sessions: SessionSummary[];
-  activeSession: SessionSummary | null;
   pendingApprovals: number;
-  latestEvent: SessionEvent | null;
   onOpenConversation: (sessionId?: string) => void;
+  onOpenSessions: () => void;
   onOpenSettings: () => void;
 }) {
-  const failedSessions = sessions.filter((session) => session.state === "failed").length;
+  const attentionItems = useMemo(() => attentionQueueItems(sessions), [sessions]);
   const workingSessions = sessions.filter((session) => session.state === "running" || session.state === "thinking").length;
-  const waitingSessions = sessions.filter((session) => session.pendingApprovals > 0 || session.state === "waiting-approval").length;
-  const hasAttention = !hostOnline || pendingApprovals > 0 || failedSessions > 0 || workingSessions > 0 || waitingSessions > 0;
-  const focus = homeFocusState({
-    hostOnline,
-    connectionState,
-    session: activeSession,
-    pendingApprovals,
-    latestEvent
-  });
+  const totalAttentionCount = attentionItems.length + (hostOnline ? 0 : 1);
 
   return (
     <ScrollView
       showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
       contentContainerStyle={{
-        paddingTop: top + 14,
+        paddingTop: top + 18,
         paddingHorizontal: 18,
-        paddingBottom: bottom + 140,
-        gap: 18
+        paddingBottom: bottom + 154,
+        gap: 16
       }}
     >
       <Box flexDirection="row" alignItems="center" justifyContent="space-between">
         <Box flex={1} paddingRight="m">
-          <Text variant="screenTitle">工作台</Text>
+          <Text variant="screenTitle">待处理</Text>
           <Text variant="caption" numberOfLines={2}>
-            当前 Host、阻塞事项和正在工作的 Agent
+            审批、失败、运行中和 Host 连接状态
           </Text>
         </Box>
-        <StatusCapsule online={hostOnline} text={hostOnline ? "在线" : "离线"} />
+        <ToneCapsule tone={totalAttentionCount > 0 ? "amber" : "green"} text={totalAttentionCount > 0 ? `${totalAttentionCount} 项` : "清空"} />
       </Box>
 
-      <HomeHostStrip activeHost={activeHost} hostOnline={hostOnline} connectionState={connectionState} onPress={onOpenSettings} />
-
-      <WorkbenchMetricGrid
-        workingSessions={workingSessions}
-        pendingApprovals={pendingApprovals}
-        failedSessions={failedSessions}
-        totalSessions={sessions.length}
-      />
-
-      {hasAttention ? <HomeFocusCard focus={focus} session={activeSession} latestEvent={latestEvent} onPress={focus.target === "settings" ? onOpenSettings : onOpenConversation} /> : null}
+      <HomeHostStrip activeHost={activeHost} hostOnline={hostOnline} connectionState={connectionState} sessionCount={sessions.length} workingSessions={workingSessions} onPress={onOpenSettings} />
 
       <AttentionQueue
+        items={attentionItems}
         pendingApprovals={pendingApprovals}
-        failedSessions={failedSessions}
-        workingSessions={workingSessions}
-        waitingSessions={waitingSessions}
         hostOnline={hostOnline}
         onOpenConversation={onOpenConversation}
+        onOpenSessions={onOpenSessions}
         onOpenSettings={onOpenSettings}
       />
-
-      <WorkbenchCurrentSessionCard session={activeSession} hostOnline={hostOnline} onOpenConversation={onOpenConversation} />
-
-      <Box gap="s">
-        <SectionHeader title="最近事件" />
-        {latestEvent ? (
-          <CompactEventLine event={latestEvent} />
-        ) : (
-          <Box paddingVertical="m" borderTopWidth={1} borderColor="line">
-            <Text variant="body" color="inkMuted">
-              暂无会话动态
-            </Text>
-          </Box>
-        )}
-      </Box>
     </ScrollView>
-  );
-}
-
-function WorkbenchMetricGrid({
-  workingSessions,
-  pendingApprovals,
-  failedSessions,
-  totalSessions
-}: {
-  workingSessions: number;
-  pendingApprovals: number;
-  failedSessions: number;
-  totalSessions: number;
-}) {
-  const metrics = [
-    { key: "working", label: "工作中", value: workingSessions, tone: workingSessions > 0 ? "amber" : "neutral", icon: Bot },
-    { key: "approvals", label: "待审批", value: pendingApprovals, tone: pendingApprovals > 0 ? "danger" : "neutral", icon: ShieldAlert },
-    { key: "failed", label: "失败", value: failedSessions, tone: failedSessions > 0 ? "danger" : "neutral", icon: ShieldAlert },
-    { key: "sessions", label: "会话", value: totalSessions, tone: totalSessions > 0 ? "green" : "neutral", icon: TerminalSquare }
-  ] as const;
-
-  return (
-    <Box flexDirection="row" flexWrap="wrap" gap="s">
-      {metrics.map((metric) => {
-        const Icon = metric.icon;
-        return (
-          <Box
-            key={metric.key}
-            minHeight={64}
-            borderRadius="m"
-            borderWidth={1}
-            borderColor="line"
-            backgroundColor="surface"
-            paddingHorizontal="m"
-            paddingVertical="s"
-            flexDirection="row"
-            alignItems="center"
-            gap="s"
-            style={{ flexBasis: "47%", flexGrow: 1 }}
-          >
-            <Box width={32} height={32} borderRadius="m" backgroundColor={toneSoftToken(metric.tone)} alignItems="center" justifyContent="center">
-              <Icon color={theme.colors[toneToken(metric.tone)]} size={17} />
-            </Box>
-            <Box flex={1}>
-              <Text variant="title" numberOfLines={1}>
-                {metric.value}
-              </Text>
-              <Text variant="caption" numberOfLines={1}>
-                {metric.label}
-              </Text>
-            </Box>
-          </Box>
-        );
-      })}
-    </Box>
   );
 }
 
@@ -897,16 +814,18 @@ function SessionsPage({
   const [query, setQuery] = useState("");
   const groups = useMemo(() => workspaceSessionGroups(sessions), [sessions]);
   const filteredGroups = useMemo(() => filterWorkspaceSessionGroups(groups, query), [groups, query]);
-  const hostLabelText = activeHost?.name ? `${activeHost.name} · ${groups.length} 项目 · ${sessions.length} 会话` : `${groups.length} 项目 · ${sessions.length} 会话`;
+  const workingCount = sessions.filter(isWorkingSession).length;
+  const approvalCount = sessions.reduce((sum, session) => sum + session.pendingApprovals, 0);
+  const failedCount = sessions.filter((session) => session.state === "failed").length;
 
   return (
     <ScrollView
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
       contentContainerStyle={{
-        paddingTop: top + 16,
-        paddingHorizontal: 16,
-        paddingBottom: bottom + 190,
+        paddingTop: top + 20,
+        paddingHorizontal: 18,
+        paddingBottom: bottom + 166,
         gap: 16
       }}
     >
@@ -914,15 +833,25 @@ function SessionsPage({
         <Box flex={1} paddingRight="m">
           <Text variant="screenTitle">会话</Text>
           <Text variant="caption" numberOfLines={2}>
-            按项目选择或恢复 Codex、Claude Code、OpenCode session
+            按项目选择和恢复 Codex、Claude Code、OpenCode 会话
           </Text>
         </Box>
         <StatusCapsule online={hostOnline} text={hostOnline ? "在线" : "离线"} />
       </Box>
 
-      <SessionsHostSummary online={hostOnline} label={hostLabelText} onOpenSettings={onOpenSettings} />
+      <SessionsOverviewStrip
+        hostOnline={hostOnline}
+        activeHost={activeHost}
+        projectCount={groups.length}
+        sessionCount={sessions.length}
+        workingCount={workingCount}
+        approvalCount={approvalCount}
+        failedCount={failedCount}
+        onOpenSettings={onOpenSettings}
+      />
 
-      <Box backgroundColor="surface" borderRadius="m" borderWidth={1} borderColor="line" paddingHorizontal="m" minHeight={48} justifyContent="center">
+      <Box backgroundColor="surface" borderRadius="round" borderWidth={1} borderColor="line" paddingHorizontal="m" minHeight={48} flexDirection="row" alignItems="center" gap="s">
+        <Search color={theme.colors.inkMuted} size={18} />
         <TextInput
           value={query}
           onChangeText={setQuery}
@@ -930,7 +859,7 @@ function SessionsPage({
           placeholderTextColor={theme.colors.inkMuted}
           autoCapitalize="none"
           autoCorrect={false}
-          style={{ color: theme.colors.ink, fontSize: 16, minHeight: 46 }}
+          style={{ color: theme.colors.ink, fontSize: 16, minHeight: 46, flex: 1 }}
         />
       </Box>
 
@@ -964,16 +893,16 @@ function ProjectSessionGroupCard({
   selectedSessionId: string | null;
   onOpenSession: (sessionId: string) => void;
 }) {
-  const projectTone: Tone = group.pendingApprovals > 0 ? "danger" : group.activeCount > 0 ? "amber" : "blue";
-  const visibleSessions = group.sessions.slice(0, 6);
+  const projectTone = workspaceGroupTone(group);
+  const visibleSessions = group.sessions.slice(0, 8);
   const extraCount = Math.max(0, group.sessions.length - visibleSessions.length);
 
   return (
-    <Box backgroundColor="surface" borderRadius="m" borderWidth={1} borderColor="line" overflow="hidden">
-      <Box minHeight={66} paddingHorizontal="m" paddingVertical="s" gap="xs" borderBottomWidth={1} borderColor="line">
-        <Box flexDirection="row" alignItems="center" gap="s">
-          <Box width={34} height={34} borderRadius="m" backgroundColor={toneSoftToken(projectTone)} alignItems="center" justifyContent="center">
-            <Folder color={theme.colors[toneToken(projectTone)]} size={18} />
+    <Box backgroundColor="surface" borderRadius="m" borderWidth={1} borderColor="line" overflow="hidden" style={softShadow(false)}>
+      <Box minHeight={76} paddingHorizontal="m" paddingVertical="m" borderBottomWidth={1} borderColor="line">
+        <Box flexDirection="row" alignItems="center" gap="m">
+          <Box width={40} height={40} borderRadius="m" backgroundColor={toneSoftToken(projectTone)} alignItems="center" justifyContent="center">
+            <Folder color={theme.colors[toneToken(projectTone)]} size={17} />
           </Box>
           <Box flex={1} gap="xs">
             <Text variant="section" numberOfLines={1}>
@@ -983,19 +912,9 @@ function ProjectSessionGroupCard({
               {group.path}
             </Text>
           </Box>
-          <Box alignItems="flex-end">
-            <Text variant="caption" color="inkMuted">
-              {group.sessions.length} 个会话
-            </Text>
-            {group.pendingApprovals > 0 ? (
-              <Text variant="caption" color="danger">
-                {group.pendingApprovals} 审批
-              </Text>
-            ) : group.activeCount > 0 ? (
-              <Text variant="caption" color="amber">
-                {group.activeCount} 工作中
-              </Text>
-            ) : null}
+          <Box alignItems="flex-end" gap="xs">
+            <ProjectCountBadge count={group.sessions.length} label="会话" />
+            <SessionStateInline tone={projectTone} label={workspaceGroupLabel(group)} />
           </Box>
         </Box>
       </Box>
@@ -1013,7 +932,7 @@ function ProjectSessionGroupCard({
         {extraCount > 0 ? (
           <Box minHeight={40} paddingHorizontal="m" justifyContent="center" borderTopWidth={1} borderColor="line">
             <Text variant="caption" color="inkMuted">
-              还有 {extraCount} 个会话，输入关键词可筛选。
+              还有 {extraCount} 个会话，输入关键词继续筛选。
             </Text>
           </Box>
         ) : null}
@@ -1022,32 +941,58 @@ function ProjectSessionGroupCard({
   );
 }
 
-function SessionsHostSummary({ online, label, onOpenSettings }: { online: boolean; label: string; onOpenSettings: () => void }) {
+function ProjectCountBadge({ count, label }: { count: number; label: string }) {
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel="打开 Host 设置" onPress={onOpenSettings}>
-      {({ pressed }) => (
-        <Box minHeight={48} borderRadius="m" backgroundColor="surface" borderWidth={1} borderColor="line" paddingHorizontal="m" flexDirection="row" alignItems="center" gap="s" style={{ opacity: pressed ? 0.72 : 1 }}>
-          <Monitor color={online ? theme.colors.success : theme.colors.inkMuted} size={19} />
-          <Box flex={1}>
-            <Text variant="caption" color="inkMuted" numberOfLines={1}>
-              {label}
-            </Text>
-          </Box>
-          <SessionStateInline tone={online ? "green" : "neutral"} label={online ? "Host 在线" : "未连接"} />
-        </Box>
-      )}
-    </Pressable>
+    <Box minHeight={26} borderRadius="round" backgroundColor="surfaceMuted" paddingHorizontal="s" alignItems="center" justifyContent="center">
+      <Text variant="caption" color="inkMuted">
+        {count} {label}
+      </Text>
+    </Box>
   );
 }
 
-function WorkspaceGroupMetaPill({ icon: Icon, text, tone = "neutral" }: { icon: IconComponent; text: string; tone?: Tone }) {
+function SessionsOverviewStrip({
+  hostOnline,
+  activeHost,
+  projectCount,
+  sessionCount,
+  workingCount,
+  approvalCount,
+  failedCount,
+  onOpenSettings
+}: {
+  hostOnline: boolean;
+  activeHost: HostStatus | null;
+  projectCount: number;
+  sessionCount: number;
+  workingCount: number;
+  approvalCount: number;
+  failedCount: number;
+  onOpenSettings: () => void;
+}) {
+  const agentKinds = activeHost?.agentKinds?.length ? activeHost.agentKinds.map(agentLabel).join(" / ") : "Codex / Claude / OpenCode";
   return (
-    <Box minHeight={28} borderRadius="round" backgroundColor={toneSoftToken(tone)} paddingHorizontal="s" flexDirection="row" alignItems="center" gap="xs">
-      <Icon color={theme.colors[toneToken(tone)]} size={14} />
-      <Text variant="caption" color={tone === "neutral" ? "inkMuted" : toneToken(tone)} numberOfLines={1}>
-        {text}
-      </Text>
-    </Box>
+    <Pressable accessibilityRole="button" accessibilityLabel="打开 Host 设置" onPress={onOpenSettings}>
+      {({ pressed }) => (
+        <Box minHeight={70} borderRadius="m" backgroundColor="surface" borderWidth={1} borderColor="line" paddingHorizontal="m" flexDirection="row" alignItems="center" gap="m" style={{ opacity: pressed ? 0.72 : 1 }}>
+          <Box width={40} height={40} borderRadius="m" backgroundColor={hostOnline ? "successSoft" : "surfaceMuted"} alignItems="center" justifyContent="center">
+            <Monitor color={hostOnline ? theme.colors.success : theme.colors.inkMuted} size={20} />
+          </Box>
+          <Box flex={1} gap="xs">
+            <Text variant="section" numberOfLines={1}>
+              {activeHost?.name ?? "电脑端 Host"}
+            </Text>
+            <Text variant="caption" numberOfLines={1}>
+              {hostOnline ? `${projectCount} 项目 · ${sessionCount} 会话 · ${agentKinds}` : "连接后同步项目与历史会话"}
+            </Text>
+          </Box>
+          <Box alignItems="flex-end" gap="xs">
+            {approvalCount > 0 ? <SessionStateInline tone="danger" label={`${approvalCount} 审批`} /> : workingCount > 0 ? <SessionStateInline tone="amber" label={`${workingCount} 工作中`} /> : failedCount > 0 ? <SessionStateInline tone="danger" label={`${failedCount} 失败`} /> : <SessionStateInline tone={hostOnline ? "green" : "neutral"} label={hostOnline ? "可恢复" : "未连接"} />}
+            <ChevronRight color={theme.colors.inkMuted} size={18} />
+          </Box>
+        </Box>
+      )}
+    </Pressable>
   );
 }
 
@@ -1067,7 +1012,7 @@ function ProjectSessionRow({
     <Pressable accessibilityRole="button" accessibilityState={{ selected }} accessibilityLabel={`打开${session.title ?? "会话"}`} onPress={onPress}>
       {({ pressed }) => (
         <Box
-          minHeight={62}
+          minHeight={64}
           flexDirection="row"
           alignItems="center"
           gap="s"
@@ -1092,7 +1037,7 @@ function ProjectSessionRow({
               ) : null}
             </Box>
             <Text variant="caption" numberOfLines={1}>
-              {agentLabel(session.agentKind)} · {formatRelativeTime(session.updatedAt)}
+              {agentLabel(session.agentKind)} · {stateSummary(session.state)} · {formatRelativeTime(session.updatedAt)}
             </Text>
           </Box>
           <Box alignItems="flex-end" gap="xs" minWidth={46}>
@@ -1140,64 +1085,19 @@ function SessionStateInline({ tone, label }: { tone: Tone; label: string }) {
   );
 }
 
-function WorkbenchCurrentSessionCard({
-  session,
-  hostOnline,
-  onOpenConversation
-}: {
-  session: SessionSummary | null;
-  hostOnline: boolean;
-  onOpenConversation: (sessionId?: string) => void;
-}) {
-  if (!session) {
-    return <HomeEmptyLine icon={TerminalSquare} title="还没有当前会话" body={hostOnline ? "可以从电脑端启动 Codex，或从会话页恢复已有 session。" : "连接 Host 后会显示 Codex、Claude Code 或 OpenCode 会话。"} />;
-  }
-
-  const tone = sessionTone(session.state);
-  return (
-    <Box gap="s">
-      <SectionHeader title="当前会话" />
-      <Pressable accessibilityRole="button" accessibilityLabel="继续当前会话" onPress={() => onOpenConversation(session.sessionId)}>
-        {({ pressed }) => (
-          <Box minHeight={76} backgroundColor="surface" borderRadius="m" borderWidth={1} borderColor="line" paddingHorizontal="m" flexDirection="row" alignItems="center" gap="m" style={{ opacity: pressed ? 0.72 : 1 }}>
-            <Box width={42} height={42} borderRadius="m" backgroundColor={toneSoftToken(tone)} alignItems="center" justifyContent="center">
-              <Bot color={theme.colors[toneToken(tone)]} size={21} />
-            </Box>
-            <Box flex={1} gap="xs">
-              <Text variant="section" numberOfLines={1}>
-                {session.title ?? "新会话"}
-              </Text>
-              <Text variant="caption" numberOfLines={1}>
-                {agentLabel(session.agentKind)} · {compactWorkspaceName(session.workspace)} · {formatRelativeTime(session.updatedAt)}
-              </Text>
-            </Box>
-            <SessionStateInline tone={tone} label={stateLabel(session.state)} />
-            <ChevronRight color={theme.colors.inkMuted} size={18} />
-          </Box>
-        )}
-      </Pressable>
-    </Box>
-  );
-}
-
-type HomeFocusState = {
-  tone: Tone;
-  title: string;
-  body: string;
-  action: string;
-  target: "conversation" | "settings";
-  icon: IconComponent;
-};
-
 function HomeHostStrip({
   activeHost,
   hostOnline,
   connectionState,
+  sessionCount,
+  workingSessions,
   onPress
 }: {
   activeHost: HostStatus | null;
   hostOnline: boolean;
   connectionState: ConnectionState;
+  sessionCount: number;
+  workingSessions: number;
   onPress: () => void;
 }) {
   const agentKinds = activeHost?.agentKinds?.length ? activeHost.agentKinds.map(agentLabel).join(" / ") : "等待 Agent";
@@ -1213,7 +1113,7 @@ function HomeHostStrip({
               {activeHost?.name ?? "电脑端 Host"}
             </Text>
             <Text variant="caption" numberOfLines={1}>
-              {hostOnline ? agentKinds : connectionLabel(connectionState)}
+              {hostOnline ? `${agentKinds} · ${sessionCount} 会话${workingSessions ? ` · ${workingSessions} 工作中` : ""}` : connectionLabel(connectionState)}
             </Text>
           </Box>
           <ChevronRight color={theme.colors.inkMuted} size={20} />
@@ -1223,131 +1123,109 @@ function HomeHostStrip({
   );
 }
 
-function HomeFocusCard({
-  focus,
-  session,
-  latestEvent,
-  onPress
-}: {
-  focus: HomeFocusState;
-  session: SessionSummary | null;
-  latestEvent: SessionEvent | null;
-  onPress: () => void;
-}) {
-  const Icon = focus.icon;
-  const latest = latestEvent ? eventMeta(latestEvent) : null;
-  return (
-    <Pressable accessibilityRole="button" accessibilityLabel={focus.action} onPress={onPress}>
-      {({ pressed }) => (
-        <Box minHeight={142} backgroundColor="surface" borderRadius="l" borderColor="line" borderWidth={1} padding="l" gap="m" style={softShadow(pressed)}>
-          <Box flexDirection="row" alignItems="flex-start" gap="m">
-            <Box width={44} height={44} borderRadius="m" backgroundColor={toneSoftToken(focus.tone)} alignItems="center" justifyContent="center">
-              <Icon color={theme.colors[toneToken(focus.tone)]} size={22} />
-            </Box>
-            <Box flex={1} gap="xs">
-              <Box flexDirection="row" alignItems="center" justifyContent="space-between" gap="s">
-                <Text variant="title" numberOfLines={1}>
-                  {focus.title}
-                </Text>
-                <ToneCapsule tone={focus.tone} text={focus.action} />
-              </Box>
-              <Text variant="body" color="inkMuted" numberOfLines={2}>
-                {focus.body}
-              </Text>
-            </Box>
-          </Box>
-
-          {session ? (
-            <Box flexDirection="row" flexWrap="wrap" gap="s">
-              <StatusChip label={agentLabel(session.agentKind)} tone="violet" icon={Bot} />
-              <StatusChip label={compactWorkspaceName(session.workspace)} tone={sessionTone(session.state)} icon={TerminalSquare} />
-              <StatusChip label={formatTime(session.updatedAt)} tone="neutral" icon={Activity} />
-            </Box>
-          ) : null}
-
-          {latest ? (
-            <Box borderTopWidth={1} borderColor="line" paddingTop="m">
-              <Text variant="caption" color="inkMuted" numberOfLines={1}>
-                最近：{latest.title} · {latest.body}
-              </Text>
-            </Box>
-          ) : null}
-        </Box>
-      )}
-    </Pressable>
-  );
-}
-
 function AttentionQueue({
+  items,
   pendingApprovals,
-  failedSessions,
-  workingSessions,
-  waitingSessions,
   hostOnline,
   onOpenConversation,
+  onOpenSessions,
   onOpenSettings
 }: {
+  items: AttentionQueueItem[];
   pendingApprovals: number;
-  failedSessions: number;
-  workingSessions: number;
-  waitingSessions: number;
   hostOnline: boolean;
-  onOpenConversation: () => void;
+  onOpenConversation: (sessionId?: string) => void;
+  onOpenSessions: () => void;
   onOpenSettings: () => void;
 }) {
-  const hasAttention = !hostOnline || pendingApprovals > 0 || failedSessions > 0 || workingSessions > 0 || waitingSessions > 0;
-  const waitingWithoutApprovalCount = Math.max(0, waitingSessions - pendingApprovals);
+  const hasAttention = !hostOnline || items.length > 0;
   return (
-    <Box gap="s">
-      <SectionHeader title="待处理" />
-      <Box backgroundColor="surface" borderRadius="m" borderWidth={1} borderColor="line" overflow="hidden">
-        {!hostOnline ? <HomeQueueRow icon={Monitor} title="Host 未连接" body="手机暂时无法控制电脑端 Agent" value="连接" tone="danger" isFirst onPress={onOpenSettings} /> : null}
-        {pendingApprovals > 0 ? <HomeQueueRow icon={ShieldAlert} title="等待审批" body="确认后 Agent 才会继续执行" value={`${pendingApprovals}`} tone="danger" isFirst={hostOnline} onPress={onOpenConversation} /> : null}
-        {waitingWithoutApprovalCount > 0 ? <HomeQueueRow icon={ShieldAlert} title="等待确认" body="会话已暂停，等待你继续处理" value={`${waitingWithoutApprovalCount}`} tone="danger" isFirst={hostOnline && pendingApprovals === 0} onPress={onOpenConversation} /> : null}
-        {failedSessions > 0 ? <HomeQueueRow icon={ShieldAlert} title="失败会话" body="需要查看错误并恢复" value={`${failedSessions}`} tone="danger" isFirst={hostOnline && pendingApprovals === 0 && waitingWithoutApprovalCount === 0} onPress={onOpenConversation} /> : null}
-        {workingSessions > 0 ? <HomeQueueRow icon={Bot} title="正在工作" body="Agent 正在执行命令、改文件或跑测试" value={`${workingSessions}`} tone="amber" isFirst={hostOnline && pendingApprovals === 0 && waitingWithoutApprovalCount === 0 && failedSessions === 0} onPress={onOpenConversation} /> : null}
-        {hostOnline && !hasAttention ? <HomeEmptyLine icon={CheckCircle2} title="没有阻塞事项" body="所有 Agent 都可以继续接收指令。" compact /> : null}
+    <Box gap="m">
+      <Box flexDirection="row" alignItems="center" justifyContent="space-between">
+        <Text variant="section">需要你看一眼</Text>
+        <Text variant="caption" color="inkMuted">
+          {hasAttention ? `${items.length + (hostOnline ? 0 : 1)} 项` : "无待办"}
+        </Text>
       </Box>
+      {!hostOnline ? <HostOfflineAttentionCard pendingApprovals={pendingApprovals} onPress={onOpenSettings} /> : null}
+      {items.length ? items.map((item) => <AttentionSessionCard key={item.session.sessionId} item={item} onPress={() => onOpenConversation(item.session.sessionId)} />) : null}
+      {hostOnline && !items.length ? <AttentionEmptyState onOpenSessions={onOpenSessions} /> : null}
     </Box>
   );
 }
 
-function HomeQueueRow({
-  icon: Icon,
-  title,
-  body,
-  value,
-  tone,
-  isFirst = false,
-  onPress
-}: {
-  icon: IconComponent;
-  title: string;
-  body: string;
-  value: string;
-  tone: Tone;
-  isFirst?: boolean;
-  onPress: () => void;
-}) {
+function HostOfflineAttentionCard({ pendingApprovals, onPress }: { pendingApprovals: number; onPress: () => void }) {
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={title} onPress={onPress}>
+    <Pressable accessibilityRole="button" accessibilityLabel="连接 Host" onPress={onPress}>
       {({ pressed }) => (
-        <Box flexDirection="row" alignItems="center" gap="m" minHeight={64} paddingHorizontal="m" borderTopWidth={isFirst ? 0 : 1} borderColor="line" style={{ opacity: pressed ? 0.68 : 1 }}>
-          <Box width={36} height={36} borderRadius="m" backgroundColor={toneSoftToken(tone)} alignItems="center" justifyContent="center">
-            <Icon color={theme.colors[toneToken(tone)]} size={19} />
+        <Box minHeight={92} borderRadius="m" borderWidth={1} borderColor="line" backgroundColor="surface" padding="m" flexDirection="row" alignItems="center" gap="m" style={softShadow(pressed)}>
+          <Box width={44} height={44} borderRadius="m" backgroundColor="dangerSoft" alignItems="center" justifyContent="center">
+            <Monitor color={theme.colors.danger} size={22} />
           </Box>
-          <Box flex={1}>
+          <Box flex={1} gap="xs">
             <Text variant="section" numberOfLines={1}>
-              {title}
+              Host 未连接
             </Text>
-            <Text variant="caption" numberOfLines={1}>
-              {body}
+            <Text variant="caption" numberOfLines={2}>
+              手机暂时无法接收电脑端 Agent 更新{pendingApprovals > 0 ? `，已有 ${pendingApprovals} 个审批可能仍在等待。` : "。"}
             </Text>
           </Box>
-          <ToneCapsule tone={tone} text={value} />
+          <ToneCapsule tone="danger" text="连接" />
         </Box>
       )}
     </Pressable>
+  );
+}
+
+function AttentionSessionCard({ item, onPress }: { item: AttentionQueueItem; onPress: () => void }) {
+  const Icon = item.icon;
+  const session = item.session;
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={`打开${item.title}`} onPress={onPress}>
+      {({ pressed }) => (
+        <Box minHeight={96} borderRadius="m" borderWidth={1} borderColor="line" backgroundColor="surface" padding="m" gap="s" style={softShadow(pressed)}>
+          <Box flexDirection="row" alignItems="center" gap="m">
+            <Box width={42} height={42} borderRadius="m" backgroundColor={toneSoftToken(item.tone)} alignItems="center" justifyContent="center">
+              <Icon color={theme.colors[toneToken(item.tone)]} size={21} />
+            </Box>
+            <Box flex={1} gap="xs">
+              <Box flexDirection="row" alignItems="center" gap="s">
+                <Text variant="section" numberOfLines={1} style={{ flexShrink: 1 }}>
+                  {item.title}
+                </Text>
+                <SessionStateInline tone={item.tone} label={item.badge} />
+              </Box>
+              <Text variant="caption" numberOfLines={1}>
+                {agentLabel(session.agentKind)} · {projectDisplayName({ name: "", path: session.workspace, workspace: session.workspace })}
+              </Text>
+            </Box>
+            <ChevronRight color={theme.colors.inkMuted} size={18} />
+          </Box>
+          <Text variant="body" color="inkMuted" numberOfLines={2}>
+            {item.body}
+          </Text>
+        </Box>
+      )}
+    </Pressable>
+  );
+}
+
+function AttentionEmptyState({ onOpenSessions }: { onOpenSessions: () => void }) {
+  return (
+    <Box minHeight={202} borderRadius="l" borderWidth={1} borderColor="line" backgroundColor="surface" alignItems="center" justifyContent="center" padding="xl" gap="m">
+      <Box width={68} height={68} borderRadius="round" backgroundColor="successSoft" alignItems="center" justifyContent="center">
+        <CheckCircle2 color={theme.colors.success} size={32} />
+      </Box>
+      <Box alignItems="center" gap="xs" maxWidth={300}>
+        <Text variant="title" textAlign="center">
+          没有待处理事项
+        </Text>
+        <Text variant="body" color="inkMuted" textAlign="center">
+          有审批、失败、等待确认或正在运行的 Agent 时会出现在这里。
+        </Text>
+      </Box>
+      <SettingsButton label="查看会话" tone="blue" onPress={onOpenSessions} />
+    </Box>
   );
 }
 
@@ -1801,22 +1679,22 @@ function ConversationPanelTabs({
   ];
 
   return (
-    <Box paddingTop="s" alignItems="center">
-      <Box width="100%" flexDirection="row" backgroundColor="surfaceMuted" borderRadius="round" borderWidth={1} borderColor="line" padding="xs" gap="xs">
+    <Box paddingTop="s" flexDirection="row" alignItems="center" gap="xs">
         {items.map((item) => {
           const active = item.id === activePanel;
           const Icon = item.icon;
           return (
-            <Pressable key={item.id} accessibilityRole="tab" accessibilityState={{ selected: active }} onPress={() => onSelect(item.id)} style={{ flex: 1 }}>
+            <Pressable key={item.id} accessibilityRole="tab" accessibilityState={{ selected: active }} onPress={() => onSelect(item.id)}>
               {({ pressed }) => (
-                  <Box
-                  minHeight={32}
+                <Box
+                  minHeight={30}
                   borderRadius="round"
-                  backgroundColor={active ? "surface" : "transparent"}
+                  backgroundColor={active ? "accentSoft" : "transparent"}
                   alignItems="center"
                   justifyContent="center"
                   flexDirection="row"
                   gap="xs"
+                  paddingHorizontal="m"
                   style={{ opacity: pressed ? 0.72 : 1 }}
                 >
                   <Icon color={active ? theme.colors.accent : theme.colors.inkMuted} size={15} />
@@ -1828,7 +1706,6 @@ function ConversationPanelTabs({
             </Pressable>
           );
         })}
-      </Box>
     </Box>
   );
 }
@@ -3895,7 +3772,7 @@ function BottomNav({
   onSelect: (tab: ActiveTab) => void;
 }) {
   const items: Array<{ tab: ActiveTab; label: string; icon: IconComponent }> = [
-    { tab: "home", label: "工作台", icon: Zap },
+    { tab: "home", label: "待处理", icon: Bell },
     { tab: "sessions", label: "会话", icon: Bot },
     { tab: "settings", label: "设置", icon: Settings }
   ];
@@ -3964,26 +3841,6 @@ function BottomNav({
       style={softShadow(false)}
     >
       {content}
-    </Box>
-  );
-}
-
-function CompactEventLine({ event }: { event: SessionEvent }) {
-  const meta = eventMeta(event);
-  const Icon = meta.icon;
-  return (
-    <Box flexDirection="row" alignItems="center" gap="m" paddingVertical="m" borderTopWidth={1} borderColor="line">
-      <Box width={38} height={38} borderRadius="s" backgroundColor={toneSoftToken(meta.tone)} alignItems="center" justifyContent="center">
-        <Icon color={theme.colors[toneToken(meta.tone)]} size={19} />
-      </Box>
-      <Box flex={1}>
-        <Text variant="section" numberOfLines={1}>
-          {meta.title}
-        </Text>
-        <Text variant="caption" numberOfLines={1}>
-          {meta.body}
-        </Text>
-      </Box>
     </Box>
   );
 }
@@ -4705,92 +4562,51 @@ function sessionPriority(session: SessionSummary) {
   return 4;
 }
 
-function homeFocusState({
-  hostOnline,
-  connectionState,
-  session,
-  pendingApprovals,
-  latestEvent
-}: {
-  hostOnline: boolean;
-  connectionState: ConnectionState;
-  session: SessionSummary | null;
-  pendingApprovals: number;
-  latestEvent: SessionEvent | null;
-}): HomeFocusState {
-  if (!hostOnline) {
-    return {
-      tone: connectionState === "error" ? "danger" : "neutral",
-      title: "电脑端未连接",
-      body: connectionLabel(connectionState),
-      action: "去连接",
-      target: "settings",
-      icon: Monitor
-    };
-  }
-  if (pendingApprovals > 0) {
-    return {
-      tone: "danger",
-      title: "等待审批",
-      body: `${pendingApprovals} 项审批正在阻塞 Agent 继续执行。`,
-      action: "查看",
-      target: "conversation",
-      icon: ShieldAlert
-    };
-  }
-  if (session?.state === "failed") {
-    return {
-      tone: "danger",
-      title: "需要恢复",
-      body: `${agentLabel(session.agentKind)} · ${compactWorkspaceName(session.workspace)} 最近一次运行失败。`,
-      action: "处理",
-      target: "conversation",
-      icon: ShieldAlert
-    };
-  }
-  if (session && isWorkingSession(session)) {
-    const latest = latestEvent ? eventMeta(latestEvent) : null;
-    return {
-      tone: sessionTone(session.state),
-      title: stateHeadline(session.state),
-      body: latest ? `${agentLabel(session.agentKind)} · ${latest.title}` : `${agentLabel(session.agentKind)} 正在 ${compactWorkspaceName(session.workspace)} 工作。`,
-      action: "进入",
-      target: "conversation",
-      icon: Bot
-    };
-  }
-  if (session?.state === "completed") {
-    return {
-      tone: "green",
-      title: "刚刚完成",
-      body: `${agentLabel(session.agentKind)} · ${compactWorkspaceName(session.workspace)} 可以继续追加指令。`,
-      action: "继续",
-      target: "conversation",
-      icon: CheckCircle2
-    };
-  }
-  if (session) {
-    return {
-      tone: "green",
-      title: "可以继续",
-      body: `${agentLabel(session.agentKind)} · ${compactWorkspaceName(session.workspace)} 等待下一条指令。`,
-      action: "打开",
-      target: "conversation",
-      icon: TerminalSquare
-    };
-  }
-  return {
-    tone: "green",
-    title: "Host 已就绪",
-    body: "电脑端在线，等待 Codex、Claude Code 或 OpenCode 会话。",
-    action: "会话",
-    target: "conversation",
-    icon: Monitor
-  };
-}
-
-function sessionStatusEvent(session: SessionSummary): SessionEvent {
-  return { type: "state-changed", state: session.state };
+function attentionQueueItems(sessions: SessionSummary[]): AttentionQueueItem[] {
+  return sessions
+    .filter((session) => session.pendingApprovals > 0 || session.state === "waiting-approval" || session.state === "failed" || session.state === "running" || session.state === "thinking")
+    .slice()
+    .sort((a, b) => sessionPriority(a) - sessionPriority(b) || Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
+    .map((session) => {
+      if (session.pendingApprovals > 0 || session.state === "waiting-approval") {
+        return {
+          session,
+          title: session.title ?? "等待审批",
+          body: `${agentLabel(session.agentKind)} 需要确认权限或变更后才能继续执行。`,
+          badge: session.pendingApprovals > 0 ? `${session.pendingApprovals} 审批` : "待审批",
+          tone: "danger",
+          icon: ShieldAlert
+        };
+      }
+      if (session.state === "failed") {
+        return {
+          session,
+          title: session.title ?? "失败会话",
+          body: "最近一次运行失败，需要查看错误、Diff 或命令输出后恢复。",
+          badge: "失败",
+          tone: "danger",
+          icon: ShieldAlert
+        };
+      }
+      if (session.state === "running") {
+        return {
+          session,
+          title: session.title ?? "正在运行",
+          body: "Agent 正在执行命令、修改文件或运行测试，可以进入查看进度。",
+          badge: "工作中",
+          tone: "amber",
+          icon: Bot
+        };
+      }
+      return {
+        session,
+        title: session.title ?? "正在思考",
+        body: "Agent 正在读取上下文并准备下一步，可以进入查看当前会话。",
+        badge: "思考中",
+        tone: "amber",
+        icon: Bot
+      };
+    });
 }
 
 function commandPickerOptions(mode: CommandPickerMode | null, items: PickerRegistryItem[]): CommandOption[] {
@@ -4830,10 +4646,6 @@ function pickerKindLabel(kind: PickerRegistryItem["kind"]) {
 
 function isWorkingSession(session: SessionSummary) {
   return session.state === "thinking" || session.state === "running" || session.state === "waiting-approval";
-}
-
-function latestVisibleTimelineEvent(items: Array<{ event: SessionEvent }>) {
-  return items.find((item) => shouldShowRecentEvent(item.event))?.event ?? null;
 }
 
 function buildConversationEvents(events: SessionEventEnvelope[], pending?: { text: string; createdAt: string }): DisplayEvent[] {
@@ -4898,22 +4710,6 @@ function shouldShowConversationEvent(event: SessionEvent) {
   if (event.type === "state-changed") return false;
   if ((event.type === "tool-started" || event.type === "tool-finished") && isInternalCodexItem(event.name)) return false;
   return true;
-}
-
-function shouldShowRecentEvent(event: SessionEvent) {
-  if (event.type === "user-message") {
-    return false;
-  }
-  if (event.type === "agent-message") {
-    return event.complete !== false && event.text.trim().length > 0;
-  }
-  if (event.type === "tool-started") {
-    return false;
-  }
-  if (event.type === "state-changed") {
-    return event.state === "waiting-approval" || event.state === "failed" || event.state === "completed";
-  }
-  return shouldShowConversationEvent(event);
 }
 
 function isInternalCodexItem(name: string) {

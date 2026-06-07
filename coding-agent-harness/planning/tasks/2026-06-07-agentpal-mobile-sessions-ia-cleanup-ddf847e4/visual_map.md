@@ -23,9 +23,9 @@ flowchart LR
 
 | Phase ID | Kind | Depends On | State | Completion | Output | Required Evidence | Exit Command | Actor | Evidence Status | Blocking Risk | Owner / Handoff |
 | --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- |
-| INIT-01 | init | none | planned | 0 | 任务计划和执行策略已确认 | `task_plan.md`; `execution_strategy.md` | `harness task-start 2026-06-07-agentpal-mobile-sessions-ia-cleanup-ddf847e4` | agent | missing | none | coordinator |
-| EXEC-01 | execution | INIT-01 | planned | 0 | 有边界的实现、文档切片和验证证据 | diff、commands、worker handoff 或 artifact path | `harness task-phase 2026-06-07-agentpal-mobile-sessions-ia-cleanup-ddf847e4 EXEC-01 --state done --completion 100 --evidence present` | agent | missing | [risk] | [owner] |
-| GATE-01 | gate | EXEC-01 | planned | 0 | Agent Review Submission | `review.md`、progress update、lesson routing | `harness task-review 2026-06-07-agentpal-mobile-sessions-ia-cleanup-ddf847e4 --message "<summary>"` | agent | missing | [risk] | coordinator |
+| INIT-01 | init | none | done | 100 | 任务计划和执行策略已确认 | `task_plan.md`; `execution_strategy.md` | `harness task-start 2026-06-07-agentpal-mobile-sessions-ia-cleanup-ddf847e4` | agent | present | `task-start` 被 dirty-state 保护拒绝；owner 已记录为当前任务 | coordinator |
+| EXEC-01 | execution | INIT-01 | done | 100 | 待处理页和会话页 IA 清理，验证证据已记录 | diff、typecheck、Expo export、diff check、Harness check | `harness task-phase 2026-06-07-agentpal-mobile-sessions-ia-cleanup-ddf847e4 EXEC-01 --state done --completion 100 --evidence present` | agent | present | mobile visual quality still requires user device review | coordinator |
+| GATE-01 | gate | EXEC-01 | review | 100 | Agent Review Submission materials ready | `review.md`、progress update、lesson routing | `harness task-review 2026-06-07-agentpal-mobile-sessions-ia-cleanup-ddf847e4 --message "<summary>"` | agent | present | must not claim human confirmation | coordinator |
 | GATE-02 | gate | GATE-01 | planned | 0 | Human Review Confirmation | review packet 和人工确认 | `harness review-confirm 2026-06-07-agentpal-mobile-sessions-ia-cleanup-ddf847e4 --confirm 2026-06-07-agentpal-mobile-sessions-ia-cleanup-ddf847e4` | human | missing | Agent 不能代办人工确认 | human |
 
 允许的 `State`：`planned`, `in_progress`, `review`, `blocked`, `done`, `skipped`。
