@@ -121,3 +121,17 @@
 ## 最终信心依据（Final Confidence Basis）
 
 最终信心来自 Relay 9 条单测、workspace check、Redis 定向测试、真实 WebSocket+Redis strict smoke、CLI help、diff whitespace check、read-only subagent review 和 coordinator adversarial pass。公网发布前仍需要 human review、L3 live deployment smoke 和 security hardening。
+
+## Agent Review Submission
+
+| Field | Value |
+| --- | --- |
+| Submission ID | ARS-202606080557 |
+| Submitted At | 2026-06-08 05:57 |
+| Submitted By | agent |
+| Task Key | TASKS/2026-06-08-openagentpal-production-cloud-relay-beta-0b7c75f0 |
+| Materials Checklist Hash | 0f5c21f73b9b6e4d |
+| Evidence Summary | Production Cloud Relay Beta verified and ready for human review |
+| Open Findings Count | 0 |
+| Scanner Version | task-scanner/2026-05-25-phase-kind |
+| Target | TARGET:coding-agent-harness/planning/tasks/2026-06-08-openagentpal-production-cloud-relay-beta-0b7c75f0 |
