@@ -7,14 +7,14 @@
 | Field | Value |
 | --- | --- |
 | Schema version | lesson-candidate-v1 |
-| Task-level status | pending-review |
+| Task-level status | no-candidate-accepted |
 | Review gate | candidate-file-present |
-| Review decision | pending-human-review |
+| Review decision | no reusable governance lesson proposed by agent |
 | Promotion state | not-promoted |
-| Closeout token | pending |
+| Closeout token | checked-no-candidate |
 | Source task | 2026-06-08-openagentpal-production-cloud-relay-beta-0b7c75f0 |
 | Owner | coordinator |
-| Last updated | 2026-06-08 |
+| Last updated | 2026-06-08 13:29 +08:00 |
 
 ## Schema
 
@@ -49,7 +49,7 @@
 
 ## No-Candidate Reason
 
-尚未判定。只有人工审查接受本任务没有可复用候选时，才填写这里。
+本任务暴露的是 OpenAgentPal Relay 产品安全边界和后续 hardening backlog，不是新的跨任务 Harness 治理规则。现有 Harness 规则已覆盖 worktree、对抗审查、证据记录、residual routing 和 human review gate；本轮不创建 lesson candidate。
 
 ## Promotion Notes
 
