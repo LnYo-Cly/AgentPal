@@ -22,13 +22,6 @@
 
 证据较长或数量较多时，不要粘贴全文；放入 `artifacts/INDEX.md` 并在这里引用 ID。
 
-### [YYYY-MM-DD HH:MM] - [阶段名称]
-
-- 做了什么：[具体操作]
-- 验证结果：[运行了什么检查，结果如何]
-- 下一步：[下一步动作]
-- 证据：[type:path:summary]
-
 ## 残余
 
 - 真实公网 DNS/TLS/VPS 或托管平台部署尚未执行；owner=backend/deployment owner；下一步=上线 Relay 域名与 TLS 后做 L3 live smoke。
@@ -75,5 +68,12 @@
 
 - 做了什么：Production Cloud Relay Beta verified and ready for human review
 - 验证结果：已记录
-- 下一步：继续执行
+- 下一步：修复 checker 发现的 `progress.md` 模板占位残留后，重新提交 Agent Review Submission；不执行 human `review-confirm`。
 - 证据：n/a
+
+### [2026-06-08 14:00] - missing-material-repair
+
+- 做了什么：删除 `progress.md` 中遗留的模板示例段，修复 `task-review` 报告的 `unedited-template-material`。
+- 验证结果：待重新运行 `harness check --profile target-project .` 和 `harness status --json .`。
+- 下一步：提交材料修复并重新执行 `harness task-review`。
+- 证据：report:TARGET:.:task-review reported missing-materials/uneditable-template-material before repair
