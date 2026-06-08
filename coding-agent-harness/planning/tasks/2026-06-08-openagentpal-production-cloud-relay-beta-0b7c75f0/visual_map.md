@@ -14,8 +14,9 @@ Visual Map Contract: v1.0
 
 ```mermaid
 flowchart LR
-  INIT01["INIT-01 范围与上下文\nkind=init"] --> EXEC01["EXEC-01 实现切片\nkind=execution"]
-  EXEC01 --> GATE01["GATE-01 Agent 提交审查\nkind=gate"]
+  INIT01["INIT-01 设计和任务合同\nkind=init"] --> EXEC01["EXEC-01 Relay store 和安全路由\nkind=execution"]
+  EXEC01 --> EXEC02["EXEC-02 CLI 默认端点和部署包\nkind=execution"]
+  EXEC02 --> GATE01["GATE-01 Agent 提交审查\nkind=gate"]
   GATE01 --> GATE02["GATE-02 人工审查确认\nkind=gate"]
 ```
 
@@ -23,9 +24,10 @@ flowchart LR
 
 | Phase ID | Kind | Depends On | State | Completion | Output | Required Evidence | Exit Command | Actor | Evidence Status | Blocking Risk | Owner / Handoff |
 | --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- |
-| INIT-01 | init | none | planned | 0 | 任务计划和执行策略已确认 | `task_plan.md`; `execution_strategy.md` | `harness task-start 2026-06-08-openagentpal-production-cloud-relay-beta-0b7c75f0` | agent | missing | none | coordinator |
-| EXEC-01 | execution | INIT-01 | planned | 0 | 有边界的实现、文档切片和验证证据 | diff、commands、worker handoff 或 artifact path | `harness task-phase 2026-06-08-openagentpal-production-cloud-relay-beta-0b7c75f0 EXEC-01 --state done --completion 100 --evidence present` | agent | missing | [risk] | [owner] |
-| GATE-01 | gate | EXEC-01 | planned | 0 | Agent Review Submission | `review.md`、progress update、lesson routing | `harness task-review 2026-06-08-openagentpal-production-cloud-relay-beta-0b7c75f0 --message "<summary>"` | agent | missing | [risk] | coordinator |
+| INIT-01 | init | none | planned | 0 | 设计文档、任务计划和执行策略已确认 | `docs/plans/2026-06-08-production-cloud-relay-beta-design.md`; `task_plan.md`; `execution_strategy.md` | `harness task-start 2026-06-08-openagentpal-production-cloud-relay-beta-0b7c75f0` | agent | partial | none | coordinator |
+| EXEC-01 | execution | INIT-01 | planned | 0 | Redis-backed pair/device store and production pairing gate | code diff、relay tests、local smoke | `harness task-phase 2026-06-08-openagentpal-production-cloud-relay-beta-0b7c75f0 EXEC-01 --state done --completion 100 --evidence present` | agent | missing | token storage / route auth regression | coordinator |
+| EXEC-02 | execution | EXEC-01 | planned | 0 | CLI public default and deploy artifacts | CLI help、deploy docs、local setup update | `harness task-phase 2026-06-08-openagentpal-production-cloud-relay-beta-0b7c75f0 EXEC-02 --state done --completion 100 --evidence present` | agent | missing | no real public DNS/TLS credentials | coordinator |
+| GATE-01 | gate | EXEC-02 | planned | 0 | Agent Review Submission | `review.md`、progress update、lesson routing、walkthrough | `harness task-review 2026-06-08-openagentpal-production-cloud-relay-beta-0b7c75f0 --message "<summary>"` | agent | missing | waits for lifecycle task-review command | coordinator |
 | GATE-02 | gate | GATE-01 | planned | 0 | Human Review Confirmation | review packet 和人工确认 | `harness review-confirm 2026-06-08-openagentpal-production-cloud-relay-beta-0b7c75f0 --confirm 2026-06-08-openagentpal-production-cloud-relay-beta-0b7c75f0` | human | missing | Agent 不能代办人工确认 | human |
 
 允许的 `State`：`planned`, `in_progress`, `review`, `blocked`, `done`, `skipped`。
