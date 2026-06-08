@@ -12,6 +12,7 @@
     "mobile:typecheck": "npm --prefix apps/mobile run typecheck",
     "mobile:start": "npm --prefix apps/mobile run start:expo-go -- --lan",
     "relay:dev": "cargo run -p agentpal-relay -- --host 0.0.0.0 --port 8790",
+    "relay:dev:strict": "cargo run -p agentpal-relay -- --host 0.0.0.0 --port 8790 --require-pairing",
     "host:codex:probe": "cargo run -p agentpal-host -- codex probe --workspace . --prompt \"AgentPal probe: reply with ok\""
   }
 }

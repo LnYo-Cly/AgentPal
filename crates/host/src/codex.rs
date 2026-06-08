@@ -35,6 +35,8 @@ use uuid::Uuid;
 
 use crate::normalize_workspace;
 
+const DEFAULT_PUBLIC_RELAY_URL: &str = "wss://relay.openagentpal.com/ws";
+
 #[derive(Debug, Args)]
 pub struct CodexProbeArgs {
     #[arg(long, default_value = ".")]
@@ -67,11 +69,11 @@ pub struct CodexConnectArgs {
     #[arg(long, default_value = ".")]
     pub workspace: PathBuf,
 
-    #[arg(long, default_value = "ws://127.0.0.1:8790/ws")]
+    #[arg(long, default_value = DEFAULT_PUBLIC_RELAY_URL)]
     pub relay_url: String,
 
-    #[arg(long, default_value = "agentpal-local-host")]
-    pub host_id: String,
+    #[arg(long)]
+    pub host_id: Option<String>,
 
     #[arg(long)]
     pub host_name: Option<String>,
@@ -109,8 +111,8 @@ pub struct CodexConnectArgs {
 
 #[derive(Debug, Args)]
 pub struct CodexPairArgs {
-    #[arg(long, default_value = "agentpal-local-host")]
-    pub host_id: String,
+    #[arg(long)]
+    pub host_id: Option<String>,
 
     #[arg(long)]
     pub host_name: Option<String>,
@@ -169,6 +171,7 @@ type PickerItems = Arc<Mutex<Vec<PickerRegistryItem>>>;
 
 pub fn pair(args: CodexPairArgs) -> anyhow::Result<()> {
     let host_name = args.host_name.clone().unwrap_or_else(default_host_name);
+    let host_id = args.host_id.unwrap_or_else(default_host_id);
     let relay_url = match args.relay_url {
         Some(url) => normalize_ws_url(&url),
         None => default_lan_relay_url(args.relay_port, &args.relay_path)?,
@@ -182,7 +185,7 @@ pub fn pair(args: CodexPairArgs) -> anyhow::Result<()> {
         version: 1,
         relay_url,
         pair_id: None,
-        host_id: args.host_id,
+        host_id,
         host_name,
         pair_token: Uuid::new_v4().to_string(),
         device_id: None,
@@ -402,7 +405,7 @@ async fn run_connect_loop(
     let relay_write = Arc::new(Mutex::new(relay_write));
     let codex_write = Arc::new(Mutex::new(codex_write));
     let (codex_tx, mut codex_rx) = mpsc::unbounded_channel::<Value>();
-    let host_id = args.host_id.clone();
+    let host_id = args.host_id.clone().unwrap_or_else(default_host_id);
     let session_id = args.session_id.clone();
     let workspace_owned = workspace.to_owned();
     let thread_ids = Arc::new(Mutex::new(HashMap::<String, String>::new()));
@@ -415,8 +418,8 @@ async fn run_connect_loop(
         &relay_write,
         &RelayClientMessage::Register {
             role: RelayClientRole::Host,
-            client_id: format!("{}-host", args.host_id),
-            host_id: Some(args.host_id.clone()),
+            client_id: format!("{host_id}-host"),
+            host_id: Some(host_id.clone()),
             device_id: None,
             device_token: None,
         },
@@ -656,7 +659,7 @@ async fn run_connect_loop(
     if let Some(prompt) = &args.once_prompt {
         let command = ClientCommand::input_submit(
             format!("host-once-{}", Uuid::new_v4()),
-            args.host_id.clone(),
+            host_id.clone(),
             args.session_id.clone(),
             prompt.clone(),
         );
@@ -2213,6 +2216,10 @@ fn default_host_name() -> String {
     env::var("COMPUTERNAME")
         .or_else(|_| env::var("HOSTNAME"))
         .unwrap_or_else(|_| "AgentPal Host".to_owned())
+}
+
+fn default_host_id() -> String {
+    format!("agentpal-{}", Uuid::new_v4())
 }
 
 async fn codex_version(codex_bin: &PathBuf) -> anyhow::Result<String> {

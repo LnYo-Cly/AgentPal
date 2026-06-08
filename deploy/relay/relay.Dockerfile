@@ -1,0 +1,11 @@
+FROM rust:1-bookworm AS builder
+WORKDIR /app
+COPY . .
+RUN cargo build --release -p agentpal-relay
+
+FROM debian:bookworm-slim
+RUN useradd --system --uid 10001 --create-home agentpal
+COPY --from=builder /app/target/release/agentpal-relay /usr/local/bin/agentpal-relay
+USER agentpal
+EXPOSE 8790
+ENTRYPOINT ["agentpal-relay"]

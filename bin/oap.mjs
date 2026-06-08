@@ -2,6 +2,8 @@
 import { spawn } from "node:child_process";
 import process from "node:process";
 
+const DEFAULT_PUBLIC_RELAY_URL = "wss://relay.openagentpal.com/ws";
+
 const args = process.argv.slice(2);
 const command = args[0] ?? "help";
 
@@ -37,7 +39,7 @@ function defaultRelayArgs(passThrough) {
   if (hasFlagValue(passThrough, "--relay-url")) {
     return [];
   }
-  const relayUrl = process.env.OAP_RELAY_URL ?? "ws://127.0.0.1:8790/ws";
+  const relayUrl = process.env.OAP_RELAY_URL ?? DEFAULT_PUBLIC_RELAY_URL;
   return ["--relay-url", relayUrl];
 }
 
@@ -79,11 +81,13 @@ Commands:
   host   Pass through to the Rust host CLI.
 
 Defaults:
-  oap pair uses OAP_RELAY_URL when set, otherwise ws://127.0.0.1:8790/ws.
+  oap pair uses OAP_RELAY_URL when set, otherwise ${DEFAULT_PUBLIC_RELAY_URL}.
+  Local development can pass --relay-url ws://127.0.0.1:8790/ws.
 
 Examples:
   oap relay --host 0.0.0.0 --port 8790
-  oap pair --workspace . --relay-url wss://relay.example.com/ws
+  oap pair --workspace .
+  oap pair --workspace . --relay-url ws://127.0.0.1:8790/ws
   oap host codex pair --relay-url 192.168.1.10:8790
 `);
 }
