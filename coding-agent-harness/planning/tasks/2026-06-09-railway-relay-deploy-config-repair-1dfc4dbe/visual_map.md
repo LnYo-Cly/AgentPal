@@ -23,8 +23,8 @@ flowchart LR
 | Phase ID | Kind | Depends On | State | Completion | Output | Required Evidence | Exit Command | Actor | Evidence Status | Blocking Risk | Owner / Handoff |
 | --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- |
 | INIT-01 | init | none | done | 100 | 任务边界已清楚到可以执行 | `task_plan.md` | `harness task-start 2026-06-09-railway-relay-deploy-config-repair-1dfc4dbe` | agent | present | none | coordinator |
-| EXEC-01 | execution | INIT-01 | planned | 0 | 简单实现或文档变更已完成 | diff、command 或 artifact path | `harness task-phase 2026-06-09-railway-relay-deploy-config-repair-1dfc4dbe EXEC-01 --state done --completion 100 --evidence present` | agent | missing | [risk] | [owner] |
-| GATE-01 | gate | EXEC-01 | planned | 0 | 直接完成任务 | progress update 和最终证据说明 | `harness task-complete 2026-06-09-railway-relay-deploy-config-repair-1dfc4dbe --message "<summary>"` | agent | missing | [risk] | coordinator |
+| EXEC-01 | execution | INIT-01 | planned | 0 | Railway Dockerfile config and deploy docs repaired | diff、cargo checks、harness check | `harness task-phase 2026-06-09-railway-relay-deploy-config-repair-1dfc4dbe EXEC-01 --state done --completion 100 --evidence present` | agent | missing | real Railway redeploy remains user-operated | coordinator |
+| GATE-01 | gate | EXEC-01 | planned | 0 | 直接完成任务 | progress update 和最终证据说明 | `harness task-complete 2026-06-09-railway-relay-deploy-config-repair-1dfc4dbe --message "<summary>"` | agent | missing | needs user redeploy in Railway UI | coordinator |
 
 允许的 `State`：`planned`, `in_progress`, `review`, `blocked`, `done`, `skipped`。
 

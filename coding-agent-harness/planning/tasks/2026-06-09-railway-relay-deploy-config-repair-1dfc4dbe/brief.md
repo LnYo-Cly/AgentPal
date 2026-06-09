@@ -10,42 +10,43 @@
 
 ## 一句话结果
 
-用一句话说明这个任务完成后会产生什么具体结果。
+Railway 会按 Relay Dockerfile 构建 OpenAgentPal Relay，并由容器入口自动读取 Railway `PORT` 启动服务。
 
 ## 完成后能得到什么
 
-用 100-300 字说明这个任务完成后，用户、项目或下一轮 agent 能直接拿到什么结果。
-说明这个结果能用于什么决策、交付、验证或继续开发。聚焦可用结果，不要展开实现过程，
-除非实现方式本身就是交付物。
+本任务完成后，GitHub 仓库包含 Railway 可直接读取的部署配置、Relay 容器启动入口和 Railway Redis 配置说明。用户可先在 Railway 上重新部署公网 Relay，手机端随后使用 Railway 域名对应的 `wss://<railway-domain>/ws` 连接。VPS、自托管和更完整的公网 hardening 保留到后续任务，不混入本轮修复。
 
 ## 交付物
 
-- 可见产物：
-- 修改位置：
-- 验证证据：
+- 可见产物：Railway config-as-code、Relay Docker entrypoint、Railway 部署说明。
+- 修改位置：`railway.toml`、`deploy/relay/relay.Dockerfile`、`deploy/relay/start-agentpal-relay.sh`、`deploy/relay/README.md`、任务材料。
+- 验证证据：记录在 `progress.md` 和最终 `walkthrough.md`。
 
 ## 第一眼应该看什么
 
-写明人或下一轮 agent 打开任务后，应该先读哪些文件、证据或生成产物。
+先读 `railway.toml` 和 `deploy/relay/README.md` 的 Railway 章节，再看 `progress.md` / `walkthrough.md` 中的验证结果。
 
 ## 边界
 
-- 范围内：本任务允许修改的文件、行为、文档或验证内容。
-- 范围外：不能顺手塞进来的工作。
-- 停止条件：遇到不确定性、风险或缺少权限时，必须回到 coordinator 或用户确认。
+- 范围内：Railway Relay 部署配置、Docker 启动入口、Redis/healthcheck 文档、相关 Harness 任务记录。
+- 范围外：真实 Railway 控制台操作、VPS 部署、真实密钥或 Redis URL、移动端功能改造。
+- 停止条件：需要 Railway 账号控制台、真实 Redis 连接串或 live 域名部署结果时，交给用户在托管平台操作。
 
 ## 完成判断
 
-列出 3-5 条能证明目标结果已经达成的具体条件。完整执行计划保留在 `task_plan.md`。
+- `railway.toml` 显式使用 Dockerfile builder 和 `deploy/relay/relay.Dockerfile`。
+- Docker entrypoint 默认监听 `0.0.0.0:${PORT:-8790}`。
+- README 写清 Railway Redis 变量、重部署、healthcheck 和 WebSocket endpoint。
+- 本地格式、Relay 测试、workspace 检查、diff 检查和 Harness 检查完成或记录残余。
 
 ## 执行合同
 
 - Owner：coordinator
-- 生命周期状态：未开始
-- 必需文件：`INDEX.md`、`task_plan.md`、`execution_strategy.md`、`visual_map.md`、
-  `progress.md`、`findings.md`、`review.md`
+- 生命周期状态：进行中
+- 必需文件：simple budget 使用 `INDEX.md`、`brief.md`、`task_plan.md`、`visual_map.md`、
+  `progress.md`、`walkthrough.md`
 - 完成条件：验证证据必须记录到 `progress.md`
 
 ## 当前下一步
 
-写明开始实现前的第一个具体动作。
+运行验证命令，记录证据，按 `visual_map.md` 的 agent gate 推进任务并提交。
