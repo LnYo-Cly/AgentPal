@@ -1,6 +1,6 @@
 # Railway Relay deploy config repair - 进度
 
-## 状态：进行中
+## 状态：已完成
 
 `## 状态` 是受控机器字段，只能使用以下值之一：
 
@@ -53,3 +53,10 @@
 - 验证结果：`cargo fmt --check`、`cargo test -p agentpal-relay`、`cargo check --workspace`、`git diff --check`、`harness check --profile target-project .` 通过；`git check-attr text eol -- deploy/relay/start-agentpal-relay.sh` 显示 `text: set` / `eol: lf`；`bash` 和 `docker` 命令在当前 Windows 环境不可用，脚本语法和 Docker build 需由 Railway/部署机覆盖。
 - 下一步：执行 Harness 阶段 gate、提交并推送 GitHub，用户随后在 Railway service 重新部署。
 - 证据：command:TARGET:.:cargo fmt --check passed; command:TARGET:.:cargo test -p agentpal-relay passed 9 tests; command:TARGET:.:cargo check --workspace passed; command:TARGET:.:git diff --check passed; command:TARGET:.:harness check passed with dirty-state warning before commit; command:TARGET:deploy/relay/start-agentpal-relay.sh:git check-attr confirms LF; command:TARGET:.:docker/bash unavailable in local environment
+
+### [2026-06-09 11:16] - task-complete
+
+- 做了什么：Railway Relay Docker deployment config repaired; push to GitHub for Railway redeploy
+- 验证结果：已记录
+- 下一步：完成
+- 证据：n/a
