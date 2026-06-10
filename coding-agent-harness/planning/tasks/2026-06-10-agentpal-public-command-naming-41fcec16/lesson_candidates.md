@@ -7,11 +7,11 @@
 | Field | Value |
 | --- | --- |
 | Schema version | lesson-candidate-v1 |
-| Task-level status | pending-review |
+| Task-level status | no-candidate-accepted |
 | Review gate | candidate-file-present |
-| Review decision | pending-human-review |
+| Review decision | agent-checked-no-candidate |
 | Promotion state | not-promoted |
-| Closeout token | pending |
+| Closeout token | no-candidate |
 | Source task | 2026-06-10-agentpal-public-command-naming-41fcec16 |
 | Owner | coordinator |
 | Last updated | 2026-06-10 |
@@ -49,7 +49,7 @@
 
 ## No-Candidate Reason
 
-尚未判定。只有人工审查接受本任务没有可复用候选时，才填写这里。
+本任务是产品命名和公开命令的一次性收敛，不产生可复用的 Harness 治理规则或跨任务工程流程。后续 npm 发布、仓库重命名和品牌域名应作为产品/发布任务推进，而不是沉淀为通用 lesson。
 
 ## Promotion Notes
 

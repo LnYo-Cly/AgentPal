@@ -24,7 +24,7 @@ Task Package Index: required
 | ID | 类型 | 路径 | 为什么需要 | 使用者 |
 | --- | --- | --- | --- | --- |
 | C-001 | code | TARGET:package.json | 当前 npm bin/script 入口。 | coordinator |
-| C-002 | code | TARGET:bin/oap.mjs | 当前 CLI wrapper 和 help 文案。 | coordinator |
+| C-002 | code | TARGET:bin/agentpal.mjs | 当前 CLI wrapper 和 help 文案。 | coordinator |
 | C-003 | code | TARGET:apps/mobile/src/hooks/useAgentPalRelay.ts; TARGET:apps/mobile/src/lib/pairing.ts | 当前 mobile deviceName 与配对 URL scheme。 | coordinator |
 | C-004 | private-plan | TARGET:coding-agent-harness/context/development/local-setup.md | 活跃本地开发命令说明。 | coordinator |
 | C-005 | code | TARGET:apps/mobile/src/lib/relay.ts; TARGET:crates/host/src/codex.rs | 当前 Railway Relay URL，确认不改。 | coordinator |

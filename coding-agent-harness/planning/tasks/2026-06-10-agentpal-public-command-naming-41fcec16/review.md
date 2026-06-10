@@ -4,14 +4,14 @@
 
 | Reviewer | Type | Scope |
 | --- | --- | --- |
-| [name] | self / subagent / external / human | [审查范围] |
+| coordinator | self | 当前命名改动、CLI 入口、移动端配对解析、验证证据和残余风险 |
 
 ## 审查范围
 
-- 审查类型：adversarial / security / regression / architecture / release / other
-- 范围内：[文件、模块、行为、运行目标]
-- 范围外：[明确不审查的内容；如无写“无”]
-- 来源材料：[task plan、diff、commit、PR、测试输出、运行证据]
+- 审查类型：release / regression
+- 范围内：`package.json`、`bin/agentpal.mjs`、`apps/mobile/src/hooks/useAgentPalRelay.ts`、`apps/mobile/src/lib/pairing.ts`、`coding-agent-harness/context/development/local-setup.md`、`deploy/relay/README.md`、任务文档和设计文档。
+- 范围外：真实 `npm publish`、预编译二进制分发、GitHub 仓库重命名、Railway 域名替换、历史任务 ID 批量改写。
+- 来源材料：commit `206b41f`、`progress.md` 证据、CLI help 输出、mobile typecheck、`rg` surface check、`harness check`。
 
 ## Agent Review Submission（Agent 提交审查）
 
@@ -19,91 +19,90 @@
 
 | Field | Value |
 | --- | --- |
-| Submission ID | [由 task-review 生成] |
-| Submitted At | [timestamp] |
-| Submitted By | [agent 或 coordinator 身份] |
+| Submission ID | pending task-review |
+| Submitted At | pending task-review |
+| Submitted By | coordinator |
 | Task Key | 2026-06-10-agentpal-public-command-naming-41fcec16 |
-| Materials Checklist Hash | [由 task-review 生成；只作信息记录，不作为手工门禁] |
-| Evidence Summary | [测试、diff、运行和审查材料证据] |
-| Open Findings Count | [数字] |
-| Scanner Version | [生成时的 scanner 版本] |
+| Materials Checklist Hash | pending task-review |
+| Evidence Summary | `agentpal` bin/script verified; mobile typecheck passed; no current `oap` / `openagentpal://pair` user-surface remnants; Harness check passed. |
+| Open Findings Count | 0 |
+| Scanner Version | pending task-review |
 
 ### Material Checklist（材料清单）
 
 | Material | Required? | Status | Evidence |
 | --- | --- | --- | --- |
-| Brief | yes / no | present / missing / incomplete | [路径或原因] |
-| Task plan | yes / no | present / missing / incomplete | [路径或原因] |
-| Progress and evidence | yes / no | present / missing / incomplete | [路径或原因] |
-| Visual map | yes / no | present / missing / incomplete | [路径或原因] |
-| Lesson candidate decision | yes / no | present / missing / incomplete | [路径或原因] |
-| Walkthrough or closeout link | yes / no | present / missing / incomplete | [路径或原因] |
-
-Scanner 会根据必需文件、章节、证据和这个严格提交块派生 `materialsReady`。如果材料未齐，任务应进入缺材料队列，而不是人工审查确认队列。
-如果存在开放的 P0/P1/P2 阻塞发现，任务应进入阻塞队列，而不是人工审查确认队列。
+| Brief | yes | present | `brief.md` |
+| Task plan | yes | present | `task_plan.md` |
+| Progress and evidence | yes | present | `progress.md` |
+| Visual map | yes | present | `visual_map.md` |
+| Lesson candidate decision | yes | present | `lesson_candidates.md` |
+| Walkthrough or closeout link | yes | present | `walkthrough.md` |
 
 ## 信心挑战（Confidence Challenge）
 
 直接回答：你是否对当前计划、实现和策略有 100% 信心？
 
-- Verdict：yes / no
+- Verdict：yes
 - 如果不是 100%，剩余漏洞或证据缺口：
-  - [风险 / 漏洞 / 未验证假设；如无写“无”]
-- Fix loop count：[已经执行几轮 review -> fix -> evidence -> review]
-- 当前结论：[为什么现在可以继续、暂停或收口]
+  - 无。
+- Fix loop count：1
+- 当前结论：当前公开入口已统一到 `agentpal`，验证覆盖 CLI bin、mobile typecheck、静态残留检查和 Harness check，可以进入 Agent Review Submission。
 
 ## 重要发现（Material Findings，表头供 checker 解析）
 
 | ID | Severity | Finding | Evidence Checked | Required Action | Open | Disposition | Blocks Release | Follow-up |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 
-不要保留示例 finding。若没有重要发现，只保留表头，并补全下面的无重要发现声明。
-
-允许的 `Severity`：`P0`, `P1`, `P2`, `P3`。
-允许的 `Open`：`yes`, `no`。
-允许的 `Disposition`：`open`, `mitigated`, `closed`, `deferred`, `accepted-risk`, `not-reproducible`, `out-of-scope`。
-允许的 `Blocks Release`：`yes`, `no`。
-
 ## 非阻塞备注（Non-Material Notes）
 
-- [不阻塞本轮目标但值得记录的问题；如无写“无”]
+- Railway 平台域名仍包含 `openagentpal-production`，这是当前已上线服务域名；后续可用品牌域名或 VPS 替换。
+- Relay 服务端环境变量仍使用 `OAP_*`，这是部署契约，不是当前用户 CLI 入口。
 
 ## 已检查证据（Evidence Checked）
 
 | Evidence ID | Type | Path | Summary |
 | --- | --- | --- | --- |
-| E-001 | command / diff / fixture / screenshot / review / report | PUBLIC:path 或 PRIVATE:path 或 TARGET:path 或 EXTERNAL:path 或 URL:https://example.com | [检查了什么，结论是什么] |
+| E-001 | diff | TARGET:. | Commit `206b41f` renames package bin/script to `agentpal`, moves `bin/oap.mjs` to `bin/agentpal.mjs`, updates mobile device name and pairing scheme. |
+| E-002 | command | TARGET:. | `npm run agentpal -- --help` passed and shows `AgentPal CLI` / `agentpal pair`. |
+| E-003 | command | TARGET:. | `npm exec -- agentpal --help` passed via package bin. |
+| E-004 | command | TARGET:apps/mobile | `npm --prefix apps/mobile run typecheck` passed. |
+| E-005 | command | TARGET:. | `rg` current package/bin/mobile surface found no `oap` / `openagentpal://pair` / `OpenAgentPal CLI` / npm bin alias remnants. |
+| E-006 | command | TARGET:. | `git diff --check` passed. |
+| E-007 | command | TARGET:. | `harness check --profile target-project .` passed after implementation commit. |
 
 ## 无重要发现声明
 
-[如果没有重要发现，明确写：本轮已检查上述证据，未发现阻塞目标的重要发现。]
+本轮已检查上述证据，未发现阻塞目标的重要发现。
 
 ## 残余风险
 
 | Risk | Owner | Accepted? | Follow-up |
 | --- | --- | --- | --- |
-| [风险] | [负责人] | yes / no | [后续路径或“无”] |
+| npm 真实发布和预编译二进制分发尚未完成 | release owner | yes | 后续 npm release task |
+| GitHub remote 仍指向 `OpenAgentPal` 仓库名 | repository owner | yes | 用户在 GitHub 重命名后更新 remote |
+| 当前 public Relay 仍使用 Railway 平台域名 `openagentpal-production.up.railway.app` | deployment owner | yes | 后续品牌域名 / VPS 任务 |
 
 ## Lifecycle Queue Routing（生命周期队列路由）
 
 | Queue | Applies? | Reason | Exit condition |
 | --- | --- | --- | --- |
-| Review | yes / no | 已提交审查材料包，且可等待人工确认。 | 人工确认或退回。 |
-| Missing Materials | yes / no | 必需文件、章节、证据或 review submission 缺失 / 不完整。 | Agent 补齐材料并重新提交审查。 |
-| Blocked | yes / no | 存在 open blocking finding、非法状态转换、审计失败或需要人工 waiver。 | blocker 被修复、关闭或明确豁免。 |
-| Lessons | yes / no | Lesson candidate 需要拒绝、留在任务内、dry-run promotion 或创建沉淀任务。 | 人工决定候选路由；除非明确批准，promotion 仍是单独维护任务。 |
-| Confirmed / Finalized | yes / no | 已有人工确认；可能仍待结项或治理收口。 | Closeout、ledger 和 lesson routing 都完成。 |
-| Soft-deleted / Superseded | yes / no | 任务有 tombstone、superseded-by 或 archive 状态；duplicate / abandoned 等语义写在 `Reason`。 | reopen 或作为只读审计历史保留。 |
+| Review | yes | 材料包齐全，等待 Agent Review Submission lifecycle command。 | 人工确认或退回。 |
+| Missing Materials | no | 必需材料已补齐。 | n/a |
+| Blocked | no | 无 open blocking finding。 | n/a |
+| Lessons | no | 本任务没有可复用 Harness 经验候选。 | n/a |
+| Confirmed / Finalized | no | 尚无人工确认。 | human review confirmation |
+| Soft-deleted / Superseded | no | 任务仍为 active。 | n/a |
 
 ## 后续路由（Follow-Up Routing）
 
-- 任务计划：[是否需要更新，路径或“无”]
-- Progress：[对应 `progress.md` 条目]
-- 发现记录：[是否需要写入 `findings.md`]
-- Regression SSoT：[新增 / 调整 / 无]
-- Lessons：[checked-created: L-YYYY-MM-DD-NNN / checked-candidate: LC-YYYYMMDD-NNN / queued-promotion: LC-YYYYMMDD-NNN / checked-none: 一句话原因]
-- 收口记录：[收口时引用路径]
+- 任务计划：已更新 `task_plan.md`
+- Progress：`progress.md` 2026-06-10 16:05 implementation evidence
+- 发现记录：无新增 findings
+- Regression SSoT：无；本任务不改 Relay 协议或服务端路由
+- Lessons：checked-none: 命名收敛是产品级一次性决策，不形成新的 Harness 治理规则
+- 收口记录：`walkthrough.md`
 
 ## 最终信心依据（Final Confidence Basis）
 
-[说明最终信心来自哪些证据、审查层级和已关闭发现。发布前最终审查不能只依赖 self-only。]
+最终信心来自 commit diff、CLI script/bin 双路径验证、mobile typecheck、静态残留检查、`git diff --check` 和 `harness check`。本任务未执行真实 npm 发布；发布前仍需要单独 release 任务覆盖 package tarball、预编译二进制和 npm provenance。
