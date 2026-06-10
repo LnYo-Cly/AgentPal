@@ -47,7 +47,7 @@ agentpal pair --workspace /path/to/project
 
 ## What Works Today
 
-AgentPal `0.1.0` is the first public release of the desktop/CLI side:
+AgentPal `0.1.x` is the first public release line of the desktop/CLI side:
 
 - public npm package: `agentpal`;
 - one-command pairing entry: `npx agentpal@latest pair`;
@@ -93,7 +93,7 @@ You need:
 - Rust toolchain with `cargo`;
 - Codex CLI available as `codex` for live host sessions.
 
-Prebuilt binaries are planned, but they are not part of `0.1.0`.
+Prebuilt binaries are planned, but they are not part of the `0.1.x` release line.
 
 ## Security Model
 
