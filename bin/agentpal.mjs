@@ -29,7 +29,7 @@ if (command === "pair") {
 } else if (command === "host") {
   runCargo(["run", "-p", "agentpal-host", "--", ...args.slice(1)]);
 } else {
-  console.error(`Unknown oap command: ${command}`);
+  console.error(`Unknown agentpal command: ${command}`);
   console.error("");
   printHelp();
   process.exit(2);
@@ -39,7 +39,7 @@ function defaultRelayArgs(passThrough) {
   if (hasFlagValue(passThrough, "--relay-url")) {
     return [];
   }
-  const relayUrl = process.env.OAP_RELAY_URL ?? DEFAULT_PUBLIC_RELAY_URL;
+  const relayUrl = process.env.AGENTPAL_RELAY_URL ?? DEFAULT_PUBLIC_RELAY_URL;
   return ["--relay-url", relayUrl];
 }
 
@@ -68,12 +68,12 @@ function runCargo(cargoArgs) {
 }
 
 function printHelp() {
-  console.log(`OpenAgentPal CLI
+  console.log(`AgentPal CLI
 
 Usage:
-  oap pair [options]
-  oap relay [agentpal-relay options]
-  oap host [agentpal-host options]
+  agentpal pair [options]
+  agentpal relay [agentpal-relay options]
+  agentpal host [agentpal-host options]
 
 Commands:
   pair   Start the Codex Host, create a Cloud Relay pairing, and print URL + QR.
@@ -81,13 +81,13 @@ Commands:
   host   Pass through to the Rust host CLI.
 
 Defaults:
-  oap pair uses OAP_RELAY_URL when set, otherwise ${DEFAULT_PUBLIC_RELAY_URL}.
+  agentpal pair uses AGENTPAL_RELAY_URL when set, otherwise ${DEFAULT_PUBLIC_RELAY_URL}.
   Local development can pass --relay-url ws://127.0.0.1:8790/ws.
 
 Examples:
-  oap relay --host 0.0.0.0 --port 8790
-  oap pair --workspace .
-  oap pair --workspace . --relay-url ws://127.0.0.1:8790/ws
-  oap host codex pair --relay-url 192.168.1.10:8790
+  agentpal relay --host 0.0.0.0 --port 8790
+  agentpal pair --workspace .
+  agentpal pair --workspace . --relay-url ws://127.0.0.1:8790/ws
+  agentpal host codex pair --relay-url 192.168.1.10:8790
 `);
 }

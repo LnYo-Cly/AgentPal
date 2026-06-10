@@ -1,4 +1,4 @@
-# OpenAgentPal Relay Beta Deployment
+# AgentPal Relay Beta Deployment
 
 This directory contains a single-node beta deployment profile for AgentPal
 Relay plus Redis. It is meant for a VPS or container host behind TLS.

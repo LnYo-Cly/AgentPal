@@ -5,8 +5,9 @@ Task: `2026-06-10-agentpal-public-command-naming-41fcec16`
 ## Decision
 
 Use `AgentPal` as the product name and `agentpal` as the public CLI command.
-Do not expose `oap` or `openagentpal` as current user-facing commands because
-there are no public users yet and no migration path is needed.
+Do not expose `oap` or `openagentpal` as current user-facing commands or
+pairing schemes because there are no public users yet and no migration path is
+needed.
 
 ## User Flow
 
@@ -30,13 +31,12 @@ This task changes current product surfaces only:
 - CLI help text and examples.
 - Mobile default device name.
 - Active local development context.
+- Mobile pairing URL parser for the current public scheme.
 
 This task does not change:
 
 - Railway platform domain `openagentpal-production.up.railway.app`.
 - Historical Harness task IDs, generated ledger rows, or old evidence text.
-- Pairing URL backward parser support, unless it becomes a current user-facing
-  entry point.
 - Real npm publish or GitHub repository rename.
 
 ## Rationale

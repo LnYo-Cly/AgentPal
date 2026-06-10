@@ -96,7 +96,7 @@ export function useAgentPalRelay(url = defaultRelayUrl(), pairedHostId?: string 
               pairToken: pairing.pairToken,
               mobileClientId: clientId,
               deviceId: pairing.deviceId ?? null,
-              deviceName: "OpenAgentPal Mobile"
+              deviceName: "AgentPal Mobile"
             }
           });
         }

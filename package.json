@@ -4,11 +4,10 @@
   "version": "0.1.0",
   "description": "AgentPal mobile workbench and desktop host scaffold.",
   "bin": {
-    "oap": "bin/oap.mjs",
-    "openagentpal": "bin/oap.mjs"
+    "agentpal": "bin/agentpal.mjs"
   },
   "scripts": {
-    "oap": "node ./bin/oap.mjs",
+    "agentpal": "node ./bin/agentpal.mjs",
     "mobile:typecheck": "npm --prefix apps/mobile run typecheck",
     "mobile:start": "npm --prefix apps/mobile run start:expo-go -- --lan",
     "relay:dev": "cargo run -p agentpal-relay -- --host 0.0.0.0 --port 8790",

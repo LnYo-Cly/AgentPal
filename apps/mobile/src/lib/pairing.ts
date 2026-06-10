@@ -124,7 +124,7 @@ function normalizePairingPayload(payload: RawPairingPayload): PairingPayload {
 
 function isPairUrl(value: string) {
   const lower = value.toLowerCase();
-  return lower.startsWith("agentpal://pair") || lower.startsWith("openagentpal://pair");
+  return lower.startsWith("agentpal://pair");
 }
 
 function normalizeOptionalString(value: unknown) {

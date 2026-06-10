@@ -9,7 +9,7 @@ Task Package Index: required
 
 ## 范围
 
-- 做什么：更新 CLI bin/script、help 文案、移动端设备名和活跃开发上下文，使对外路径变为 `agentpal pair --workspace .`。
+- 做什么：更新 CLI bin/script、help 文案、移动端设备名、配对 URL scheme 解析和活跃开发上下文，使对外路径变为 `agentpal pair --workspace .` / `agentpal://pair`。
 - 不做什么：不执行 `npm publish`，不改 Railway 平台域名，不重命名 GitHub 仓库，不批量改写历史 Harness 任务。
 - 主要风险：误删现网 Relay 域名会导致手机连接失败；机械替换历史审计文本会降低可追溯性。
 
@@ -25,21 +25,21 @@ Task Package Index: required
 | --- | --- | --- | --- | --- |
 | C-001 | code | TARGET:package.json | 当前 npm bin/script 入口。 | coordinator |
 | C-002 | code | TARGET:bin/oap.mjs | 当前 CLI wrapper 和 help 文案。 | coordinator |
-| C-003 | code | TARGET:apps/mobile/src/hooks/useAgentPalRelay.ts | 当前 mobile deviceName。 | coordinator |
+| C-003 | code | TARGET:apps/mobile/src/hooks/useAgentPalRelay.ts; TARGET:apps/mobile/src/lib/pairing.ts | 当前 mobile deviceName 与配对 URL scheme。 | coordinator |
 | C-004 | private-plan | TARGET:coding-agent-harness/context/development/local-setup.md | 活跃本地开发命令说明。 | coordinator |
 | C-005 | code | TARGET:apps/mobile/src/lib/relay.ts; TARGET:crates/host/src/codex.rs | 当前 Railway Relay URL，确认不改。 | coordinator |
 
 ## 步骤
 
 1. 写短设计，明确命名与不改项。
-2. 将源码态入口从 `oap` 改为 `agentpal`，并更新 help 文案和 mobile deviceName。
+2. 将源码态入口从 `oap` 改为 `agentpal`，并更新 help 文案、mobile deviceName 和 pairing scheme。
 3. 更新活跃开发上下文，不改历史任务审计文本。
 4. 运行 CLI、mobile typecheck、diff 和 Harness 检查，并记录证据。
 
 ## 验收标准
 
 - [ ] `npm run agentpal -- --help` 通过并展示 `agentpal pair`。
-- [ ] `rg -n "\boap\b|openagentpal|OpenAgentPal" package.json bin apps/mobile/src coding-agent-harness/context/development deploy` 只剩允许的 Relay 域名或兼容项。
+- [ ] `rg` 检查当前代码入口和移动端表面没有 `oap` / `openagentpal://pair` / `OpenAgentPal CLI` / npm bin 别名残留；Railway 平台域名允许保留。
 - [ ] `npm --prefix apps/mobile run typecheck` 通过。
 - [ ] `git diff --check` 和 `harness check --profile target-project .` 通过。
 
@@ -64,7 +64,7 @@ Task Package Index: required
 - 是否需要对抗性审查：否
 - 若是，报告文件：`review.md`
 - Reviewer：self
-- No-finding 要求：自检确认没有误改现网 Relay 域名、历史任务 ID 或协议兼容入口。
+- No-finding 要求：自检确认没有误改现网 Relay 域名或历史任务 ID。
 
 ## 关联
 
