@@ -46,3 +46,10 @@
 - 验证结果：已记录
 - 下一步：继续执行
 - 证据：n/a
+
+### [2026-06-10 17:31] - task-log
+
+- 做了什么：Implemented QR output guard: AgentPal now writes a stable SVG QR file by default, only renders terminal QR when explicitly requested, and skips terminal QR when the window is too narrow.
+- 验证结果：已记录
+- 下一步：继续执行
+- 证据：command:TARGET:.:npm run agentpal -- pair --workspace . --timeout-seconds 3 --codex-port 38993 printed SVG QR path without terminal QR
