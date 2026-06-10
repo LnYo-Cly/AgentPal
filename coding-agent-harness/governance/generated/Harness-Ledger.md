@@ -40,6 +40,7 @@ Repo Governance / CI-CD changes remain routed through their reference standards 
 | HL-2026-06-08-openagentpal-production-cloud-relay-beta-0b7c75f0 | task | none | OpenAgentPal Production Cloud Relay Beta | review | none | coding-agent-harness/planning/tasks/2026-06-08-openagentpal-production-cloud-relay-beta-0b7c75f0/task_plan.md | coding-agent-harness/planning/tasks/2026-06-08-openagentpal-production-cloud-relay-beta-0b7c75f0/review.md | pending | pending | Production Cloud Relay Beta verified and ready for human review | 2026-06-08 |
 | HL-2026-06-09-railway-relay-deploy-config-repair-1dfc4dbe | task | none | Railway Relay deploy config repair | closed | none | coding-agent-harness/planning/tasks/2026-06-09-railway-relay-deploy-config-repair-1dfc4dbe/task_plan.md | pending | pending | pending | Railway Relay Docker deployment config repaired; push to GitHub for Railway redeploy | 2026-06-09 |
 | HL-2026-06-10-default-public-relay-endpoint-fc62feae | task | none | Default public relay endpoint | closed | none | coding-agent-harness/planning/tasks/2026-06-10-default-public-relay-endpoint-fc62feae/task_plan.md | pending | pending | pending | Default public Relay now uses Railway endpoint for QR pairing | 2026-06-10 |
+| HL-2026-06-10-agentpal-public-command-naming-41fcec16 | task | none | AgentPal public command naming | planned | none | coding-agent-harness/planning/tasks/2026-06-10-agentpal-public-command-naming-41fcec16/task_plan.md | pending | pending | pending | task registered by CLI | 2026-06-10 |
 
 ## Field Rules
 
