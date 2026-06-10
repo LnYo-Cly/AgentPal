@@ -106,3 +106,17 @@
 ## 最终信心依据（Final Confidence Basis）
 
 最终信心来自 commit diff、CLI script/bin 双路径验证、mobile typecheck、静态残留检查、`git diff --check` 和 `harness check`。本任务未执行真实 npm 发布；发布前仍需要单独 release 任务覆盖 package tarball、预编译二进制和 npm provenance。
+
+## Agent Review Submission
+
+| Field | Value |
+| --- | --- |
+| Submission ID | ARS-202606100810 |
+| Submitted At | 2026-06-10 08:10 |
+| Submitted By | agent |
+| Task Key | TASKS/2026-06-10-agentpal-public-command-naming-41fcec16 |
+| Materials Checklist Hash | 88d9f68327c48854 |
+| Evidence Summary | AgentPal public command naming cleanup ready for human review |
+| Open Findings Count | 0 |
+| Scanner Version | task-scanner/2026-05-25-phase-kind |
+| Target | TARGET:coding-agent-harness/planning/tasks/2026-06-10-agentpal-public-command-naming-41fcec16 |

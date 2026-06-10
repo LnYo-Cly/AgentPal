@@ -1,6 +1,6 @@
 # AgentPal public command naming - 进度
 
-## 状态：进行中
+## 状态：审查中
 
 `## 状态` 是受控机器字段，只能使用以下值之一：
 
@@ -61,3 +61,10 @@
 - 验证结果：`npm run agentpal -- --help` 和 `npm exec -- agentpal --help` 都展示 `AgentPal CLI` / `agentpal pair`；`npm --prefix apps/mobile run typecheck` 通过；当前代码入口和移动端表面 `rg` 检查没有 `oap` / `openagentpal://pair` / `OpenAgentPal CLI` / npm bin 别名残留；`git diff --check` 通过；`harness check --profile target-project .` 在实现提交后通过。
 - 下一步：提交审查材料，推进 Agent Review Submission；不执行人工 review gate。
 - 证据：diff:TARGET:.:commit 206b41f renames public CLI command to agentpal; command:TARGET:.:npm exec -- agentpal --help passed via package bin; command:TARGET:apps/mobile:npm --prefix apps/mobile run typecheck passed; command:TARGET:.:rg current package/bin/mobile surface found no oap/openagentpal command or scheme remnants; command:TARGET:.:git diff --check passed; command:TARGET:.:harness check --profile target-project . passed
+
+### [2026-06-10 08:10] - task-review
+
+- 做了什么：AgentPal public command naming cleanup ready for human review
+- 验证结果：已记录
+- 下一步：继续执行
+- 证据：n/a
