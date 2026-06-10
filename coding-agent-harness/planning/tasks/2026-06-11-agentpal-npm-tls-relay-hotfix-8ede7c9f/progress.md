@@ -46,3 +46,10 @@
 - 验证结果：已记录
 - 下一步：继续执行
 - 证据：n/a
+
+### [2026-06-10 16:59] - task-log
+
+- 做了什么：Implemented TLS relay hotfix: enabled tokio-tungstenite rustls/webpki roots, installed rustls ring provider in host startup, bumped package/workspace to 0.1.1, and printed PairCreated before Codex initialization.
+- 验证结果：已记录
+- 下一步：继续执行
+- 证据：command:cargo check -p agentpal-host:passed
