@@ -10,33 +10,35 @@
 
 ## 一句话结果
 
-用一句话说明这个任务完成后会产生什么具体结果。
+当前 private 仓库 `LnYo-Cly/OpenAgentPal` 被重命名并公开为 `LnYo-Cly/AgentPal`，本地 remote 和当前仓库 metadata 链接同步到新地址。
 
 ## 完成后能得到什么
 
-用 100-300 字说明这个任务完成后，用户、项目或下一轮 agent 能直接拿到什么结果。
-说明这个结果能用于什么决策、交付、验证或继续开发。聚焦可用结果，不要展开实现过程，
-除非实现方式本身就是交付物。
+完成后，AgentPal 会拥有一个与产品名、npm 包名和 CLI 命令一致的公开 GitHub 仓库地址。后续 README、npm package metadata、安装说明和对外发布都可以统一指向 `https://github.com/LnYo-Cly/AgentPal`。公开前会保留密钥/凭据扫描证据，避免把 token、Redis URL、Railway 凭据或 `.env` 内容带入 public 仓库。
 
 ## 交付物
 
-- 可见产物：
-- 修改位置：
-- 验证证据：
+- 可见产物：GitHub public 仓库 `LnYo-Cly/AgentPal`
+- 修改位置：GitHub repo settings、本地 `origin`、`package.json` metadata、相关当前文档链接、当前任务材料
+- 验证证据：secret scan、`gh repo view`、`git remote -v`、`git ls-remote`、`git diff --check`、`harness check`
 
 ## 第一眼应该看什么
 
-写明人或下一轮 agent 打开任务后，应该先读哪些文件、证据或生成产物。
+先看 `progress.md` 的公开前扫描证据，再看 `review.md` 的残余风险和 `walkthrough.md` 的最终 repo 状态。
 
 ## 边界
 
-- 范围内：本任务允许修改的文件、行为、文档或验证内容。
-- 范围外：不能顺手塞进来的工作。
-- 停止条件：遇到不确定性、风险或缺少权限时，必须回到 coordinator 或用户确认。
+- 范围内：公开前扫描、GitHub 仓库重命名、visibility 改为 public、本地 remote 更新、当前 metadata / docs 的 GitHub 链接更新、Harness 证据收口。
+- 范围外：npm publish、预编译二进制发布、Railway endpoint 改名、默认分支迁移、历史任务 ID 或历史审计文本批量改写。
+- 停止条件：扫描发现真实凭据或 GitHub API 拒绝重命名/公开。
 
 ## 完成判断
 
-列出 3-5 条能证明目标结果已经达成的具体条件。完整执行计划保留在 `task_plan.md`。
+- 公开前扫描没有发现真实密钥、token、私有 Redis URL、Railway token、npm token 或 `.env` 凭据进入 tracked source / git history。
+- `gh repo view LnYo-Cly/AgentPal` 显示 `visibility=PUBLIC`、`isPrivate=false`。
+- `git remote -v` 指向 `https://github.com/LnYo-Cly/AgentPal.git`。
+- 当前 metadata / docs 中的 GitHub repo 链接已改为 `LnYo-Cly/AgentPal`。
+- Harness 任务进入 Agent Review Submission；不执行 human `review-confirm`。
 
 ## 执行合同
 
@@ -48,4 +50,4 @@
 
 ## 当前下一步
 
-写明开始实现前的第一个具体动作。
+项目化任务计划并启动任务，然后执行公开前扫描。
