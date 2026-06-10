@@ -1,6 +1,3 @@
-import Constants from "expo-constants";
-import { Platform } from "react-native";
-
 export type AgentKind = "codex" | "claude-code" | "open-code" | "open-claw" | "custom";
 export type SessionState = "idle" | "thinking" | "running" | "waiting-approval" | "completed" | "failed" | "offline";
 export type PickerTrigger = "/" | "$";
@@ -242,12 +239,10 @@ export type ConnectionState = "connecting" | "online" | "offline" | "error";
 
 export const usbRelayUrl = "ws://127.0.0.1:8790/ws";
 export const androidEmulatorRelayUrl = "ws://10.0.2.2:8790/ws";
+export const publicRelayUrl = "wss://openagentpal-production.up.railway.app/ws";
 
 export function defaultRelayUrl() {
-  if (Platform.OS === "android") {
-    return isAndroidEmulator() ? androidEmulatorRelayUrl : expoHostRelayUrl() ?? usbRelayUrl;
-  }
-  return expoHostRelayUrl() ?? usbRelayUrl;
+  return publicRelayUrl;
 }
 
 export function normalizeRelayUrl(value: string) {
@@ -309,30 +304,4 @@ export function makeFilePreviewRequest(hostId: string, sessionId: string | null 
 
 export function filePreviewKey(hostId: string, workspace: string, path: string) {
   return `${hostId}:${workspace}:${path}`;
-}
-
-function isAndroidEmulator() {
-  const constants = Platform.constants as Record<string, unknown>;
-  const fingerprint = String(constants.Fingerprint ?? "").toLowerCase();
-  const model = String(constants.Model ?? "").toLowerCase();
-  const brand = String(constants.Brand ?? "").toLowerCase();
-  const manufacturer = String(constants.Manufacturer ?? "").toLowerCase();
-
-  return (
-    fingerprint.includes("generic") ||
-    fingerprint.includes("emulator") ||
-    model.includes("sdk") ||
-    model.includes("emulator") ||
-    brand.includes("generic") ||
-    manufacturer.includes("genymotion")
-  );
-}
-
-function expoHostRelayUrl() {
-  const hostUri = Constants.expoConfig?.hostUri;
-  const host = hostUri?.split(":")[0];
-  if (!host || host === "localhost" || host === "127.0.0.1") {
-    return null;
-  }
-  return `ws://${host}:8790/ws`;
 }

@@ -35,7 +35,7 @@ use uuid::Uuid;
 
 use crate::normalize_workspace;
 
-const DEFAULT_PUBLIC_RELAY_URL: &str = "wss://relay.openagentpal.com/ws";
+const DEFAULT_PUBLIC_RELAY_URL: &str = "wss://openagentpal-production.up.railway.app/ws";
 
 #[derive(Debug, Args)]
 pub struct CodexProbeArgs {

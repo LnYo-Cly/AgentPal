@@ -40,7 +40,7 @@ authorize mobile reconnection. A production mode flag,
 `OAP_RELAY_REQUIRE_PAIRING`, forces mobile commands to require a verified
 pairing token instead of accepting a bare `hostId`.
 
-The public CLI default changes to `wss://relay.openagentpal.com/ws`, with
+The public CLI default changes to `wss://openagentpal-production.up.railway.app/ws`, with
 `OAP_RELAY_URL` and `--relay-url` remaining overrides. Local developers can run
 `oap relay` or pass `--relay-url ws://127.0.0.1:8790/ws`.
 

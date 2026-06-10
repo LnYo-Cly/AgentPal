@@ -6,7 +6,7 @@ Relay plus Redis. It is meant for a VPS or container host behind TLS.
 ## Requirements
 
 - A server or container platform account.
-- A DNS name such as `relay.openagentpal.com`.
+- A DNS name or platform domain such as `openagentpal-production.up.railway.app`.
 - TLS termination in front of the Relay service.
 - Redis reachable only from the Relay service.
 

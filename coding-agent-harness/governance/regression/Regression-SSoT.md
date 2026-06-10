@@ -6,23 +6,24 @@
 
 | Gate ID | 覆盖面 | 主入口 | 触发场景 | 证据深度 | 上次验证 | 当前结果 | 负责人 | 残余路由 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| RG-001 | Cloud Relay Beta pair/create/claim/scoped-route | `cargo test -p agentpal-relay`; Redis targeted test; real local WebSocket+Redis strict smoke from task `2026-06-08-openagentpal-production-cloud-relay-beta-0b7c75f0` | protocol/relay/host/mobile pairing, Redis store, registration, scoped snapshot/history, routing, device-token, or public Relay default changes | L2-local-smoke | 2026-06-08 | pass-with-residual | coordinator | R-001; R-003; R-004; R-005; R-006 |
+| RG-001 | Cloud Relay Beta pair/create/claim/scoped-route | `cargo test -p agentpal-relay`; Redis targeted test; real local WebSocket+Redis strict smoke from task `2026-06-08-openagentpal-production-cloud-relay-beta-0b7c75f0`; Railway `/healthz` live check from task `2026-06-10-default-public-relay-endpoint-fc62feae` | protocol/relay/host/mobile pairing, Redis store, registration, scoped snapshot/history, routing, device-token, or public Relay default changes | L2-local-smoke + L3-live-healthcheck | 2026-06-10 | pass-with-residual | coordinator | R-003; R-004; R-005; R-006; R-007 |
 
 ## 未关闭回归残余
 
 | 残余 ID | Gate ID | 问题 | 严重级别 | 负责人 | 创建日期 | 路由 | 状态 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| R-001 | RG-001 | No live production Cloud Relay DNS/TLS/VPS deployment evidence | P2 | deployment owner | 2026-06-07 | deploy `relay.openagentpal.com` and run L3 live smoke | open |
 | R-003 | RG-001 | No full E2E encryption, replay protection, device revocation, rate limiting, account boundary, or audit log | P2 | security/product/backend owners | 2026-06-07 | public beta security hardening task | open |
 | R-004 | RG-001 | `oap` is source-mode wrapper, not production npm/package distribution | P3 | release owner | 2026-06-07 | npm/package distribution task; no desktop installer | open |
 | R-005 | RG-001 | Redis pair claim and device binding are not a single atomic store transaction | P2 | backend owner | 2026-06-08 | atomic claim-and-bind store API or Redis Lua transaction | open |
 | R-006 | RG-001 | Docker Compose deployment package was not runtime-verified because Docker is unavailable in the current environment | P3 | deployment owner | 2026-06-08 | run `docker compose -f deploy/relay/docker-compose.yml up --build` on a Docker-capable deployment host | open |
+| R-007 | RG-001 | No branded `relay.openagentpal.com` or VPS deployment; current public default uses Railway platform domain | P3 | deployment owner | 2026-06-10 | later branded domain/VPS deployment task | open |
 
 ## 已关闭 / Superseded 回归残余
 
 | 残余 ID | Gate ID | 问题 | 关闭日期 | 处理 | 证据 |
 | --- | --- | --- | --- | --- | --- |
 | R-002 | RG-001 | Relay pair/device state is in-memory only | 2026-06-08 | superseded by Redis-backed pairing/device store; in-memory remains local/dev fallback only | task `2026-06-08-openagentpal-production-cloud-relay-beta-0b7c75f0` ART-002, ART-004, ART-005 |
+| R-001 | RG-001 | No live production Cloud Relay DNS/TLS/VPS deployment evidence | 2026-06-10 | superseded by Railway hosted Relay with TLS platform domain and live `/healthz` evidence; branded domain/VPS tracked separately as R-007 | task `2026-06-10-default-public-relay-endpoint-fc62feae`; `https://openagentpal-production.up.railway.app/healthz` |
 
 不要保留示例残余。只有真实未关闭回归风险才新增行。
 

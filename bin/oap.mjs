@@ -2,7 +2,7 @@
 import { spawn } from "node:child_process";
 import process from "node:process";
 
-const DEFAULT_PUBLIC_RELAY_URL = "wss://relay.openagentpal.com/ws";
+const DEFAULT_PUBLIC_RELAY_URL = "wss://openagentpal-production.up.railway.app/ws";
 
 const args = process.argv.slice(2);
 const command = args[0] ?? "help";
