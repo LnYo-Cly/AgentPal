@@ -5,67 +5,73 @@ Task Package Index: required
 
 ## 目标
 
-[用一句话说明本任务完成后应达到的状态。]
+将当前公开命令和产品表面统一到 `AgentPal` / `agentpal`，删除未发布阶段的 `oap` 与 `openagentpal` 用户入口。
 
 ## 范围
 
-- 做什么：[本轮允许修改或交付的内容]
-- 不做什么：[明确排除的内容，避免执行中扩大范围]
-- 主要风险：[当前已知的技术、产品、协作或验证风险]
+- 做什么：更新 CLI bin/script、help 文案、移动端设备名和活跃开发上下文，使对外路径变为 `agentpal pair --workspace .`。
+- 不做什么：不执行 `npm publish`，不改 Railway 平台域名，不重命名 GitHub 仓库，不批量改写历史 Harness 任务。
+- 主要风险：误删现网 Relay 域名会导致手机连接失败；机械替换历史审计文本会降低可追溯性。
 
 ## 预算选择
 
 选择预算：standard
 
-选择理由：[为什么本任务适合这个预算]
+选择理由：改动小但触及发布入口、移动端文案和 Harness 记录，需要有明确边界、设计记录和验证证据。
 
 ## 上下文包（Context Packet）
 
 | ID | 类型 | 路径 | 为什么需要 | 使用者 |
 | --- | --- | --- | --- | --- |
-| C-001 | public-doc / private-plan / external / code | PUBLIC:path 或 PRIVATE:path 或 TARGET:path 或 EXTERNAL:path 或 URL:https://example.com | [说明这份上下文如何影响任务] | coordinator / reviewer / worker |
+| C-001 | code | TARGET:package.json | 当前 npm bin/script 入口。 | coordinator |
+| C-002 | code | TARGET:bin/oap.mjs | 当前 CLI wrapper 和 help 文案。 | coordinator |
+| C-003 | code | TARGET:apps/mobile/src/hooks/useAgentPalRelay.ts | 当前 mobile deviceName。 | coordinator |
+| C-004 | private-plan | TARGET:coding-agent-harness/context/development/local-setup.md | 活跃本地开发命令说明。 | coordinator |
+| C-005 | code | TARGET:apps/mobile/src/lib/relay.ts; TARGET:crates/host/src/codex.rs | 当前 Railway Relay URL，确认不改。 | coordinator |
 
 ## 步骤
 
-1. [步骤 1]
-2. [步骤 2]
-3. [步骤 3]
+1. 写短设计，明确命名与不改项。
+2. 将源码态入口从 `oap` 改为 `agentpal`，并更新 help 文案和 mobile deviceName。
+3. 更新活跃开发上下文，不改历史任务审计文本。
+4. 运行 CLI、mobile typecheck、diff 和 Harness 检查，并记录证据。
 
 ## 验收标准
 
-- [ ] [标准 1]
-- [ ] [标准 2]
-- [ ] [标准 3]
+- [ ] `npm run agentpal -- --help` 通过并展示 `agentpal pair`。
+- [ ] `rg -n "\boap\b|openagentpal|OpenAgentPal" package.json bin apps/mobile/src coding-agent-harness/context/development deploy` 只剩允许的 Relay 域名或兼容项。
+- [ ] `npm --prefix apps/mobile run typecheck` 通过。
+- [ ] `git diff --check` 和 `harness check --profile target-project .` 通过。
 
 ## 工作树（Worktree）
 
-- 路径：[worktree 路径，例如 `.worktrees/feat/xxx`]
-- 分支：[分支名]
-- Worker owner：[coordinator / subagent id / 不适用]
-- Worker handoff commit required：[yes / no / 不适用]
-- Coordinator integration branch：[分支名 / 不适用]
-- 未使用 worktree 的原因：[说明]
+- 路径：不适用
+- 分支：`master`
+- Worker owner：不适用
+- Worker handoff commit required：不适用
+- Coordinator integration branch：`master`
+- 未使用 worktree 的原因：改动集中且没有 worker subagent；当前 checkout 干净，使用主 checkout 可降低发布入口改名的集成开销。
 
 ## 长程任务判定
 
-- 是否属于长程任务：[是 / 否]
+- 是否属于长程任务：否
 - 若是，合同文件：`long-running-task-contract.md`
-- 连续执行权限：[已授权 / 未授权 / 不适用]
-- Stop Condition 摘要：[一句话说明什么时候必须停]
+- 连续执行权限：不适用
+- Stop Condition 摘要：需要真实 npm 发布、GitHub 重命名或 Relay 域名替换时停止。
 
 ## 审查判定
 
-- 是否需要对抗性审查：[是 / 否]
+- 是否需要对抗性审查：否
 - 若是，报告文件：`review.md`
-- Reviewer：[self / subagent / external / human / 不适用]
-- No-finding 要求：[例如 reviewer 无重要发现 / 不适用]
+- Reviewer：self
+- No-finding 要求：自检确认没有误改现网 Relay 域名、历史任务 ID 或协议兼容入口。
 
 ## 关联
 
-- 相关 Regression Gate：[引用]
-- 审查报告：[路径 / 不适用]
+- 相关 Regression Gate：RG-001 Cloud Relay Beta pair/create/claim/scoped-route；本任务不改协议和 Relay URL，仅验证未误改。
+- 审查报告：TARGET:coding-agent-harness/planning/tasks/2026-06-10-agentpal-public-command-naming-41fcec16/review.md
 - Generated Ledger：由 lifecycle CLI / `harness governance rebuild` 重建
-- 前置任务：[引用；如无写“无”]
+- 前置任务：TASKS/2026-06-10-default-public-relay-endpoint-fc62feae
 
 ## 模块关联（启用模块并行时填写）
 
