@@ -1,6 +1,7 @@
 use std::{
     collections::{HashMap, HashSet},
     env,
+    io::{self, Write},
     path::{Path, PathBuf},
     process::Stdio,
     sync::Arc,
@@ -15,7 +16,10 @@ use agentpal_protocol::{
     RiskLevel, SessionEvent, SessionState, SessionSummary, WorkspaceSnapshot, WorktreeSummary,
 };
 use clap::Args;
-use futures_util::{SinkExt, StreamExt, stream::SplitSink};
+use futures_util::{
+    SinkExt, StreamExt,
+    stream::{SplitSink, SplitStream},
+};
 use local_ip_address::local_ip;
 use qrcode::{QrCode, render::unicode};
 use serde::{Deserialize, Serialize};
@@ -399,20 +403,11 @@ async fn run_connect_loop(
     tokio::time::sleep(Duration::from_millis(600)).await;
     let relay_url = normalize_ws_url(&args.relay_url);
     let (relay_socket, _) = connect_async(relay_url.as_str()).await?;
-    let (codex_socket, _) = connect_async(codex_websocket_url).await?;
     let (relay_write, mut relay_read) = relay_socket.split();
-    let (codex_write, codex_read) = codex_socket.split();
     let relay_write = Arc::new(Mutex::new(relay_write));
-    let codex_write = Arc::new(Mutex::new(codex_write));
-    let (codex_tx, mut codex_rx) = mpsc::unbounded_channel::<Value>();
     let host_id = args.host_id.clone().unwrap_or_else(default_host_id);
     let session_id = args.session_id.clone();
     let workspace_owned = workspace.to_owned();
-    let thread_ids = Arc::new(Mutex::new(HashMap::<String, String>::new()));
-    let pending_thread_starts = Arc::new(Mutex::new(HashMap::<u64, String>::new()));
-    let pending_thread_loads = Arc::new(Mutex::new(HashMap::<u64, String>::new()));
-    let picker_items = Arc::new(Mutex::new(default_picker_items()));
-    let seq = Arc::new(Mutex::new(0_u64));
 
     relay_send(
         &relay_write,
@@ -445,7 +440,19 @@ async fn run_connect_loop(
             },
         )
         .await?;
+        print_pairing_response(&mut relay_read, &host_id, args.no_qr).await?;
     }
+
+    let (codex_socket, _) = connect_async(codex_websocket_url).await?;
+    let (codex_write, codex_read) = codex_socket.split();
+    let codex_write = Arc::new(Mutex::new(codex_write));
+    let (codex_tx, mut codex_rx) = mpsc::unbounded_channel::<Value>();
+    let thread_ids = Arc::new(Mutex::new(HashMap::<String, String>::new()));
+    let pending_thread_starts = Arc::new(Mutex::new(HashMap::<u64, String>::new()));
+    let pending_thread_loads = Arc::new(Mutex::new(HashMap::<u64, String>::new()));
+    let picker_items = Arc::new(Mutex::new(default_picker_items()));
+    let seq = Arc::new(Mutex::new(0_u64));
+
     publish_host_status(&relay_write, &host_id, host_name, workspace, 1).await?;
 
     send_codex_initialize(&codex_write).await?;
@@ -727,6 +734,39 @@ async fn run_connect_loop(
         eprintln!("Codex connected through AgentPal Host ({version})");
     }
     Ok(())
+}
+
+async fn print_pairing_response(
+    relay_read: &mut SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
+    host_id: &str,
+    no_qr: bool,
+) -> anyhow::Result<()> {
+    while let Some(message) = relay_read.next().await {
+        let message = message?;
+        match message {
+            Message::Text(text) => {
+                let server_message: RelayServerMessage = serde_json::from_str(&text)?;
+                match server_message {
+                    RelayServerMessage::PairCreated { pairing } => {
+                        if pairing.host_id == host_id {
+                            print_pairing_payload(&pairing, no_qr)?;
+                            return Ok(());
+                        }
+                    }
+                    RelayServerMessage::Error { message } => {
+                        anyhow::bail!("AgentPal Relay error: {message}");
+                    }
+                    _ => {}
+                }
+            }
+            Message::Close(frame) => {
+                anyhow::bail!("relay websocket closed before pair response: {frame:?}");
+            }
+            Message::Binary(_) | Message::Ping(_) | Message::Pong(_) | Message::Frame(_) => {}
+        }
+    }
+
+    anyhow::bail!("relay websocket ended before pair response");
 }
 
 fn relay_task_result(
@@ -2330,6 +2370,8 @@ fn print_pairing_payload(payload: &PairingPayload, no_qr: bool) -> anyhow::Resul
         println!();
         println!("{qr}");
     }
+
+    io::stdout().flush()?;
 
     Ok(())
 }
