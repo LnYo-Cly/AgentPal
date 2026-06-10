@@ -4,14 +4,14 @@
 
 | Reviewer | Type | Scope |
 | --- | --- | --- |
-| [name] | self / subagent / external / human | [审查范围] |
+| coordinator | self | npm 发布准备、tarball 内容、CLI wrapper、临时安装、cargo checks 和 npm publish 阻塞状态 |
 
 ## 审查范围
 
-- 审查类型：adversarial / security / regression / architecture / release / other
-- 范围内：[文件、模块、行为、运行目标]
-- 范围外：[明确不审查的内容；如无写“无”]
-- 来源材料：[task plan、diff、commit、PR、测试输出、运行证据]
+- 审查类型：release / security / regression
+- 范围内：`package.json`、`bin/agentpal.mjs`、`Cargo.toml`、`README.md`、`LICENSE`、`.gitignore`、npm tarball、temporary install、Rust checks、npm publish result。
+- 范围外：移动端功能、Relay 生产部署、GitHub Release、预编译二进制分发、VPS 部署。
+- 来源材料：当前 diff、`progress.md` 验证记录、`npm pack --dry-run --json`、temporary prefix install output、cargo checks、`npm publish` E403。
 
 ## Agent Review Submission（Agent 提交审查）
 
@@ -19,25 +19,25 @@
 
 | Field | Value |
 | --- | --- |
-| Submission ID | [由 task-review 生成] |
-| Submitted At | [timestamp] |
-| Submitted By | [agent 或 coordinator 身份] |
+| Submission ID | blocked-before-ARS |
+| Submitted At | n/a |
+| Submitted By | coordinator |
 | Task Key | 2026-06-10-agentpal-npm-public-release-f0c0ca12 |
-| Materials Checklist Hash | [由 task-review 生成；只作信息记录，不作为手工门禁] |
-| Evidence Summary | [测试、diff、运行和审查材料证据] |
-| Open Findings Count | [数字] |
-| Scanner Version | [生成时的 scanner 版本] |
+| Materials Checklist Hash | n/a |
+| Evidence Summary | 发布准备和验证已完成；真实 npm publish 被 2FA 策略阻塞，尚未提交待人工确认。 |
+| Open Findings Count | 1 |
+| Scanner Version | manual-blocked-review |
 
 ### Material Checklist（材料清单）
 
 | Material | Required? | Status | Evidence |
 | --- | --- | --- | --- |
-| Brief | yes / no | present / missing / incomplete | [路径或原因] |
-| Task plan | yes / no | present / missing / incomplete | [路径或原因] |
-| Progress and evidence | yes / no | present / missing / incomplete | [路径或原因] |
-| Visual map | yes / no | present / missing / incomplete | [路径或原因] |
-| Lesson candidate decision | yes / no | present / missing / incomplete | [路径或原因] |
-| Walkthrough or closeout link | yes / no | present / missing / incomplete | [路径或原因] |
+| Brief | yes | present | `brief.md` |
+| Task plan | yes | present | `task_plan.md` |
+| Progress and evidence | yes | present | `progress.md` |
+| Visual map | yes | present | `visual_map.md` |
+| Lesson candidate decision | yes | incomplete | `lesson_candidates.md` pending because release is blocked before closeout |
+| Walkthrough or closeout link | yes | incomplete | `walkthrough.md` pending because npm publish did not complete |
 
 Scanner 会根据必需文件、章节、证据和这个严格提交块派生 `materialsReady`。如果材料未齐，任务应进入缺材料队列，而不是人工审查确认队列。
 如果存在开放的 P0/P1/P2 阻塞发现，任务应进入阻塞队列，而不是人工审查确认队列。
@@ -46,64 +46,69 @@ Scanner 会根据必需文件、章节、证据和这个严格提交块派生 `m
 
 直接回答：你是否对当前计划、实现和策略有 100% 信心？
 
-- Verdict：yes / no
+- Verdict：no
 - 如果不是 100%，剩余漏洞或证据缺口：
-  - [风险 / 漏洞 / 未验证假设；如无写“无”]
-- Fix loop count：[已经执行几轮 review -> fix -> evidence -> review]
-- 当前结论：[为什么现在可以继续、暂停或收口]
+  - npm publish 尚未成功；需要 OTP 或 publish token。
+- Fix loop count：1
+- 当前结论：实现和发布包已通过发布前验证；release gate 必须暂停在 npm 2FA 阻塞点。
 
 ## 重要发现（Material Findings，表头供 checker 解析）
 
 | ID | Severity | Finding | Evidence Checked | Required Action | Open | Disposition | Blocks Release | Follow-up |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-
-不要保留示例 finding。若没有重要发现，只保留表头，并补全下面的无重要发现声明。
-
-允许的 `Severity`：`P0`, `P1`, `P2`, `P3`。
-允许的 `Open`：`yes`, `no`。
-允许的 `Disposition`：`open`, `mitigated`, `closed`, `deferred`, `accepted-risk`, `not-reproducible`, `out-of-scope`。
-允许的 `Blocks Release`：`yes`, `no`。
+| F-001 | P1 | npm registry 要求 two-factor authentication 或允许 bypass 2FA 的 granular token，当前 publish 未成功。 | `npm publish .\agentpal-0.1.0.tgz --access public` returned E403; `npm view agentpal version` still E404 before publish attempt. | 用户提供当前 npm OTP，或配置可发布的 granular token 后重试 publish。 | yes | open | yes | Retry `npm publish .\agentpal-0.1.0.tgz --access public --otp <code>` and verify registry/npx. |
 
 ## 非阻塞备注（Non-Material Notes）
 
-- [不阻塞本轮目标但值得记录的问题；如无写“无”]
+- 当前 npm 包是源码型 CLI 包，用户本机需要 Rust `cargo`。预编译二进制发布应单独立项。
+- 当前默认 Relay URL 仍为 `wss://openagentpal-production.up.railway.app/ws`，这是已部署域名，不在本任务中替换。
 
 ## 已检查证据（Evidence Checked）
 
 | Evidence ID | Type | Path | Summary |
 | --- | --- | --- | --- |
-| E-001 | command / diff / fixture / screenshot / review / report | PUBLIC:path 或 PRIVATE:path 或 TARGET:path 或 EXTERNAL:path 或 URL:https://example.com | [检查了什么，结论是什么] |
+| E-001 | command | TARGET:. | `node -e` parsed `package.json`; package is `agentpal@0.1.0`, non-private, MIT, bin `agentpal`, files whitelist present. |
+| E-002 | command | TARGET:. | `npm run agentpal -- --help` passed and showed `agentpal pair` usage. |
+| E-003 | command | TARGET:. | `npm run agentpal -- pair --help` passed and appended absolute caller workspace. |
+| E-004 | command | TARGET:. | `npm run agentpal -- host codex connect --help` passed. |
+| E-005 | command | TARGET:. | `cargo fmt --check` passed. |
+| E-006 | command | TARGET:. | `cargo check --workspace` passed. |
+| E-007 | command | TARGET:. | `cargo test -p agentpal-relay` passed 9 tests. |
+| E-008 | command | TARGET:. | `npm pack --dry-run --json` produced 13 files, 47.7 kB package, denied count 0. |
+| E-009 | command | TEMP:agentpal-prefix | Temporary global install from tarball passed; installed `agentpal --help` and `agentpal host codex connect --help` worked. |
+| E-010 | command | TARGET:. | `npm publish .\agentpal-0.1.0.tgz --access public` failed with E403 requiring 2FA or bypass-token. |
 
 ## 无重要发现声明
 
-[如果没有重要发现，明确写：本轮已检查上述证据，未发现阻塞目标的重要发现。]
+不适用。本轮存在一个开放 P1 发布阻塞发现 F-001。
 
 ## 残余风险
 
 | Risk | Owner | Accepted? | Follow-up |
 | --- | --- | --- | --- |
-| [风险] | [负责人] | yes / no | [后续路径或“无”] |
+| npm publish requires OTP / publish token | LnYo-Cly / npm account owner | no | Provide OTP or configure token, then retry publish. |
+| Source-based npm package requires Rust toolchain | release owner | yes | Documented in README; future prebuilt binary task recommended. |
 
 ## Lifecycle Queue Routing（生命周期队列路由）
 
 | Queue | Applies? | Reason | Exit condition |
-| --- | --- | --- | --- |
-| Review | yes / no | 已提交审查材料包，且可等待人工确认。 | 人工确认或退回。 |
-| Missing Materials | yes / no | 必需文件、章节、证据或 review submission 缺失 / 不完整。 | Agent 补齐材料并重新提交审查。 |
-| Blocked | yes / no | 存在 open blocking finding、非法状态转换、审计失败或需要人工 waiver。 | blocker 被修复、关闭或明确豁免。 |
-| Lessons | yes / no | Lesson candidate 需要拒绝、留在任务内、dry-run promotion 或创建沉淀任务。 | 人工决定候选路由；除非明确批准，promotion 仍是单独维护任务。 |
-| Confirmed / Finalized | yes / no | 已有人工确认；可能仍待结项或治理收口。 | Closeout、ledger 和 lesson routing 都完成。 |
-| Soft-deleted / Superseded | yes / no | 任务有 tombstone、superseded-by 或 archive 状态；duplicate / abandoned 等语义写在 `Reason`。 | reopen 或作为只读审计历史保留。 |
+| --- | --- | --- |
+| Review | no | 真实发布未完成，不提交人工确认。 | npm publish 和发布后验证完成后再提交 review。 |
+| Missing Materials | no | 当前阻塞不是材料缺失。 | n/a |
+| Blocked | yes | F-001 open，npm publish 需要 OTP 或 publish token。 | publish 成功并完成 registry / npx 验证。 |
+| Lessons | no | 暂无需要沉淀的 Harness lesson；发布阻塞是 npm 安全策略。 | n/a |
+| Confirmed / Finalized | no | 尚无人工确认，也未 closeout。 | 完成 publish、review、human confirmation 和 closeout。 |
+| Soft-deleted / Superseded | no | 任务仍 active。 | n/a |
 
 ## 后续路由（Follow-Up Routing）
 
-- 任务计划：[是否需要更新，路径或“无”]
-- Progress：[对应 `progress.md` 条目]
-- 发现记录：[是否需要写入 `findings.md`]
-- Regression SSoT：[新增 / 调整 / 无]
-- Lessons：[checked-created: L-YYYY-MM-DD-NNN / checked-candidate: LC-YYYYMMDD-NNN / queued-promotion: LC-YYYYMMDD-NNN / checked-none: 一句话原因]
-- 收口记录：[收口时引用路径]
+- 任务计划：无需更新；等待 OTP 后继续执行步骤 5。
+- Progress：`progress.md` 2026-06-10 19:05 npm publish blocked。
+- 发现记录：`findings.md` 已记录 npm 2FA 阻塞。
+- Regression SSoT：无新增；本任务不改 Relay 协议。
+- Lessons：pending until closeout。
+- 收口记录：`walkthrough.md` 保持 blocked handoff，publish 完成后再收口。
 
 ## 最终信心依据（Final Confidence Basis）
 
-[说明最终信心来自哪些证据、审查层级和已关闭发现。发布前最终审查不能只依赖 self-only。]
+当前信心来自 package metadata parse、CLI help、workspace wrapper evidence、cargo checks、relay tests、npm pack allow/deny review 和 temporary install smoke。最终发布信心尚未成立，因为 npm publish 被 F-001 阻塞。

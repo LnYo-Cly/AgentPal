@@ -49,7 +49,7 @@
 
 ## No-Candidate Reason
 
-尚未判定。只有人工审查接受本任务没有可复用候选时，才填写这里。
+发布尚未成功，先保持 pending。当前阻塞来自 npm 账号 2FA 策略，不是可直接沉淀为 Harness 标准变更的项目内重复问题；publish 成功并 closeout 时再做最终 no-candidate 或候选判定。
 
 ## Promotion Notes
 

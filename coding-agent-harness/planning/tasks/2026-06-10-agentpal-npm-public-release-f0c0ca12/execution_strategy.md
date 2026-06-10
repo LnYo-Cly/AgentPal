@@ -18,8 +18,8 @@
 
 | Question | Decision | Reason | Next Action |
 | --- | --- | --- | --- |
-| Should a reviewer subagent be used? | yes / no | [为什么需要或不需要 reviewer] | 如果 yes，直接调用只读 reviewer，不需要额外申请。 |
-| Would a worker subagent materially help? | no / ask-user / already-authorized | [并行切片、独立实现、专项调查，或说明为什么不需要] | 如果 ask-user，直接问：“这个任务适合拆给 worker subagent 并行处理。是否授权我派一个 worker subagent，只修改 [scope]，只在 [worktree/branch] 内执行，我负责协调和最终审查？” |
+| Should a reviewer subagent be used? | no | 本任务需要 npm 登录态、发布凭据和实际 publish 验证；当前可用证据主要来自本地命令和 registry，使用 coordinator self release review 更直接。 | 写完整 `review.md` release/security 自审，最终等待 human review confirmation。 |
+| Would a worker subagent materially help? | no | 改动集中在 package/CLI wrapper/任务包，且 publish 是单 owner 外部动作；并行 worker 会增加 shared release 文件和 npm 状态协调风险。 | 不申请 worker 授权。 |
 
 ## User Authorization Decision
 
@@ -28,18 +28,18 @@
 
 | Gate | State | Decided By | Decided At | Scope | Worktree / Branch | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| worker subagent | pending | pending | pending | pending | pending | 只有直接问过用户后才能填写。 |
+| worker subagent | not-needed | coordinator | 2026-06-10 | npm release packaging and publish | master / main checkout | 发布任务保持单 owner。 |
 
 ## 决策表
 
 | 决策 | 选择 | 说明 |
 | --- | --- | --- |
 | 主执行者 | coordinator | coordinator 负责编排顺序、冲突判断和最终收口。 |
-| Subagent 模式 | none / reviewer-only / worker-worktree | 选择能满足任务的最小协作模式。 |
-| 审查模型 | self-check / predefined verifier / adversarial review | 说明为什么该审查层级足够。 |
-| Worktree 策略 | same checkout / dedicated worktree | 会改代码的 subagent 必须使用独立 worktree，并提交 handoff commit。 |
+| Subagent 模式 | none | 不使用 worker；发布前通过命令证据和 release review 控制风险。 |
+| 审查模型 | adversarial release self-review | 检查发布包内容、敏感文件、CLI 路径解析、临时安装和 registry 结果。 |
+| Worktree 策略 | same checkout | 当前 checkout 已承载 npm/GitHub 发布上下文；没有 worker 写入。 |
 | 冲突控制 | coordinator owns shared files | subagent 不得直接编辑 coordinator 管理的全局表或共享文件，除非获得明确锁。 |
-| 证据深度 | L0 / L1 / L2 / L3 | 按变更风险匹配证据深度。 |
+| 证据深度 | L3 | 真实外部 npm 发布需要发布前 tarball 审查、临时安装验证和发布后 registry/npx 验证。 |
 
 ## 子代理 / Worker 合同
 
@@ -47,16 +47,16 @@
 
 | 角色 | 输入包 | 写入范围 | 交接要求 | 负责人 |
 | --- | --- | --- | --- | --- |
-| reviewer / worker / n/a | C-001 | read-only / path list / n/a | report / commit SHA / n/a | coordinator |
+| n/a | C-001..C-005 | n/a | n/a | coordinator |
 
 ## 证据计划
 
 | 证据层级 | 计划命令或检查 | 记录位置 | 完成条件 |
 | --- | --- | --- | --- |
-| L0 | [静态检查 / 小范围自检] | `progress.md` | [通过标准] |
-| L1 | [单元测试 / targeted check] | `progress.md` 或 `artifacts/INDEX.md` | [通过标准] |
-| L2 | [集成 / 浏览器 / 真实数据冒烟] | `artifacts/INDEX.md` | [通过标准] |
-| L3 | [发布前 / 生产等价验证 / 外部审查] | `review.md` 与 walkthrough | [通过标准] |
+| L0 | `node -e` parse package JSON; `npm run agentpal -- --help`; static tarball allow/deny list script | `progress.md` | 元数据和 CLI help 正常，包内容没有明显无关/敏感文件。 |
+| L1 | `cargo fmt --check`; `cargo check --workspace`; `cargo test -p agentpal-relay` | `progress.md` | Rust workspace 可构建，relay 关键测试通过。 |
+| L2 | `npm pack`; temporary npm prefix install; installed `agentpal --help` and host help | `progress.md` | 模拟外部用户安装路径成功。 |
+| L3 | `npm publish --access public`; `npm view agentpal version`; `npx agentpal@latest --help` | `review.md` 与 walkthrough | registry 显示发布版本，npx 可运行公开包。 |
 
 ## 暂停 / 升级条件
 

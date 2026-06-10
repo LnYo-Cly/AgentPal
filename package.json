@@ -1,8 +1,18 @@
 {
   "name": "agentpal",
-  "private": true,
   "version": "0.1.0",
-  "description": "AgentPal mobile workbench and desktop host scaffold.",
+  "description": "AgentPal CLI for pairing local coding agents with the AgentPal mobile app.",
+  "license": "MIT",
+  "keywords": [
+    "agentpal",
+    "codex",
+    "coding-agent",
+    "mobile",
+    "relay"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/LnYo-Cly/AgentPal.git"
@@ -11,8 +21,19 @@
     "url": "https://github.com/LnYo-Cly/AgentPal/issues"
   },
   "homepage": "https://github.com/LnYo-Cly/AgentPal#readme",
+  "files": [
+    "bin/",
+    "crates/",
+    "Cargo.toml",
+    "Cargo.lock",
+    "README.md",
+    "LICENSE"
+  ],
   "bin": {
     "agentpal": "bin/agentpal.mjs"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "agentpal": "node ./bin/agentpal.mjs",

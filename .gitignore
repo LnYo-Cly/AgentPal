@@ -6,6 +6,7 @@ skills-lock.json
 /ui/
 target/
 node_modules/
+*.tgz
 apps/mobile/.expo/
 apps/mobile/.expo-shared/
 apps/mobile/dist/

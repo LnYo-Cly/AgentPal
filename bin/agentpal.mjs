@@ -4,10 +4,16 @@ import http from "node:http";
 import https from "node:https";
 import { spawn } from "node:child_process";
 import process from "node:process";
+import { homedir } from "node:os";
+import { fileURLToPath } from "node:url";
+import { dirname, join, resolve } from "node:path";
 
 const DEFAULT_PUBLIC_RELAY_URL = "wss://openagentpal-production.up.railway.app/ws";
 const UPDATE_CHECK_URL = "https://registry.npmjs.org/agentpal/latest";
 const UPDATE_CHECK_TIMEOUT_MS = 900;
+const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const callerCwd = process.cwd();
+const defaultCargoTargetDir = join(homedir(), ".agentpal", "cargo-target");
 const packageMetadata = readPackageMetadata();
 
 const args = process.argv.slice(2);
@@ -29,14 +35,14 @@ if (command === "pair") {
     "connect",
     "--create-pair",
     ...defaultRelayArgs(args.slice(1)),
-    ...args.slice(1)
+    ...withDefaultWorkspaceArgs(args.slice(1))
   ]);
 } else if (command === "relay") {
   await maybeShowUpdateNotice();
   runCargo(["run", "-p", "agentpal-relay", "--", ...args.slice(1)]);
 } else if (command === "host") {
   await maybeShowUpdateNotice();
-  runCargo(["run", "-p", "agentpal-host", "--", ...args.slice(1)]);
+  runCargo(["run", "-p", "agentpal-host", "--", ...normalizeHostArgs(args.slice(1))]);
 } else {
   console.error(`Unknown agentpal command: ${command}`);
   console.error("");
@@ -54,6 +60,51 @@ function defaultRelayArgs(passThrough) {
 
 function hasFlagValue(items, flag) {
   return items.some((item) => item === flag || item.startsWith(`${flag}=`));
+}
+
+function normalizeWorkspaceArgs(items) {
+  const normalized = [];
+  for (let index = 0; index < items.length; index += 1) {
+    const item = items[index];
+    if (item === "--workspace" && index + 1 < items.length) {
+      normalized.push(item, resolveWorkspaceValue(items[index + 1]));
+      index += 1;
+      continue;
+    }
+    if (item.startsWith("--workspace=")) {
+      normalized.push(`--workspace=${resolveWorkspaceValue(item.slice("--workspace=".length))}`);
+      continue;
+    }
+    normalized.push(item);
+  }
+  return normalized;
+}
+
+function withDefaultWorkspaceArgs(items) {
+  const normalized = normalizeWorkspaceArgs(items);
+  if (hasFlagValue(normalized, "--workspace")) {
+    return normalized;
+  }
+  return [...normalized, "--workspace", callerCwd];
+}
+
+function normalizeHostArgs(items) {
+  const normalized = normalizeWorkspaceArgs(items);
+  if (hostCommandNeedsDefaultWorkspace(normalized) && !hasFlagValue(normalized, "--workspace")) {
+    return [...normalized, "--workspace", callerCwd];
+  }
+  return normalized;
+}
+
+function hostCommandNeedsDefaultWorkspace(items) {
+  return items[0] === "codex" && (items[1] === "probe" || items[1] === "connect");
+}
+
+function resolveWorkspaceValue(value) {
+  if (!value) {
+    return value;
+  }
+  return resolve(callerCwd, value);
 }
 
 async function maybeShowUpdateNotice() {
@@ -121,7 +172,7 @@ function fetchJson(url, timeoutMs) {
 
 function readPackageMetadata() {
   try {
-    return JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+    return JSON.parse(readFileSync(resolve(packageRoot, "package.json"), "utf8"));
   } catch {
     return {};
   }
@@ -154,7 +205,12 @@ function parseVersion(version) {
 }
 
 function runCargo(cargoArgs) {
+  const env = { ...process.env };
+  env.CARGO_TARGET_DIR ??= defaultCargoTargetDir;
+
   const child = spawn("cargo", cargoArgs, {
+    cwd: packageRoot,
+    env,
     stdio: "inherit"
   });
 
@@ -187,12 +243,14 @@ Commands:
 
 Defaults:
   agentpal pair uses AGENTPAL_RELAY_URL when set, otherwise ${DEFAULT_PUBLIC_RELAY_URL}.
+  agentpal pair uses the current directory as --workspace unless one is supplied.
   Local development can pass --relay-url ws://127.0.0.1:8790/ws.
 
 Examples:
   agentpal relay --host 0.0.0.0 --port 8790
+  agentpal pair
   agentpal pair --workspace .
   agentpal pair --workspace . --relay-url ws://127.0.0.1:8790/ws
-  agentpal host codex pair --relay-url 192.168.1.10:8790
+  agentpal host codex connect --workspace .
 `);
 }
