@@ -1,6 +1,6 @@
 # Default public relay endpoint - 进度
 
-## 状态：进行中
+## 状态：已完成
 
 `## 状态` 是受控机器字段，只能使用以下值之一：
 
@@ -54,3 +54,10 @@
 - 验证结果：`npm run oap -- --help` 展示默认 `wss://openagentpal-production.up.railway.app/ws`；`cargo run -p agentpal-host -- codex connect --help` 因默认 target 中 `agentpal-host.exe` 被占用失败，随后用 `CARGO_TARGET_DIR=target/default-public-relay-check` 通过并显示同一默认值；`cargo fmt --check`、`cargo check --workspace`、`cargo test -p agentpal-relay`、`npm --prefix apps/mobile run typecheck`、`git diff --check`、`harness check --profile target-project .` 均通过；live `/healthz` 返回 200 和 `{"ok":true,"service":"agentpal-relay","version":"0.1.0"}`。
 - 下一步：提交实现切片，执行 `visual_map.md` 中的 agent gate 并推送。
 - 证据：command:TARGET:.:npm run oap -- --help passed with Railway default; command:TARGET:.:CARGO_TARGET_DIR=target/default-public-relay-check cargo run -p agentpal-host -- codex connect --help passed with Railway default; command:TARGET:.:cargo fmt --check passed; command:TARGET:.:CARGO_TARGET_DIR=target/default-public-relay-check cargo check --workspace passed; command:TARGET:.:CARGO_TARGET_DIR=target/default-public-relay-check cargo test -p agentpal-relay passed 9 tests; command:TARGET:apps/mobile:npm --prefix apps/mobile run typecheck passed; command:TARGET:.:git diff --check passed; command:URL:https://openagentpal-production.up.railway.app/healthz:200 health response; command:TARGET:.:harness check passed with dirty-state warning before commit
+
+### [2026-06-10 06:50] - task-complete
+
+- 做了什么：Default public Relay now uses Railway endpoint for QR pairing
+- 验证结果：已记录
+- 下一步：完成
+- 证据：n/a

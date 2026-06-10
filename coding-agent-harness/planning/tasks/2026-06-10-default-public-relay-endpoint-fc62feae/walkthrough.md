@@ -57,3 +57,5 @@
 | 设计说明 | `docs/plans/2026-06-10-default-public-relay-endpoint-design.md` |
 | 进度记录 | `progress.md` |
 | Regression SSoT | `coding-agent-harness/governance/regression/Regression-SSoT.md` |
+
+Closeout Status: closed
