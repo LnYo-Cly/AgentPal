@@ -108,3 +108,17 @@
 ## 最终信心依据（Final Confidence Basis）
 
 最终信心来自公开前 secret scan、GitHub public repo 状态、secret scanning / push protection 状态、本地 remote 验证、`package.json` metadata diff 和 Harness check。真实 npm 发布、README/License 完善和 branded Relay domain 不在本任务范围内。
+
+## Agent Review Submission
+
+| Field | Value |
+| --- | --- |
+| Submission ID | ARS-202606101015 |
+| Submitted At | 2026-06-10 10:15 |
+| Submitted By | agent |
+| Task Key | TASKS/2026-06-10-agentpal-github-public-repository-rename-c0a78ac1 |
+| Materials Checklist Hash | 2b8ff309077a747d |
+| Evidence Summary | AgentPal GitHub public repository rename ready for human review |
+| Open Findings Count | 0 |
+| Scanner Version | task-scanner/2026-05-25-phase-kind |
+| Target | TARGET:coding-agent-harness/planning/tasks/2026-06-10-agentpal-github-public-repository-rename-c0a78ac1 |

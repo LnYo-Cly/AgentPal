@@ -1,6 +1,6 @@
 # AgentPal GitHub public repository rename - 进度
 
-## 状态：进行中
+## 状态：审查中
 
 `## 状态` 是受控机器字段，只能使用以下值之一：
 
@@ -48,3 +48,10 @@
 - 验证结果：tracked source 未命中 GitHub token、npm token、Railway token assignment、Redis URL、private key block、常见云 token；未跟踪未忽略敏感文件名扫描无命中；Git history 未命中 GitHub/npm/OpenAI/AWS/private key 模式，也未命中带用户名/密码的 Redis URL；仅发现历史中的示例 `redis://` 和 Android debug keystore，均非阻塞。`gh repo view` 确认 `LnYo-Cly/AgentPal` 为 `PUBLIC` / `isPrivate=false`；GitHub API 确认 secret scanning 和 push protection 为 enabled；`git remote -v` 和 `git ls-remote --heads origin` 可访问新 remote。
 - 下一步：运行最终检查，提交 metadata 和任务材料，推进 Agent Review Submission；不执行人工 review gate。
 - 证据：command:TARGET:.:`git ls-files` sensitive filename scan found no tracked `.env` / private key files except Android debug keystore; command:TARGET:.:`git grep` token/secret patterns found no blocking tracked-source hits; command:TARGET:.:`git log --all -G` token/private-key scans found no blocking historical hits; command:TARGET:.:`gh api -X PATCH repos/LnYo-Cly/OpenAgentPal -f name=AgentPal -f private=false` succeeded; command:URL:https://github.com/LnYo-Cly/AgentPal:`gh repo view` shows PUBLIC and `isPrivate=false`; command:URL:https://github.com/LnYo-Cly/AgentPal:`gh api repos/LnYo-Cly/AgentPal` shows secret scanning and push protection enabled; command:TARGET:.:`git remote -v` points to `https://github.com/LnYo-Cly/AgentPal.git`; command:TARGET:.:`git ls-remote --heads origin` succeeded; diff:TARGET:package.json:added repository / bugs / homepage metadata for `LnYo-Cly/AgentPal`
+
+### [2026-06-10 10:15] - task-review
+
+- 做了什么：AgentPal GitHub public repository rename ready for human review
+- 验证结果：已记录
+- 下一步：继续执行
+- 证据：n/a
