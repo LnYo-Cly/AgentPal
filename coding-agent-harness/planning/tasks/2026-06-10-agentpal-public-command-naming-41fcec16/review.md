@@ -19,14 +19,14 @@
 
 | Field | Value |
 | --- | --- |
-| Submission ID | pending task-review |
-| Submitted At | pending task-review |
-| Submitted By | coordinator |
+| Submission ID | ARS-202606100810 |
+| Submitted At | 2026-06-10 08:10 |
+| Submitted By | agent |
 | Task Key | 2026-06-10-agentpal-public-command-naming-41fcec16 |
-| Materials Checklist Hash | pending task-review |
+| Materials Checklist Hash | 88d9f68327c48854 |
 | Evidence Summary | `agentpal` bin/script verified; mobile typecheck passed; no current `oap` / `openagentpal://pair` user-surface remnants; Harness check passed. |
 | Open Findings Count | 0 |
-| Scanner Version | pending task-review |
+| Scanner Version | task-scanner/2026-05-25-phase-kind |
 
 ### Material Checklist（材料清单）
 
@@ -87,7 +87,7 @@
 
 | Queue | Applies? | Reason | Exit condition |
 | --- | --- | --- | --- |
-| Review | yes | 材料包齐全，等待 Agent Review Submission lifecycle command。 | 人工确认或退回。 |
+| Review | yes | 材料包齐全，Agent Review Submission 已生成。 | 人工确认或退回。 |
 | Missing Materials | no | 必需材料已补齐。 | n/a |
 | Blocked | no | 无 open blocking finding。 | n/a |
 | Lessons | no | 本任务没有可复用 Harness 经验候选。 | n/a |
