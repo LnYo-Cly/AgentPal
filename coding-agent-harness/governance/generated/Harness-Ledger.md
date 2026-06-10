@@ -44,6 +44,7 @@ Repo Governance / CI-CD changes remain routed through their reference standards 
 | HL-2026-06-10-agentpal-cli-update-notice-403bf715 | task | none | AgentPal CLI update notice | review | none | coding-agent-harness/planning/tasks/2026-06-10-agentpal-cli-update-notice-403bf715/task_plan.md | coding-agent-harness/planning/tasks/2026-06-10-agentpal-cli-update-notice-403bf715/review.md | pending | pending | AgentPal CLI update notice ready for human review | 2026-06-10 |
 | HL-2026-06-10-agentpal-github-public-repository-rename-c0a78ac1 | task | none | AgentPal GitHub public repository rename | review | none | coding-agent-harness/planning/tasks/2026-06-10-agentpal-github-public-repository-rename-c0a78ac1/task_plan.md | coding-agent-harness/planning/tasks/2026-06-10-agentpal-github-public-repository-rename-c0a78ac1/review.md | pending | pending | AgentPal GitHub public repository rename ready for human review | 2026-06-10 |
 | HL-2026-06-10-agentpal-npm-public-release-f0c0ca12 | task | none | AgentPal npm public release | planned | none | coding-agent-harness/planning/tasks/2026-06-10-agentpal-npm-public-release-f0c0ca12/task_plan.md | pending | pending | pending | task registered by CLI | 2026-06-10 |
+| HL-2026-06-10-agentpal-readme-product-narrative-refresh-6ac86ba0 | task | none | AgentPal README product narrative refresh | planned | none | coding-agent-harness/planning/tasks/2026-06-10-agentpal-readme-product-narrative-refresh-6ac86ba0/task_plan.md | pending | pending | pending | task registered by CLI | 2026-06-10 |
 
 ## Field Rules
 
