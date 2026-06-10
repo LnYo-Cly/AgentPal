@@ -1,6 +1,6 @@
 # AgentPal npm TLS relay hotfix - 进度
 
-## 状态：进行中
+## 状态：已阻塞
 
 `## 状态` 是受控机器字段，只能使用以下值之一：
 
@@ -60,3 +60,10 @@
 - 验证结果：已记录
 - 下一步：继续执行
 - 证据：command:npm run agentpal -- pair --workspace . --no-qr --timeout-seconds 3 --codex-port 38991:printed public wss pairing URL; final deadline elapsed expected from smoke timeout
+
+### [2026-06-10 17:04] - task-block
+
+- 做了什么：npm publish agentpal@0.1.1 is blocked by npm EOTP; owner=user to complete browser/OTP authentication, then coordinator can rerun publish and verify registry latest.
+- 验证结果：已记录
+- 下一步：继续执行
+- 证据：n/a
