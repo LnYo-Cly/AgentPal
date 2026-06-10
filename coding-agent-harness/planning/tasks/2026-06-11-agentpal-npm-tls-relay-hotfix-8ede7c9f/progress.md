@@ -53,3 +53,10 @@
 - 验证结果：已记录
 - 下一步：继续执行
 - 证据：command:cargo check -p agentpal-host:passed
+
+### [2026-06-10 16:59] - task-log
+
+- 做了什么：Validation passed: host and relay tests passed, dry-run package includes 0.1.1 contents, and public wss pairing smoke printed agentpal://pair URL before the intentional 3s timeout.
+- 验证结果：已记录
+- 下一步：继续执行
+- 证据：command:npm run agentpal -- pair --workspace . --no-qr --timeout-seconds 3 --codex-port 38991:printed public wss pairing URL; final deadline elapsed expected from smoke timeout
