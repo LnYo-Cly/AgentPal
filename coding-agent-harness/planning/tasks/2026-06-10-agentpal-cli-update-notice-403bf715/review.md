@@ -4,14 +4,14 @@
 
 | Reviewer | Type | Scope |
 | --- | --- | --- |
-| [name] | self / subagent / external / human | [审查范围] |
+| coordinator | self | 当前 CLI 更新提示实现、失败策略、验证证据和残余风险 |
 
 ## 审查范围
 
-- 审查类型：adversarial / security / regression / architecture / release / other
-- 范围内：[文件、模块、行为、运行目标]
-- 范围外：[明确不审查的内容；如无写“无”]
-- 来源材料：[task plan、diff、commit、PR、测试输出、运行证据]
+- 审查类型：release / regression
+- 范围内：`bin/agentpal.mjs` 的更新检查、提示文案、关闭开关、mock registry 验证入口、Cargo 启动方式和任务材料。
+- 范围外：真实 `npm publish`、预编译二进制分发、自动自更新、用户全局配置、Relay / Host 协议、Railway 域名。
+- 来源材料：commit `adad643`、`progress.md` 证据、CLI help 输出、mock registry 验证、mobile typecheck、`git diff --check`、`harness check`。
 
 ## Agent Review Submission（Agent 提交审查）
 
@@ -19,91 +19,94 @@
 
 | Field | Value |
 | --- | --- |
-| Submission ID | [由 task-review 生成] |
-| Submitted At | [timestamp] |
-| Submitted By | [agent 或 coordinator 身份] |
+| Submission ID | ARS-202606101733 |
+| Submitted At | 2026-06-10 17:33 |
+| Submitted By | agent |
 | Task Key | 2026-06-10-agentpal-cli-update-notice-403bf715 |
-| Materials Checklist Hash | [由 task-review 生成；只作信息记录，不作为手工门禁] |
-| Evidence Summary | [测试、diff、运行和审查材料证据] |
-| Open Findings Count | [数字] |
-| Scanner Version | [生成时的 scanner 版本] |
+| Materials Checklist Hash | pending-cli-task-review |
+| Evidence Summary | Update notice is skipped for help; mock latest prints the update command; opt-out suppresses the notice; registry 404 is silent; mobile typecheck and Harness checks pass. |
+| Open Findings Count | 0 |
+| Scanner Version | task-scanner/2026-05-25-phase-kind |
 
 ### Material Checklist（材料清单）
 
 | Material | Required? | Status | Evidence |
 | --- | --- | --- | --- |
-| Brief | yes / no | present / missing / incomplete | [路径或原因] |
-| Task plan | yes / no | present / missing / incomplete | [路径或原因] |
-| Progress and evidence | yes / no | present / missing / incomplete | [路径或原因] |
-| Visual map | yes / no | present / missing / incomplete | [路径或原因] |
-| Lesson candidate decision | yes / no | present / missing / incomplete | [路径或原因] |
-| Walkthrough or closeout link | yes / no | present / missing / incomplete | [路径或原因] |
-
-Scanner 会根据必需文件、章节、证据和这个严格提交块派生 `materialsReady`。如果材料未齐，任务应进入缺材料队列，而不是人工审查确认队列。
-如果存在开放的 P0/P1/P2 阻塞发现，任务应进入阻塞队列，而不是人工审查确认队列。
+| Brief | yes | present | `brief.md` |
+| Task plan | yes | present | `task_plan.md` |
+| Progress and evidence | yes | present | `progress.md` |
+| Visual map | yes | present | `visual_map.md` |
+| Lesson candidate decision | yes | present | `lesson_candidates.md` |
+| Walkthrough or closeout link | yes | present | `walkthrough.md` |
 
 ## 信心挑战（Confidence Challenge）
 
 直接回答：你是否对当前计划、实现和策略有 100% 信心？
 
-- Verdict：yes / no
+- Verdict：yes
 - 如果不是 100%，剩余漏洞或证据缺口：
-  - [风险 / 漏洞 / 未验证假设；如无写“无”]
-- Fix loop count：[已经执行几轮 review -> fix -> evidence -> review]
-- 当前结论：[为什么现在可以继续、暂停或收口]
+  - 无。
+- Fix loop count：1
+- 当前结论：更新检查只在真实命令路径执行，help 路径不触发；失败、404 和超时通过 `catch` / 非 200 状态静默处理；提示只在 mock latest 高于本地版本时出现；关闭开关已验证。可以进入 Agent Review Submission。
 
 ## 重要发现（Material Findings，表头供 checker 解析）
 
 | ID | Severity | Finding | Evidence Checked | Required Action | Open | Disposition | Blocks Release | Follow-up |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 
-不要保留示例 finding。若没有重要发现，只保留表头，并补全下面的无重要发现声明。
-
-允许的 `Severity`：`P0`, `P1`, `P2`, `P3`。
-允许的 `Open`：`yes`, `no`。
-允许的 `Disposition`：`open`, `mitigated`, `closed`, `deferred`, `accepted-risk`, `not-reproducible`, `out-of-scope`。
-允许的 `Blocks Release`：`yes`, `no`。
-
 ## 非阻塞备注（Non-Material Notes）
 
-- [不阻塞本轮目标但值得记录的问题；如无写“无”]
+- `AGENTPAL_UPDATE_CHECK_URL` 是测试覆盖入口，不写入用户帮助文案。
+- 当前 npm 包尚未发布时 registry 可能返回 404；本实现将其视为静默跳过。
+- `npx agentpal@latest` 用户天然获取最新版；本提示主要服务于 `npm install -g agentpal` 的全局安装用户。
 
 ## 已检查证据（Evidence Checked）
 
 | Evidence ID | Type | Path | Summary |
 | --- | --- | --- | --- |
-| E-001 | command / diff / fixture / screenshot / review / report | PUBLIC:path 或 PRIVATE:path 或 TARGET:path 或 EXTERNAL:path 或 URL:https://example.com | [检查了什么，结论是什么] |
+| E-001 | diff | TARGET:. | Commit `adad643` adds `maybeShowUpdateNotice`, npm latest fetch, semver comparison, timeout, opt-out, and mock URL support in `bin/agentpal.mjs`. |
+| E-002 | command | TARGET:. | `npm run agentpal -- --help` passed and did not print an update notice. |
+| E-003 | command | TARGET:. | `npm run agentpal -- relay --help` passed without Node `DEP0190` warning after removing `shell: true` from the Cargo spawn path. |
+| E-004 | command | TARGET:. | Mock registry returning `{"version":"0.1.1"}` caused the CLI to print `AgentPal 0.1.1 is available. Update with: npm install -g agentpal@latest`. |
+| E-005 | command | TARGET:. | `AGENTPAL_NO_UPDATE_CHECK=1` suppressed the update notice against the same mock registry. |
+| E-006 | command | TARGET:. | Mock registry 404 was silent and the command continued. |
+| E-007 | command | TARGET:. | `npm exec -- agentpal --help` passed via package bin. |
+| E-008 | command | TARGET:apps/mobile | `npm --prefix apps/mobile run typecheck` passed. |
+| E-009 | command | TARGET:. | `git diff --check` passed. |
+| E-010 | command | TARGET:. | `harness check --profile target-project .` passed after task packet edits with a dirty-docs warning only. |
 
 ## 无重要发现声明
 
-[如果没有重要发现，明确写：本轮已检查上述证据，未发现阻塞目标的重要发现。]
+本轮已检查上述证据，未发现阻塞目标的重要发现。
 
 ## 残余风险
 
 | Risk | Owner | Accepted? | Follow-up |
 | --- | --- | --- | --- |
-| [风险] | [负责人] | yes / no | [后续路径或“无”] |
+| npm 真实发布尚未完成，无法验证真实 registry 上的新版提示 | release owner | yes | 后续 npm release task 覆盖 publish、tarball 和真实 `npx agentpal@latest` |
+| 更新检查依赖公网 registry，部分网络环境下可能超时 | coordinator | yes | 已用 900ms timeout 和 silent failure 限制影响 |
+| 本任务不实现自动更新 | product owner | yes | 保持显式 `npm install -g agentpal@latest`，避免 CLI 自行改用户环境 |
 
 ## Lifecycle Queue Routing（生命周期队列路由）
 
 | Queue | Applies? | Reason | Exit condition |
 | --- | --- | --- | --- |
-| Review | yes / no | 已提交审查材料包，且可等待人工确认。 | 人工确认或退回。 |
-| Missing Materials | yes / no | 必需文件、章节、证据或 review submission 缺失 / 不完整。 | Agent 补齐材料并重新提交审查。 |
-| Blocked | yes / no | 存在 open blocking finding、非法状态转换、审计失败或需要人工 waiver。 | blocker 被修复、关闭或明确豁免。 |
-| Lessons | yes / no | Lesson candidate 需要拒绝、留在任务内、dry-run promotion 或创建沉淀任务。 | 人工决定候选路由；除非明确批准，promotion 仍是单独维护任务。 |
-| Confirmed / Finalized | yes / no | 已有人工确认；可能仍待结项或治理收口。 | Closeout、ledger 和 lesson routing 都完成。 |
-| Soft-deleted / Superseded | yes / no | 任务有 tombstone、superseded-by 或 archive 状态；duplicate / abandoned 等语义写在 `Reason`。 | reopen 或作为只读审计历史保留。 |
+| Review | yes | 材料包齐全，Agent Review Submission 可提交。 | 人工确认或退回。 |
+| Missing Materials | no | 必需材料已补齐。 | n/a |
+| Blocked | no | 无 open blocking finding。 | n/a |
+| Lessons | no | 本任务没有可复用 Harness 经验候选。 | n/a |
+| Confirmed / Finalized | no | 尚无人工确认。 | human review confirmation |
+| Soft-deleted / Superseded | no | 任务仍为 active。 | n/a |
 
 ## 后续路由（Follow-Up Routing）
 
-- 任务计划：[是否需要更新，路径或“无”]
-- Progress：[对应 `progress.md` 条目]
-- 发现记录：[是否需要写入 `findings.md`]
-- Regression SSoT：[新增 / 调整 / 无]
-- Lessons：[checked-created: L-YYYY-MM-DD-NNN / checked-candidate: LC-YYYYMMDD-NNN / queued-promotion: LC-YYYYMMDD-NNN / checked-none: 一句话原因]
-- 收口记录：[收口时引用路径]
+- 任务计划：已更新 `task_plan.md`
+- Progress：`progress.md` 2026-06-10 17:28 implementation evidence
+- 发现记录：无新增 findings
+- Regression SSoT：无；本任务不改 Relay 协议或移动端状态模型
+- Lessons：checked-none: 更新提示是 CLI 产品行为，不形成新的 Harness 治理规则
+- 收口记录：`walkthrough.md`
 
 ## 最终信心依据（Final Confidence Basis）
 
-[说明最终信心来自哪些证据、审查层级和已关闭发现。发布前最终审查不能只依赖 self-only。]
+最终信心来自 commit diff、help 路径验证、mock latest / opt-out / 404 三类失败与成功路径验证、mobile typecheck、`git diff --check` 和 Harness check。本任务未执行真实 npm 发布；发布前仍需要单独 release 任务覆盖 npm 包名可用性、package tarball 和真实 registry latest。

@@ -7,11 +7,11 @@
 | Field | Value |
 | --- | --- |
 | Schema version | lesson-candidate-v1 |
-| Task-level status | pending-review |
+| Task-level status | no-candidate-accepted |
 | Review gate | candidate-file-present |
-| Review decision | pending-human-review |
+| Review decision | agent-checked-no-candidate |
 | Promotion state | not-promoted |
-| Closeout token | pending |
+| Closeout token | no-candidate |
 | Source task | 2026-06-10-agentpal-cli-update-notice-403bf715 |
 | Owner | coordinator |
 | Last updated | 2026-06-10 |
@@ -49,7 +49,7 @@
 
 ## No-Candidate Reason
 
-尚未判定。只有人工审查接受本任务没有可复用候选时，才填写这里。
+本任务是 CLI 产品体验的一次性增强：在全局安装用户运行真实命令时提示新版，并用短超时、静默失败和关闭开关控制风险。它没有新增可复用的 Harness 治理规则、跨任务流程或项目标准；后续 npm 发布与真实 registry 验证应作为 release 任务推进。
 
 ## Promotion Notes
 
