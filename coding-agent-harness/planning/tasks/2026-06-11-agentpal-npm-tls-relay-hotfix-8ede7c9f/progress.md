@@ -67,3 +67,8 @@
 - 验证结果：已记录
 - 下一步：继续执行
 - 证据：n/a
+
+
+## Tombstone Log
+
+- 2026-06-10 17:22 task-reopen: npm EOTP blocker resolved by user; registry latest now reports agentpal@0.1.1. (coding-agent-harness/planning/tasks/2026-06-11-agentpal-npm-tls-relay-hotfix-8ede7c9f/progress.md)
