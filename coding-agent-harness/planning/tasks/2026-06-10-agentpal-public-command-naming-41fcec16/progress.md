@@ -46,3 +46,10 @@
 - 验证结果：已记录
 - 下一步：继续执行
 - 证据：n/a
+
+### [2026-06-10 08:02] - task-log
+
+- 做了什么：AgentPal command naming implementation validated
+- 验证结果：已记录
+- 下一步：继续执行
+- 证据：command:TARGET:.:npm run agentpal -- --help passed and shows AgentPal CLI / agentpal pair
