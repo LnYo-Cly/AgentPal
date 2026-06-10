@@ -1,6 +1,6 @@
 # AgentPal CLI update notice - 进度
 
-## 状态：进行中
+## 状态：审查中
 
 `## 状态` 是受控机器字段，只能使用以下值之一：
 
@@ -54,3 +54,10 @@
 - 验证结果：`npm run agentpal -- --help` 和 `npm exec -- agentpal --help` 均通过且没有更新提示；`npm run agentpal -- relay --help` 通过且无 Node `DEP0190` 警告；mock registry 覆盖 latest 提示、关闭开关和 404 静默均通过；mobile typecheck 通过；`git diff --check` 通过；`harness check --profile target-project .` 通过，仅提示当前任务文档尚未提交。
 - 下一步：提交任务材料，推进 EXEC-01 与 Agent Review Submission；不执行人工 review gate。
 - 证据：command:TARGET:.:`npm run agentpal -- --help` passed without update notice; command:TARGET:.:`npm exec -- agentpal --help` passed; command:TARGET:.:`npm run agentpal -- relay --help` passed without `DEP0190`; command:TARGET:.:mock registry latest/opt-out/404 assertions passed; command:TARGET:apps/mobile:`npm --prefix apps/mobile run typecheck` passed; command:TARGET:.:`git diff --check` passed; command:TARGET:.:`harness check --profile target-project .` passed with dirty-docs warning only
+
+### [2026-06-10 09:44] - task-review
+
+- 做了什么：AgentPal CLI update notice ready for human review
+- 验证结果：已记录
+- 下一步：继续执行
+- 证据：n/a

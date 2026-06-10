@@ -110,3 +110,17 @@
 ## 最终信心依据（Final Confidence Basis）
 
 最终信心来自 commit diff、help 路径验证、mock latest / opt-out / 404 三类失败与成功路径验证、mobile typecheck、`git diff --check` 和 Harness check。本任务未执行真实 npm 发布；发布前仍需要单独 release 任务覆盖 npm 包名可用性、package tarball 和真实 registry latest。
+
+## Agent Review Submission
+
+| Field | Value |
+| --- | --- |
+| Submission ID | ARS-202606100944 |
+| Submitted At | 2026-06-10 09:44 |
+| Submitted By | agent |
+| Task Key | TASKS/2026-06-10-agentpal-cli-update-notice-403bf715 |
+| Materials Checklist Hash | a88033daf96e8b16 |
+| Evidence Summary | AgentPal CLI update notice ready for human review |
+| Open Findings Count | 0 |
+| Scanner Version | task-scanner/2026-05-25-phase-kind |
+| Target | TARGET:coding-agent-harness/planning/tasks/2026-06-10-agentpal-cli-update-notice-403bf715 |
