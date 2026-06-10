@@ -24,8 +24,8 @@ flowchart LR
 | Phase ID | Kind | Depends On | State | Completion | Output | Required Evidence | Exit Command | Actor | Evidence Status | Blocking Risk | Owner / Handoff |
 | --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- |
 | INIT-01 | init | none | done | 100 | 任务计划和执行策略已确认 | `task_plan.md`; `execution_strategy.md` | `harness task-start 2026-06-10-agentpal-github-public-repository-rename-c0a78ac1` | agent | present | none | coordinator |
-| EXEC-01 | execution | INIT-01 | done | 100 | 有边界的实现、文档切片和验证证据 | diff、commands、worker handoff 或 artifact path | `harness task-phase 2026-06-10-agentpal-github-public-repository-rename-c0a78ac1 EXEC-01 --state done --completion 100 --evidence present` | agent | present | [risk] | [owner] |
-| GATE-01 | gate | EXEC-01 | done | 100 | Agent Review Submission | `review.md`、progress update、lesson routing | `harness task-review 2026-06-10-agentpal-github-public-repository-rename-c0a78ac1 --message "<summary>"` | agent | present | [risk] | coordinator |
+| EXEC-01 | execution | INIT-01 | done | 100 | GitHub 仓库公开、remote 更新、metadata 更新和公开前扫描完成 | secret scan、GitHub repo view、remote check、package metadata diff、harness check | `harness task-phase 2026-06-10-agentpal-github-public-repository-rename-c0a78ac1 EXEC-01 --state done --completion 100 --evidence present` | agent | present | public repo must not expose credentials | coordinator |
+| GATE-01 | gate | EXEC-01 | done | 100 | Agent Review Submission | `review.md`、progress update、lesson routing | `harness task-review 2026-06-10-agentpal-github-public-repository-rename-c0a78ac1 --message "<summary>"` | agent | present | human confirmation still required | coordinator |
 | GATE-02 | gate | GATE-01 | planned | 0 | Human Review Confirmation | review packet 和人工确认 | `harness review-confirm 2026-06-10-agentpal-github-public-repository-rename-c0a78ac1 --confirm 2026-06-10-agentpal-github-public-repository-rename-c0a78ac1` | human | missing | Agent 不能代办人工确认 | human |
 
 允许的 `State`：`planned`, `in_progress`, `review`, `blocked`, `done`, `skipped`。
