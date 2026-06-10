@@ -1,6 +1,6 @@
 # AgentPal npm public release - 进度
 
-## 状态：已阻塞
+## 状态：审查中
 
 `## 状态` 是受控机器字段，只能使用以下值之一：
 
@@ -24,7 +24,7 @@
 
 ## 残余
 
-- npm publish 被 npm 2FA 策略阻塞：需要当前 6 位 OTP，或配置允许 publish 且 bypass 2FA 的 npm granular access token。Owner：LnYo-Cly / npm account owner。下一步：用 `npm publish .\agentpal-0.1.0.tgz --access public --otp <code>` 重试，随后执行 `npm view agentpal version` 和 `npx agentpal@latest --help`。
+- npm 包已发布为 `agentpal@0.1.0`。剩余产品风险：当前 npm 包是源码型 CLI，用户本机需要 Rust toolchain；预编译二进制分发后续单独立项。
 
 ## 协调者交接（Coordinator，启用模块并行时填写）
 
@@ -60,3 +60,10 @@
 - 验证结果：`npm whoami` 可识别账号 `lnyocly`，但 `npm publish .\agentpal-0.1.0.tgz --access public` 返回 `EOTP`，说明该 token 不是启用 bypass 2FA 的 publish token；npm 要求打开浏览器认证链接或提供一次性验证码。发布仍未成功。
 - 下一步：用户用浏览器完成 npm CLI auth/passkey flow，或创建启用 `Bypass two-factor authentication` 且有 publish 权限的 granular access token；之后重试 publish。
 - 证据：command:TARGET:.:NODE_AUTH_TOKEN npm whoami returned lnyocly; command:TARGET:.:npm publish with token failed with EOTP one-time password / browser auth required
+
+### [2026-06-10 20:30] - npm publish verified
+
+- 做了什么：用户完成 npm browser/passkey auth 后，确认 npm registry 已发布 `agentpal@0.1.0`；执行发布后 registry 和公开 npx/npm exec 验证。
+- 验证结果：`npm view agentpal version` 返回 `0.1.0`；`npm view agentpal name version dist-tags.latest dist.tarball` 返回 `latest=0.1.0` 和 registry tarball URL；`npm exec --yes agentpal@latest -- --help` 通过；`npx --yes agentpal@latest --help` 通过。
+- 下一步：提交 Agent Review Submission 材料；不执行 human `review-confirm`。
+- 证据：command:TARGET:.:npm view agentpal version returned 0.1.0; command:TARGET:.:npm view agentpal name version dist-tags.latest dist.tarball returned latest 0.1.0 and registry tarball; command:TARGET:.:npm exec --yes agentpal@latest -- --help passed; command:TARGET:.:npx --yes agentpal@latest --help passed

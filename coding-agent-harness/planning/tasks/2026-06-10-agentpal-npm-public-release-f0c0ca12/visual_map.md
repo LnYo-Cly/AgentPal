@@ -25,7 +25,7 @@ flowchart LR
 | --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- |
 | INIT-01 | init | none | done | 100 | 任务计划和执行策略已确认 | `task_plan.md`; `execution_strategy.md` | `harness task-start 2026-06-10-agentpal-npm-public-release-f0c0ca12` | agent | present | lifecycle command blocked by dirty governance write scope; recorded in progress | coordinator |
 | EXEC-01 | execution | INIT-01 | done | 100 | npm 发布准备、CLI wrapper、包白名单和发布前验证已完成 | diff、commands、temporary install evidence | `harness task-phase 2026-06-10-agentpal-npm-public-release-f0c0ca12 EXEC-01 --state done --completion 100 --evidence present` | agent | present | none | coordinator |
-| GATE-01 | gate | EXEC-01 | blocked | 80 | npm publish attempted but blocked by npm 2FA policy | `review.md`、progress update、npm E403 evidence | `npm publish .\agentpal-0.1.0.tgz --access public --otp <code>` | agent | partial | npm OTP or publish token required | coordinator + npm account owner |
+| GATE-01 | gate | EXEC-01 | done | 100 | Agent Review Submission with npm publish and public npx verification | `review.md`、progress update、npm registry/npx evidence | `harness task-review 2026-06-10-agentpal-npm-public-release-f0c0ca12 --message "AgentPal npm public release ready for human review"` | agent | present | none | coordinator |
 | GATE-02 | gate | GATE-01 | planned | 0 | Human Review Confirmation | review packet 和人工确认 | `harness review-confirm 2026-06-10-agentpal-npm-public-release-f0c0ca12 --confirm 2026-06-10-agentpal-npm-public-release-f0c0ca12` | human | missing | Agent 不能代办人工确认 | human |
 
 允许的 `State`：`planned`, `in_progress`, `review`, `blocked`, `done`, `skipped`。

@@ -7,11 +7,11 @@
 | Field | Value |
 | --- | --- |
 | Schema version | lesson-candidate-v1 |
-| Task-level status | pending-review |
+| Task-level status | no-candidate-accepted |
 | Review gate | candidate-file-present |
-| Review decision | pending-human-review |
+| Review decision | agent-checked-no-candidate |
 | Promotion state | not-promoted |
-| Closeout token | pending |
+| Closeout token | no-candidate |
 | Source task | 2026-06-10-agentpal-npm-public-release-f0c0ca12 |
 | Owner | coordinator |
 | Last updated | 2026-06-10 |
@@ -49,7 +49,7 @@
 
 ## No-Candidate Reason
 
-发布尚未成功，先保持 pending。当前阻塞来自 npm 账号 2FA 策略，不是可直接沉淀为 Harness 标准变更的项目内重复问题；publish 成功并 closeout 时再做最终 no-candidate 或候选判定。
+本任务没有需要沉淀为 Harness 标准变更的经验候选。npm 发布认证属于外部账号安全流程；后续操作建议记录在具体 release runbook 或 npm account policy，而不是修改项目 Harness 规则。
 
 ## Promotion Notes
 
