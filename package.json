@@ -3,6 +3,14 @@
   "private": true,
   "version": "0.1.0",
   "description": "AgentPal mobile workbench and desktop host scaffold.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LnYo-Cly/AgentPal.git"
+  },
+  "bugs": {
+    "url": "https://github.com/LnYo-Cly/AgentPal/issues"
+  },
+  "homepage": "https://github.com/LnYo-Cly/AgentPal#readme",
   "bin": {
     "agentpal": "bin/agentpal.mjs"
   },

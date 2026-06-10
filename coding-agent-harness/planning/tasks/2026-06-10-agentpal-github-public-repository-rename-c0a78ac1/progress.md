@@ -22,23 +22,18 @@
 
 证据较长或数量较多时，不要粘贴全文；放入 `artifacts/INDEX.md` 并在这里引用 ID。
 
-### [YYYY-MM-DD HH:MM] - [阶段名称]
-
-- 做了什么：[具体操作]
-- 验证结果：[运行了什么检查，结果如何]
-- 下一步：[下一步动作]
-- 证据：[type:path:summary]
-
 ## 残余
 
-- [遗留问题；如无写“无”]
+- 历史 Harness 任务 ID、历史设计文档标题和现网 Railway 平台域名仍可能包含 `OpenAgentPal` / `openagentpal-production`，这是审计历史或当前部署域名，本任务不批量改写。
+- `package.json` 仍为 `"private": true`；本任务只公开 GitHub 仓库，npm publish 另行处理。
+- `apps/mobile/android/app/debug.keystore` 是 Android debug keystore，非生产签名密钥；保留为非阻塞项。
 
 ## 协调者交接（Coordinator，启用模块并行时填写）
 
-- Global sync status：pending-coordinator-pass / synced / n/a
-- Registry update needed：[module key, step, status, branch, updated / 不适用]
-- Harness Ledger update needed：[task plan path, review path, closeout status / 不适用]
-- 负责人：coordinator / 不适用
+- Global sync status：n/a
+- Registry update needed：不适用
+- Harness Ledger update needed：lifecycle CLI 待推进 review gate
+- 负责人：coordinator
 
 ### [2026-06-10 10:01] - task-start
 
@@ -46,3 +41,10 @@
 - 验证结果：已记录
 - 下一步：继续执行
 - 证据：n/a
+
+### [2026-06-10 18:11] - public repository rename evidence
+
+- 做了什么：执行公开前扫描，随后将 GitHub 仓库从 `LnYo-Cly/OpenAgentPal` 重命名并公开为 `LnYo-Cly/AgentPal`；启用 GitHub secret scanning 和 push protection；本地 `origin` 更新到新仓库 URL；`package.json` 增加 repository / bugs / homepage metadata。
+- 验证结果：tracked source 未命中 GitHub token、npm token、Railway token assignment、Redis URL、private key block、常见云 token；未跟踪未忽略敏感文件名扫描无命中；Git history 未命中 GitHub/npm/OpenAI/AWS/private key 模式，也未命中带用户名/密码的 Redis URL；仅发现历史中的示例 `redis://` 和 Android debug keystore，均非阻塞。`gh repo view` 确认 `LnYo-Cly/AgentPal` 为 `PUBLIC` / `isPrivate=false`；GitHub API 确认 secret scanning 和 push protection 为 enabled；`git remote -v` 和 `git ls-remote --heads origin` 可访问新 remote。
+- 下一步：运行最终检查，提交 metadata 和任务材料，推进 Agent Review Submission；不执行人工 review gate。
+- 证据：command:TARGET:.:`git ls-files` sensitive filename scan found no tracked `.env` / private key files except Android debug keystore; command:TARGET:.:`git grep` token/secret patterns found no blocking tracked-source hits; command:TARGET:.:`git log --all -G` token/private-key scans found no blocking historical hits; command:TARGET:.:`gh api -X PATCH repos/LnYo-Cly/OpenAgentPal -f name=AgentPal -f private=false` succeeded; command:URL:https://github.com/LnYo-Cly/AgentPal:`gh repo view` shows PUBLIC and `isPrivate=false`; command:URL:https://github.com/LnYo-Cly/AgentPal:`gh api repos/LnYo-Cly/AgentPal` shows secret scanning and push protection enabled; command:TARGET:.:`git remote -v` points to `https://github.com/LnYo-Cly/AgentPal.git`; command:TARGET:.:`git ls-remote --heads origin` succeeded; diff:TARGET:package.json:added repository / bugs / homepage metadata for `LnYo-Cly/AgentPal`
