@@ -56,7 +56,7 @@ Scanner 会根据必需文件、章节、证据和这个严格提交块派生 `m
 
 | ID | Severity | Finding | Evidence Checked | Required Action | Open | Disposition | Blocks Release | Follow-up |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| F-001 | P1 | npm registry 要求 two-factor authentication 或允许 bypass 2FA 的 granular token，当前 publish 未成功。 | `npm publish .\agentpal-0.1.0.tgz --access public` returned E403; `npm view agentpal version` still E404 before publish attempt. | 用户提供当前 npm OTP，或配置可发布的 granular token 后重试 publish。 | yes | open | yes | Retry `npm publish .\agentpal-0.1.0.tgz --access public --otp <code>` and verify registry/npx. |
+| F-001 | P1 | npm registry 要求 one-time password / browser auth，或允许 bypass 2FA 的 granular publish token，当前 publish 未成功。 | Initial publish returned E403 two-factor required; token retry authenticated `npm whoami` as `lnyocly` but publish returned EOTP, so token is not bypass-2FA publish-capable. | 用户完成 npm CLI browser/passkey auth flow，或配置启用 bypass 2FA 且有 publish 权限的 granular token 后重试 publish。 | yes | open | yes | Retry `npm publish .\agentpal-0.1.0.tgz --access public` after browser auth, or with a bypass-2FA publish token; then verify registry/npx. |
 
 ## 非阻塞备注（Non-Material Notes）
 
@@ -77,6 +77,7 @@ Scanner 会根据必需文件、章节、证据和这个严格提交块派生 `m
 | E-008 | command | TARGET:. | `npm pack --dry-run --json` produced 13 files, 47.7 kB package, denied count 0. |
 | E-009 | command | TEMP:agentpal-prefix | Temporary global install from tarball passed; installed `agentpal --help` and `agentpal host codex connect --help` worked. |
 | E-010 | command | TARGET:. | `npm publish .\agentpal-0.1.0.tgz --access public` failed with E403 requiring 2FA or bypass-token. |
+| E-011 | command | TARGET:. | User-provided token authenticated `npm whoami` as `lnyocly`, but publish failed with EOTP requiring one-time password / browser auth; token was not recorded in task files. |
 
 ## 无重要发现声明
 
@@ -86,7 +87,7 @@ Scanner 会根据必需文件、章节、证据和这个严格提交块派生 `m
 
 | Risk | Owner | Accepted? | Follow-up |
 | --- | --- | --- | --- |
-| npm publish requires OTP / publish token | LnYo-Cly / npm account owner | no | Provide OTP or configure token, then retry publish. |
+| npm publish requires OTP / browser auth / bypass-2FA publish token | LnYo-Cly / npm account owner | no | Complete npm browser/passkey auth flow, or configure a publish-capable granular token, then retry publish. |
 | Source-based npm package requires Rust toolchain | release owner | yes | Documented in README; future prebuilt binary task recommended. |
 
 ## Lifecycle Queue Routing（生命周期队列路由）
@@ -95,7 +96,7 @@ Scanner 会根据必需文件、章节、证据和这个严格提交块派生 `m
 | --- | --- | --- |
 | Review | no | 真实发布未完成，不提交人工确认。 | npm publish 和发布后验证完成后再提交 review。 |
 | Missing Materials | no | 当前阻塞不是材料缺失。 | n/a |
-| Blocked | yes | F-001 open，npm publish 需要 OTP 或 publish token。 | publish 成功并完成 registry / npx 验证。 |
+| Blocked | yes | F-001 open，npm publish 需要 OTP、browser/passkey auth，或 bypass-2FA publish token。 | publish 成功并完成 registry / npx 验证。 |
 | Lessons | no | 暂无需要沉淀的 Harness lesson；发布阻塞是 npm 安全策略。 | n/a |
 | Confirmed / Finalized | no | 尚无人工确认，也未 closeout。 | 完成 publish、review、human confirmation 和 closeout。 |
 | Soft-deleted / Superseded | no | 任务仍 active。 | n/a |

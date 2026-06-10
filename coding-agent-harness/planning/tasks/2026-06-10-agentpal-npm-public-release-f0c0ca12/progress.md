@@ -53,3 +53,10 @@
 - 验证结果：npm registry 接收发布请求并展示 tarball 内容，但返回 `E403 Forbidden`，原因是账号策略要求 two-factor authentication 或启用 bypass 2FA 的 granular access token。发布未成功；`agentpal` 仍不能声称已上传。
 - 下一步：用户提供当前 npm OTP 后，用同一包内容重试 `npm publish`，再做 registry / npx 验证。
 - 证据：command:TARGET:.:npm publish .\agentpal-0.1.0.tgz --access public failed with E403 two-factor authentication required
+
+### [2026-06-10 20:01] - npm token publish attempt
+
+- 做了什么：使用用户临时提供的 npm token 作为进程环境变量重试认证和发布；token 未写入 `.npmrc`，未提交，未记录明文。
+- 验证结果：`npm whoami` 可识别账号 `lnyocly`，但 `npm publish .\agentpal-0.1.0.tgz --access public` 返回 `EOTP`，说明该 token 不是启用 bypass 2FA 的 publish token；npm 要求打开浏览器认证链接或提供一次性验证码。发布仍未成功。
+- 下一步：用户用浏览器完成 npm CLI auth/passkey flow，或创建启用 `Bypass two-factor authentication` 且有 publish 权限的 granular access token；之后重试 publish。
+- 证据：command:TARGET:.:NODE_AUTH_TOKEN npm whoami returned lnyocly; command:TARGET:.:npm publish with token failed with EOTP one-time password / browser auth required
