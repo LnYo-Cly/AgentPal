@@ -112,3 +112,17 @@
 ## 最终信心依据（Final Confidence Basis）
 
 最终信心来自真实 Android release Gradle build、APK 签名/对齐/包元数据验证、TypeScript 检查和 Harness check。发布级信心仍需要正式签名、真机安装启动和 EAS/Apple iOS 构建证据。
+
+## Agent Review Submission
+
+| Field | Value |
+| --- | --- |
+| Submission ID | ARS-202606111311 |
+| Submitted At | 2026-06-11 13:11 |
+| Submitted By | agent |
+| Task Key | TASKS/2026-06-11-agentpal-mobile-apk-ipa-build-d584f8ae |
+| Materials Checklist Hash | cd91cff70dc8164d |
+| Evidence Summary | Android preview APK built and verified; iOS IPA requires EAS login and Apple signing credentials |
+| Open Findings Count | 0 |
+| Scanner Version | task-scanner/2026-05-25-phase-kind |
+| Target | TARGET:coding-agent-harness/planning/tasks/2026-06-11-agentpal-mobile-apk-ipa-build-d584f8ae |
