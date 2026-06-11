@@ -79,6 +79,15 @@
 - 下一步：重新提交 review packet。
 - 证据：diff:TARGET:coding-agent-harness/planning/tasks/2026-06-11-agentpal-mobile-apk-ipa-build-d584f8ae:Repaired visual map and lesson candidate routing
 
+### [2026-06-11 21:37] - GitHub Release upload
+
+- 做了什么：推送本地 `master` 到 GitHub，并创建 prerelease `mobile-v0.1.0-preview.1`，上传 Android APK asset。
+- 验证结果：`gh release view` 确认 asset `AgentPal-android-0.1.0-arm64-preview.apk` 已上传，size `40001377`，digest `sha256:b0e00c5e2a33b23bcde434cb2352727cb78225d459bf5fe0f66f124a641b369d`，与本地 SHA256 一致。
+- 下一步：用户可从 GitHub Release 下载 APK；IPA 仍需 EAS/Apple credentials。
+- 证据：command:TARGET:.:git push origin master pushed `8a45c41..9f4a2ef`
+- 证据：command:URL:https://github.com/LnYo-Cly/AgentPal/releases/tag/mobile-v0.1.0-preview.1:gh release create uploaded Android preview APK asset
+- 证据：report:URL:https://github.com/LnYo-Cly/AgentPal/releases/download/mobile-v0.1.0-preview.1/AgentPal-android-0.1.0-arm64-preview.apk:GitHub asset digest matches local APK SHA256
+
 ## 残余
 
 - iOS IPA 未产出：Owner=user；需要 `npx eas-cli login`、Expo project/account setup、Apple Developer 账号和 iOS signing credentials 后才能运行 EAS iOS build。

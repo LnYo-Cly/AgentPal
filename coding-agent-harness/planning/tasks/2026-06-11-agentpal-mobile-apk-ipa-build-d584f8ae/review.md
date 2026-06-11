@@ -75,6 +75,7 @@
 | E-006 | command | TARGET:apps/mobile/dist/AgentPal-android-0.1.0-arm64-preview.apk | `aapt2 dump badging` confirmed `dev.agentpal.mobile`, `0.1.0`, minSdk 24, targetSdk 36, `arm64-v8a`. |
 | E-007 | command | TARGET:apps/mobile | `npx eas-cli --version` returned `eas-cli/20.1.0`; `npx eas-cli whoami` returned `Not logged in`. |
 | E-008 | command | TARGET:. | `git diff --check` passed; `harness check --profile target-project .` passed. |
+| E-009 | report | URL:https://github.com/LnYo-Cly/AgentPal/releases/tag/mobile-v0.1.0-preview.1 | GitHub prerelease created with APK asset and matching SHA256 digest. |
 
 ## 无重要发现声明
 

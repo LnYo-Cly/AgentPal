@@ -55,3 +55,4 @@ Android preview APK 已成功构建并完成静态产物验证；iOS IPA 需要 
 | 审查记录 | `review.md` |
 | 进度记录 | `progress.md` |
 | Android APK | `apps/mobile/dist/AgentPal-android-0.1.0-arm64-preview.apk` |
+| GitHub Release | `https://github.com/LnYo-Cly/AgentPal/releases/tag/mobile-v0.1.0-preview.1` |
