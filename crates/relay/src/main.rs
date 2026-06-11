@@ -830,10 +830,8 @@ async fn handle_pair_create(request: PairCreateRequest, state: &AppState, connec
 
     let pair_id = request
         .pair_id
-        .unwrap_or_else(|| format!("pair_{}", Uuid::new_v4()));
-    let pair_token = request
-        .pair_token
-        .unwrap_or_else(|| Uuid::new_v4().to_string());
+        .unwrap_or_else(|| format!("p_{}", short_hex_token(12)));
+    let pair_token = request.pair_token.unwrap_or_else(|| short_hex_token(16));
     let ttl_seconds = request.expires_in_seconds.or(Some(120));
     let expires_at = ttl_seconds.map(|seconds| {
         OffsetDateTime::now_utc() + TimeDuration::seconds(seconds.min(i64::MAX as u64) as i64)
@@ -1288,6 +1286,11 @@ async fn send_json(
         }
     };
     sender.send(Message::Text(text.into())).await
+}
+
+fn short_hex_token(length: usize) -> String {
+    let token = Uuid::new_v4().simple().to_string();
+    token.chars().take(length.min(token.len())).collect()
 }
 
 #[cfg(test)]

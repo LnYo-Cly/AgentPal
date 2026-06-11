@@ -30,7 +30,7 @@ Run this from the project directory on the computer where Codex is available:
 npx agentpal@latest pair
 ```
 
-The command starts the AgentPal host, creates a Cloud Relay pairing, and prints a pairing URL plus QR code for the mobile app.
+The command starts the AgentPal host, creates a Cloud Relay pairing, and prints a pairing URL plus terminal QR code for the mobile app.
 
 You can also install the CLI globally:
 
@@ -75,6 +75,7 @@ The host runs on your computer and talks to the local coding-agent process. The 
 ```bash
 agentpal pair
 agentpal pair --workspace .
+agentpal pair --workspace . --qr-file
 agentpal pair --workspace . --relay-url ws://127.0.0.1:8790/ws
 
 agentpal relay --host 0.0.0.0 --port 8790
@@ -82,6 +83,7 @@ agentpal host codex connect --workspace .
 ```
 
 `agentpal pair` uses the current directory as the default workspace and the public Cloud Relay unless you pass `--relay-url` or set `AGENTPAL_RELAY_URL`.
+By default it prints the QR directly in the terminal. Pass `--qr-file` if you also want an SVG file written to your temp directory.
 
 ## Requirements
 

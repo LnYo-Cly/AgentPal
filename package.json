@@ -1,6 +1,6 @@
 {
   "name": "agentpal",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "AgentPal CLI for pairing local coding agents with the AgentPal mobile app.",
   "license": "MIT",
   "keywords": [

@@ -1,6 +1,6 @@
 use std::{
     collections::{HashMap, HashSet},
-    env,
+    env, fs,
     io::{self, Write},
     path::{Path, PathBuf},
     process::Stdio,
@@ -21,10 +21,14 @@ use futures_util::{
     stream::{SplitSink, SplitStream},
 };
 use local_ip_address::local_ip;
-use qrcode::{QrCode, render::unicode};
+use qrcode::{
+    EcLevel, QrCode,
+    render::{svg, unicode},
+};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use time::{Duration as TimeDuration, OffsetDateTime, format_description::well_known::Rfc3339};
+use terminal_size::{Width, terminal_size};
+use time::{Duration as TimeDuration, OffsetDateTime};
 use tokio::{
     net::TcpStream,
     process::{Child, Command},
@@ -111,6 +115,9 @@ pub struct CodexConnectArgs {
 
     #[arg(long, default_value_t = false)]
     pub no_qr: bool,
+
+    #[arg(long, default_value_t = false)]
+    pub qr_file: bool,
 }
 
 #[derive(Debug, Args)]
@@ -135,6 +142,9 @@ pub struct CodexPairArgs {
 
     #[arg(long, default_value_t = false)]
     pub no_qr: bool,
+
+    #[arg(long, default_value_t = false)]
+    pub qr_file: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -191,12 +201,12 @@ pub fn pair(args: CodexPairArgs) -> anyhow::Result<()> {
         pair_id: None,
         host_id,
         host_name,
-        pair_token: Uuid::new_v4().to_string(),
+        pair_token: "manual".to_owned(),
         device_id: None,
         device_token: None,
         expires_at,
     };
-    print_pairing_payload(&payload, args.no_qr)?;
+    print_pairing_payload(&payload, args.no_qr, args.qr_file)?;
 
     Ok(())
 }
@@ -440,7 +450,7 @@ async fn run_connect_loop(
             },
         )
         .await?;
-        print_pairing_response(&mut relay_read, &host_id, args.no_qr).await?;
+        print_pairing_response(&mut relay_read, &host_id, args.no_qr, args.qr_file).await?;
     }
 
     let (codex_socket, _) = connect_async(codex_websocket_url).await?;
@@ -514,6 +524,7 @@ async fn run_connect_loop(
     let pending_loads_for_commands = Arc::clone(&pending_thread_loads);
     let workspace_for_commands = workspace_owned.clone();
     let no_qr_for_commands = args.no_qr;
+    let qr_file_for_commands = args.qr_file;
     let mut command_task = tokio::spawn(async move {
         while let Some(message) = relay_read.next().await {
             let message = match message {
@@ -528,7 +539,11 @@ async fn run_connect_loop(
             match server_message {
                 RelayServerMessage::PairCreated { pairing } => {
                     if pairing.host_id == host_for_commands {
-                        if let Err(error) = print_pairing_payload(&pairing, no_qr_for_commands) {
+                        if let Err(error) = print_pairing_payload(
+                            &pairing,
+                            no_qr_for_commands,
+                            qr_file_for_commands,
+                        ) {
                             eprintln!("Failed to render pairing payload: {error}");
                         }
                     }
@@ -740,6 +755,7 @@ async fn print_pairing_response(
     relay_read: &mut SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
     host_id: &str,
     no_qr: bool,
+    qr_file: bool,
 ) -> anyhow::Result<()> {
     while let Some(message) = relay_read.next().await {
         let message = message?;
@@ -749,7 +765,7 @@ async fn print_pairing_response(
                 match server_message {
                     RelayServerMessage::PairCreated { pairing } => {
                         if pairing.host_id == host_id {
-                            print_pairing_payload(&pairing, no_qr)?;
+                            print_pairing_payload(&pairing, no_qr, qr_file)?;
                             return Ok(());
                         }
                     }
@@ -2259,7 +2275,7 @@ fn default_host_name() -> String {
 }
 
 fn default_host_id() -> String {
-    format!("agentpal-{}", Uuid::new_v4())
+    format!("h_{}", short_hex_token(12))
 }
 
 async fn codex_version(codex_bin: &PathBuf) -> anyhow::Result<String> {
@@ -2334,11 +2350,38 @@ fn default_lan_relay_url(port: u16, path: &str) -> anyhow::Result<String> {
     Ok(websocket_url(&ip.to_string(), port, path))
 }
 
-fn print_pairing_payload(payload: &PairingPayload, no_qr: bool) -> anyhow::Result<()> {
+fn print_pairing_payload(
+    payload: &PairingPayload,
+    no_qr: bool,
+    qr_file: bool,
+) -> anyhow::Result<()> {
     let pair_url = pair_url(payload);
 
     println!("AgentPal pairing address:");
     println!("{pair_url}");
+
+    if !no_qr {
+        let code = QrCode::with_error_correction_level(pair_url.as_bytes(), EcLevel::L)?;
+        let qr = render_terminal_qr(&code);
+        let qr_width = max_line_width(&qr);
+        println!();
+        if terminal_can_show_qr(qr_width) {
+            println!("Terminal QR:");
+            println!("{qr}");
+        } else {
+            println!(
+                "Terminal QR skipped: this window is too narrow. Widen the terminal and run the command again."
+            );
+        }
+
+        if qr_file {
+            let qr_path = write_pairing_qr_svg(&code, payload)?;
+            println!();
+            println!("QR image:");
+            println!("  {}", qr_path.display());
+        }
+    }
+
     println!();
     println!("Manual fields:");
     println!("  relay_url: {}", payload.relay_url);
@@ -2347,7 +2390,9 @@ fn print_pairing_payload(payload: &PairingPayload, no_qr: bool) -> anyhow::Resul
     }
     println!("  host_id: {}", payload.host_id);
     println!("  host_name: {}", payload.host_name);
-    println!("  pair_token: {}", payload.pair_token);
+    if payload.pair_id.is_some() || payload.pair_token != "manual" {
+        println!("  pair_token: {}", payload.pair_token);
+    }
     if let Some(device_id) = &payload.device_id {
         println!("  device_id: {device_id}");
     }
@@ -2360,50 +2405,140 @@ fn print_pairing_payload(payload: &PairingPayload, no_qr: bool) -> anyhow::Resul
         println!("  expires_at: never");
     }
 
-    if !no_qr {
-        let code = QrCode::new(pair_url.as_bytes())?;
-        let qr = code
-            .render::<unicode::Dense1x2>()
-            .quiet_zone(true)
-            .module_dimensions(2, 1)
-            .build();
-        println!();
-        println!("{qr}");
-    }
-
     io::stdout().flush()?;
 
     Ok(())
+}
+
+fn write_pairing_qr_svg(code: &QrCode, payload: &PairingPayload) -> anyhow::Result<PathBuf> {
+    let qr = code
+        .render::<svg::Color>()
+        .quiet_zone(true)
+        .min_dimensions(512, 512)
+        .build();
+    let path = env::temp_dir().join(format!(
+        "agentpal-pair-{}.svg",
+        file_safe_token(&payload.host_id)
+    ));
+    fs::write(&path, qr)?;
+    Ok(path)
+}
+
+fn render_terminal_qr(code: &QrCode) -> String {
+    code.render::<unicode::Dense1x2>()
+        .quiet_zone(true)
+        .module_dimensions(1, 1)
+        .build()
+}
+
+fn terminal_can_show_qr(qr_width: usize) -> bool {
+    let Some((Width(width), _)) = terminal_size() else {
+        return false;
+    };
+    usize::from(width) >= qr_width + 2
+}
+
+fn max_line_width(value: &str) -> usize {
+    value
+        .lines()
+        .map(|line| line.chars().count())
+        .max()
+        .unwrap_or(0)
+}
+
+fn file_safe_token(value: &str) -> String {
+    let safe: String = value
+        .chars()
+        .map(|character| {
+            if character.is_ascii_alphanumeric() || character == '-' || character == '_' {
+                character
+            } else {
+                '-'
+            }
+        })
+        .collect();
+    safe.trim_matches('-').chars().take(64).collect::<String>()
 }
 
 fn pair_url(payload: &PairingPayload) -> String {
     let mut url = url::Url::parse("agentpal://pair").expect("static pair url parses");
     {
         let mut query = url.query_pairs_mut();
-        query.append_pair("v", &payload.version.to_string());
-        query.append_pair("relayUrl", &payload.relay_url);
-        if let Some(pair_id) = &payload.pair_id {
-            query.append_pair("pairId", pair_id);
+        if !is_default_public_relay(&payload.relay_url) {
+            query.append_pair("r", &payload.relay_url);
         }
-        query.append_pair("hostId", &payload.host_id);
-        query.append_pair("hostName", &payload.host_name);
-        query.append_pair("pairToken", &payload.pair_token);
+        if let Some(pair_id) = &payload.pair_id {
+            query.append_pair("p", pair_id);
+        }
+        query.append_pair("h", &payload.host_id);
+        if payload.pair_id.is_some() || payload.pair_token != "manual" {
+            query.append_pair("t", &payload.pair_token);
+        }
         if let Some(device_id) = &payload.device_id {
-            query.append_pair("deviceId", device_id);
+            query.append_pair("d", device_id);
         }
         if let Some(device_token) = &payload.device_token {
-            query.append_pair("deviceToken", device_token);
-        }
-        if let Some(expires_at) = payload.expires_at {
-            query.append_pair(
-                "expiresAt",
-                &expires_at
-                    .format(&Rfc3339)
-                    .unwrap_or_else(|_| expires_at.to_string()),
-            );
+            query.append_pair("k", device_token);
         }
     }
     url.to_string()
+}
+
+fn is_default_public_relay(relay_url: &str) -> bool {
+    normalize_ws_url(relay_url) == normalize_ws_url(DEFAULT_PUBLIC_RELAY_URL)
+}
+
+fn short_hex_token(length: usize) -> String {
+    let token = Uuid::new_v4().simple().to_string();
+    token.chars().take(length.min(token.len())).collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn pair_url_is_compact_for_public_relay() {
+        let payload = PairingPayload {
+            version: 1,
+            relay_url: DEFAULT_PUBLIC_RELAY_URL.to_owned(),
+            pair_id: Some("p_123456789abc".to_owned()),
+            host_id: "h_123456789abc".to_owned(),
+            host_name: "AgentPal Host".to_owned(),
+            pair_token: "t_1234567890ab".to_owned(),
+            device_id: None,
+            device_token: None,
+            expires_at: Some(OffsetDateTime::from_unix_timestamp(1_700_000_000).unwrap()),
+        };
+
+        let url = pair_url(&payload);
+        assert_eq!(
+            url,
+            "agentpal://pair?p=p_123456789abc&h=h_123456789abc&t=t_1234567890ab"
+        );
+
+        let code = QrCode::with_error_correction_level(url.as_bytes(), EcLevel::L).unwrap();
+        assert!(code.width() <= 33, "unexpected qr width: {}", code.width());
+    }
+
+    #[test]
+    fn pair_url_keeps_custom_relay() {
+        let payload = PairingPayload {
+            version: 1,
+            relay_url: "ws://127.0.0.1:8790/ws".to_owned(),
+            pair_id: None,
+            host_id: "h_123456789abc".to_owned(),
+            host_name: "AgentPal Host".to_owned(),
+            pair_token: "manual".to_owned(),
+            device_id: None,
+            device_token: None,
+            expires_at: None,
+        };
+
+        let url = pair_url(&payload);
+        assert!(url.contains("r=ws%3A%2F%2F127.0.0.1%3A8790%2Fws"));
+        assert!(!url.contains("expiresAt"));
+    }
 }
 
 fn session_id_for_thread(thread_id: &str) -> String {

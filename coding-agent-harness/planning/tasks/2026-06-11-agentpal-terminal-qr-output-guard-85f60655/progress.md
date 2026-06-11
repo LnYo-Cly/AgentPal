@@ -53,3 +53,10 @@
 - 验证结果：已记录
 - 下一步：继续执行
 - 证据：command:TARGET:.:npm run agentpal -- pair --workspace . --timeout-seconds 3 --codex-port 38993 printed SVG QR path without terminal QR
+
+### [2026-06-11 03:20] - qr-compact-fix
+
+- 做了什么：恢复默认终端二维码输出，移除默认 SVG 路径；把公共配对载荷压缩为短参数名、短 `pair_id/pair_token`，并把二维码纠错等级降到 L。
+- 验证结果：`cargo test -p agentpal-host pair_url_ -- --nocapture` 通过；本地 relay 烟测打印了短配对串 `agentpal://pair?r=...&p=...&h=...&t=...`。
+- 下一步：提交并推进 Harness 审查。
+- 证据：command:G:\My_Project\python\gitlab\pocket_agent:cargo test -p agentpal-host pair_url_ -- --nocapture; command:TARGET:.:npm run agentpal -- pair --workspace . --relay-url ws://127.0.0.1:8899/ws --timeout-seconds 3 --codex-port 38993 printed compact local-relay pairing URL

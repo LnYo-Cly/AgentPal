@@ -91,14 +91,14 @@ function parsePairUrl(value: string): PairingPayload {
   const params = parsed.searchParams;
   return normalizePairingPayload({
     version: Number(params.get("v") ?? params.get("version") ?? 1),
-    relayUrl: params.get("relayUrl") ?? params.get("relay_url") ?? "",
-    hostId: params.get("hostId") ?? params.get("host_id") ?? "",
-    hostName: params.get("hostName") ?? params.get("host_name") ?? "AgentPal Host",
-    pairToken: params.get("pairToken") ?? params.get("pair_token") ?? "manual",
-    pairId: params.get("pairId") ?? params.get("pair_id"),
-    deviceId: params.get("deviceId") ?? params.get("device_id"),
-    deviceToken: params.get("deviceToken") ?? params.get("device_token"),
-    expiresAt: params.get("expiresAt") ?? params.get("expires_at")
+    relayUrl: params.get("r") ?? params.get("relayUrl") ?? params.get("relay_url") ?? "",
+    hostId: params.get("h") ?? params.get("hostId") ?? params.get("host_id") ?? "",
+    hostName: params.get("n") ?? params.get("hostName") ?? params.get("host_name") ?? "AgentPal Host",
+    pairToken: params.get("t") ?? params.get("pairToken") ?? params.get("pair_token") ?? "manual",
+    pairId: params.get("p") ?? params.get("pairId") ?? params.get("pair_id"),
+    deviceId: params.get("d") ?? params.get("deviceId") ?? params.get("device_id"),
+    deviceToken: params.get("k") ?? params.get("deviceToken") ?? params.get("device_token"),
+    expiresAt: params.get("x") ?? params.get("expiresAt") ?? params.get("expires_at")
   });
 }
 

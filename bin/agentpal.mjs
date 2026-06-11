@@ -237,7 +237,7 @@ Usage:
   agentpal host [agentpal-host options]
 
 Commands:
-  pair   Start the Codex Host, create a Cloud Relay pairing, and print URL + QR.
+  pair   Start the Codex Host, create a Cloud Relay pairing, and print a terminal QR code.
   relay  Run the local relay service.
   host   Pass through to the Rust host CLI.
 
@@ -250,6 +250,7 @@ Examples:
   agentpal relay --host 0.0.0.0 --port 8790
   agentpal pair
   agentpal pair --workspace .
+  agentpal pair --workspace . --qr-file
   agentpal pair --workspace . --relay-url ws://127.0.0.1:8790/ws
   agentpal host codex connect --workspace .
 `);
