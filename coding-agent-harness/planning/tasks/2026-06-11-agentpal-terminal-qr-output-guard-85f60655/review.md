@@ -107,3 +107,17 @@ Scanner 会根据必需文件、章节、证据和这个严格提交块派生 `m
 ## 最终信心依据（Final Confidence Basis）
 
 [说明最终信心来自哪些证据、审查层级和已关闭发现。发布前最终审查不能只依赖 self-only。]
+
+## Agent Review Submission
+
+| Field | Value |
+| --- | --- |
+| Submission ID | ARS-202606110315 |
+| Submitted At | 2026-06-11 03:15 |
+| Submitted By | agent |
+| Task Key | TASKS/2026-06-11-agentpal-terminal-qr-output-guard-85f60655 |
+| Materials Checklist Hash | 49b8bfe168137e89 |
+| Evidence Summary | Restore terminal QR as default, compact pairing payload for cloud relay, and verify with host tests plus local relay smoke. |
+| Open Findings Count | 0 |
+| Scanner Version | task-scanner/2026-05-25-phase-kind |
+| Target | TARGET:coding-agent-harness/planning/tasks/2026-06-11-agentpal-terminal-qr-output-guard-85f60655 |
