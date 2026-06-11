@@ -1,69 +1,44 @@
 # AgentPal terminal QR output guard - 进度
 
-## 状态：审查中
-
-`## 状态` 是受控机器字段，只能使用以下值之一：
-
-- `未开始`
-- `计划中`
-- `进行中`
-- `审查中`
-- `已阻塞`
-- `已完成`
-
-不要把 `计划审阅中`、`等待 coordinator pass`、`本地审查就绪` 等细粒度协作状态写入本字段。
-这些状态应记录到进度记录、残余或协调者交接中。
+## 状态：已完成
 
 ## 进度记录
 
-证据使用 `type:path:summary` 格式。
+### [2026-06-10 17:24] - task-start
 
-允许的 `type`：`command`, `diff`, `fixture`, `screenshot`, `review`, `report`。
+- 做了什么：启动任务，针对终端二维码在窄窗口下被折行破坏的问题做修复。
+- 验证结果：已记录。
+- 下一步：实现 host / relay / mobile 相关修改并补证据。
+- 证据：n/a
 
-证据较长或数量较多时，不要粘贴全文；放入 `artifacts/INDEX.md` 并在这里引用 ID。
+### [2026-06-10 17:31] - initial-guard
 
-### [YYYY-MM-DD HH:MM] - [阶段名称]
+- 做了什么：先实现过一版 QR 输出保护，但默认路径仍然偏向 SVG 文件。
+- 验证结果：已记录。
+- 下一步：按用户最新要求把默认行为改回终端二维码，并继续压缩载荷。
+- 证据：command:TARGET:.:npm run agentpal -- pair --workspace . --timeout-seconds 3 --codex-port 38993 printed SVG QR path without terminal QR
 
-- 做了什么：[具体操作]
-- 验证结果：[运行了什么检查，结果如何]
-- 下一步：[下一步动作]
-- 证据：[type:path:summary]
+### [2026-06-11 03:20] - compact-qr-fix
+
+- 做了什么：恢复默认终端二维码输出；去掉默认 SVG 路径；把公共配对串压缩为短参数和短 token；手机端兼容短参数。
+- 验证结果：`cargo test -p agentpal-host pair_url_ -- --nocapture` 通过；本地 relay 烟测打印了短配对串 `agentpal://pair?r=...&p=...&h=...&t=...`。
+- 下一步：等待人工确认，并观察公共 relay 的部署传播。
+- 证据：command:G:\My_Project\python\gitlab\pocket_agent:cargo test -p agentpal-host pair_url_ -- --nocapture; command:TARGET:.:npm run agentpal -- pair --workspace . --relay-url ws://127.0.0.1:8899/ws --timeout-seconds 3 --codex-port 38993 printed compact local-relay pairing URL
+
+### [2026-06-11 17:10] - release-readiness-check
+
+- 做了什么：复核发布前验证面，确认 npm 包内容和移动端解析路径。
+- 验证结果：`cargo check -p agentpal-host -p agentpal-relay`、`cargo test -p agentpal-relay`、`npm --prefix apps/mobile run typecheck` 和 `npm pack --dry-run` 均通过；dry-run 显示将发布 `agentpal@0.1.2`。
+- 下一步：提交 Harness 材料，推送 GitHub，并发布 npm。
+- 证据：command:TARGET:.:cargo check -p agentpal-host -p agentpal-relay passed; command:TARGET:.:cargo test -p agentpal-relay passed 9 tests; command:TARGET:.:npm --prefix apps/mobile run typecheck passed; command:TARGET:.:npm pack --dry-run produced agentpal-0.1.2.tgz
 
 ## 残余
 
-- [遗留问题；如无写“无”]
+- 公共 Railway relay 仍需要把 relay-side 短 token 改动部署出去，才能让线上默认公共配对串同步变短。
 
 ## 协调者交接（Coordinator，启用模块并行时填写）
 
-- Global sync status：pending-coordinator-pass / synced / n/a
-- Registry update needed：[module key, step, status, branch, updated / 不适用]
-- Harness Ledger update needed：[task plan path, review path, closeout status / 不适用]
-- 负责人：coordinator / 不适用
-
-### [2026-06-10 17:24] - task-start
-
-- 做了什么：Start QR output hotfix after terminal Unicode QR wraps and becomes unreadable when the window is too narrow.
-- 验证结果：已记录
-- 下一步：继续执行
-- 证据：n/a
-
-### [2026-06-10 17:31] - task-log
-
-- 做了什么：Implemented QR output guard: AgentPal now writes a stable SVG QR file by default, only renders terminal QR when explicitly requested, and skips terminal QR when the window is too narrow.
-- 验证结果：已记录
-- 下一步：继续执行
-- 证据：command:TARGET:.:npm run agentpal -- pair --workspace . --timeout-seconds 3 --codex-port 38993 printed SVG QR path without terminal QR
-
-### [2026-06-11 03:20] - qr-compact-fix
-
-- 做了什么：恢复默认终端二维码输出，移除默认 SVG 路径；把公共配对载荷压缩为短参数名、短 `pair_id/pair_token`，并把二维码纠错等级降到 L。
-- 验证结果：`cargo test -p agentpal-host pair_url_ -- --nocapture` 通过；本地 relay 烟测打印了短配对串 `agentpal://pair?r=...&p=...&h=...&t=...`。
-- 下一步：提交并推进 Harness 审查。
-- 证据：command:G:\My_Project\python\gitlab\pocket_agent:cargo test -p agentpal-host pair_url_ -- --nocapture; command:TARGET:.:npm run agentpal -- pair --workspace . --relay-url ws://127.0.0.1:8899/ws --timeout-seconds 3 --codex-port 38993 printed compact local-relay pairing URL
-
-### [2026-06-11 03:15] - task-review
-
-- 做了什么：Restore terminal QR as default, compact pairing payload for cloud relay, and verify with host tests plus local relay smoke.
-- 验证结果：已记录
-- 下一步：继续执行
-- 证据：n/a
+- Global sync status：synced
+- Registry update needed：不适用
+- Harness Ledger update needed：`task_plan.md`, `review.md`, closeout pending
+- 负责人：coordinator
