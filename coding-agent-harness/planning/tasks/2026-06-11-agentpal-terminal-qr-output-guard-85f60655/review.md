@@ -22,7 +22,7 @@
 | Submitted By | agent |
 | Task Key | 2026-06-11-agentpal-terminal-qr-output-guard-85f60655 |
 | Materials Checklist Hash | 49b8bfe168137e89 |
-| Evidence Summary | 默认终端 QR 恢复；公共 relay 配对载荷压缩；host 单测和本地 relay 烟测通过。 |
+| Evidence Summary | 默认终端 QR 恢复；公共 relay 配对载荷压缩；host 单测、本地 relay 烟测和公共 relay healthcheck 通过；npm 发布受本机登录态阻塞。 |
 | Open Findings Count | 0 |
 | Scanner Version | task-scanner/2026-05-25-phase-kind |
 
@@ -42,7 +42,7 @@
 - Verdict：yes
 - 如果不是 100%，剩余漏洞或证据缺口：无
 - Fix loop count：2
-- 当前结论：host / relay / mobile 的短 QR 路径已经在本地验证，剩余风险只在公共 relay 的部署传播，不影响代码正确性。
+- 当前结论：host / relay / mobile 的短 QR 路径已经在本地和公共 relay 验证，剩余风险只在 npm `latest` 尚未发布，不影响代码正确性。
 
 ## 重要发现（Material Findings，表头供 checker 解析）
 
@@ -53,7 +53,7 @@
 
 ## 非阻塞备注（Non-Material Notes）
 
-- 公共 Railway relay 需要把 relay-side 的短 token 改动部署出去，线上默认配对串才会同步变短。
+- npm `agentpal@0.1.2` 尚未发布；当前终端 `npm whoami` 返回 401，需要 release owner 重新登录 npm CLI 后发布。
 
 ## 已检查证据（Evidence Checked）
 
@@ -62,6 +62,8 @@
 | E-001 | command | TARGET:. | `cargo test -p agentpal-host pair_url_ -- --nocapture` 通过，锁住短配对串和 QR 宽度 |
 | E-002 | command | TARGET:. | 本地 relay 烟测 `npm run agentpal -- pair --workspace . --relay-url ws://127.0.0.1:8899/ws --timeout-seconds 3 --codex-port 38993` 打印短配对串 |
 | E-003 | command | TARGET:. | `cargo test -p agentpal-relay` 和 `cargo check -p agentpal-host -p agentpal-relay` 通过 |
+| E-004 | command | URL:https://openagentpal-production.up.railway.app/healthz | 公共 relay 返回 `version":"0.1.2"`，并可生成短公共配对串 |
+| E-005 | command | TARGET:. | `npm publish --access public` 失败，原因是本机 npm CLI 登录态无效；`npm view agentpal version` 仍为 `0.1.1` |
 
 ## 无重要发现声明
 
@@ -71,7 +73,7 @@
 
 | Risk | Owner | Accepted? | Follow-up |
 | --- | --- | --- | --- |
-| 公共 relay 需要部署更新后，线上默认配对串才会同步缩短 | coordinator | no | 等待部署传播并复测公共 relay |
+| npm `agentpal@0.1.2` 尚未发布到 `latest` | release owner | no | 重新登录 npm CLI 后执行 `npm publish --access public` 并验证 `npm view agentpal version` |
 
 ## Lifecycle Queue Routing（生命周期队列路由）
 
@@ -95,7 +97,7 @@
 
 ## 最终信心依据（Final Confidence Basis）
 
-终端 QR 默认路径、短配对串和手机端兼容性都已通过本地验证；没有新增 blocker。唯一残余是公共 relay 的部署传播，需要上线后再做一次公共环境复测。
+终端 QR 默认路径、短配对串、手机端兼容性和公共 relay 0.1.2 部署都已验证；没有新增代码 blocker。唯一残余是 npm 发布权限，需要本机 npm CLI 重新认证后完成。
 
 ## Agent Review Submission
 

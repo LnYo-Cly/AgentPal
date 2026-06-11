@@ -24,7 +24,7 @@ flowchart LR
 | Phase ID | Kind | Depends On | State | Completion | Output | Required Evidence | Exit Command | Actor | Evidence Status | Blocking Risk | Owner / Handoff |
 | --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- |
 | INIT-01 | init | none | done | 100 | 确认默认终端 QR、短配对串和验证范围 | `task_plan.md`; `execution_strategy.md` | `harness task-start 2026-06-11-agentpal-terminal-qr-output-guard-85f60655` | agent | present | none | coordinator |
-| EXEC-01 | execution | INIT-01 | done | 100 | 已实现 host / relay / mobile / docs 改动并完成验证 | diff、commands、local smoke、单测 | `harness task-phase 2026-06-11-agentpal-terminal-qr-output-guard-85f60655 EXEC-01 --state done --completion 100 --evidence present` | agent | present | relay 线上部署滞后 | coordinator |
+| EXEC-01 | execution | INIT-01 | done | 100 | 已实现 host / relay / mobile / docs 改动并完成验证 | diff、commands、local smoke、公共 relay healthcheck、单测 | `harness task-phase 2026-06-11-agentpal-terminal-qr-output-guard-85f60655 EXEC-01 --state done --completion 100 --evidence present` | agent | present | npm 发布认证阻塞 | coordinator |
 | GATE-01 | gate | EXEC-01 | done | 100 | 已提交 agent review | `review.md`、`progress.md`、`lesson_candidates.md` | `harness task-review 2026-06-11-agentpal-terminal-qr-output-guard-85f60655 --message "<summary>"` | agent | present | missing-materials 已修复 | coordinator |
 | GATE-02 | gate | GATE-01 | planned | 0 | 等待人工确认 | review packet 和人工确认 | `harness review-confirm 2026-06-11-agentpal-terminal-qr-output-guard-85f60655 --confirm 2026-06-11-agentpal-terminal-qr-output-guard-85f60655` | human | missing | Agent 不能代办人工确认 | human |
 

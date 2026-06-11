@@ -46,10 +46,10 @@
 | L0 | `cargo fmt --all`、静态 diff 检查 | `progress.md` | 代码格式和变更边界稳定 |
 | L1 | `cargo test -p agentpal-host pair_url_ -- --nocapture`、`cargo test -p agentpal-relay`、`cargo check -p agentpal-host -p agentpal-relay`、`npm --prefix apps/mobile run typecheck` | `progress.md` | host / relay / mobile 的关键路径通过 |
 | L2 | 本地 relay 启动后运行 `npm run agentpal -- pair --workspace . --relay-url ws://127.0.0.1:8899/ws --timeout-seconds 3 --codex-port 38993` | `progress.md` | 打印出短配对串，证明载荷压缩生效 |
-| L3 | 由 review / walkthrough 记录发布前残余风险 | `review.md` 与 `walkthrough.md` | 清楚写出公共 relay 部署依赖 |
+| L3 | 由 review / walkthrough 记录发布前残余风险 | `review.md` 与 `walkthrough.md` | 清楚写出 npm 发布认证阻塞 |
 
 ## 暂停 / 升级条件
 
-- 如果公共 relay 的短 token 改动没有部署到线上，就把它记为残余风险，不要假装已生效。
+- 如果 npm CLI 没有有效登录态，就把它记为 release/auth residual，不要假装 `latest` 已发布。
 - 如果单测或 local relay 烟测失败，先修代码，再更新 progress。
 - 如果材料文件再次回退成模板骨架，先修任务文档再提交审查。

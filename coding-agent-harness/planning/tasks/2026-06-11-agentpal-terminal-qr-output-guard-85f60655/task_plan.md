@@ -11,7 +11,7 @@ Task Package Index: required
 
 - 做什么：host 端默认终端 QR、relay 端短 `pair_id/pair_token`、mobile 端短参数解析、CLI help、README、目标测试
 - 不做什么：移动端 UI 重做、工作流重构、部署编排改造、用户迁移
-- 主要风险：公共 relay 需要部署更新后才能体现 relay 侧的短 token，窄终端仍可能触发明确的跳过提示
+- 主要风险：npm 发布依赖本机有效登录态；窄终端仍可能触发明确的跳过提示
 
 ## 预算选择
 
@@ -41,7 +41,7 @@ Task Package Index: required
 - [x] 不再默认输出二维码 SVG 文件路径
 - [x] 公共 relay 配对串使用短参数和短 token
 - [x] 手机端兼容短格式和旧格式配对串
-- [x] host 单测和本地 relay 烟测通过
+- [x] host 单测、本地 relay 烟测和公共 relay healthcheck 通过
 
 ## 工作树（Worktree）
 
@@ -57,7 +57,7 @@ Task Package Index: required
 - 是否属于长程任务：否
 - 若是，合同文件：不适用
 - 连续执行权限：不适用
-- Stop Condition 摘要：如果公共 relay 必须等外部部署完成，记录残余风险后停在 review
+- Stop Condition 摘要：如果 npm CLI 没有发布权限，记录 release/auth residual 后停在 review
 
 ## 审查判定
 

@@ -21,16 +21,18 @@
 | Relay 单测 | `cargo test -p agentpal-relay` | 通过 | `progress.md` |
 | 组合检查 | `cargo check -p agentpal-host -p agentpal-relay` | 通过 | `progress.md` |
 | 本地冒烟 | 启动本地 relay 后运行 `npm run agentpal -- pair --workspace . --relay-url ws://127.0.0.1:8899/ws --timeout-seconds 3 --codex-port 38993` | 打印短配对串 `agentpal://pair?r=...&p=...&h=...&t=...` | `progress.md` |
+| 公共 relay | `https://openagentpal-production.up.railway.app/healthz` 和默认 `agentpal pair` 烟测 | `version":"0.1.2"`，默认公共配对串为 `agentpal://pair?p=...&h=...&t=...` | `progress.md` |
+| npm 发布 | `npm publish --access public` | 未通过；本机 npm CLI 登录态无效，`latest` 仍为 `0.1.1` | `progress.md` |
 
 ## 审查结论
 
-没有新的重要发现。唯一残余是公共 Railway relay 还需要把 relay-side 的短 token 改动部署到线上，之后再做一次公共环境复测。
+没有新的重要发现。公共 Railway relay 已部署并复测通过；唯一残余是 npm 发布需要重新完成 CLI 认证。
 
 ## 残余风险
 
 | 风险 | Owner | 是否接受 | 跟进 |
 | --- | --- | --- | --- |
-| 公共 relay 部署传播尚未确认 | coordinator | no | 等待部署完成后复测默认公共 pairing |
+| npm `agentpal@0.1.2` 尚未发布到 `latest` | release owner | no | 重新登录 npm CLI 后发布并验证 `npx agentpal@latest` |
 
 ## 经验沉淀反思
 
