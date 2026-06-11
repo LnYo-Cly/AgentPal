@@ -46,10 +46,11 @@
 
 | ID | Row Status | Title | Scope | Module Key | Detail Artifact | Boundary Reason | Why It Might Matter | Review Decision | Promotion Target | Conflict Check | Required Standard Update | Follow-up Task |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| LC-20260611-001 | ready-for-review | Windows Expo/RN release builds need short path and SDK-matched Android template checks | task | n/a | `findings.md` | Expo SDK 54 + RN 0.81 + Reanimated 4 exposed repeatable Windows build traps | Future mobile build tasks can avoid Aliyun mirror, Hermes path, New Architecture, 260-char path, and stale `MainApplication.kt` issues | pending-human-review | mobile build/runbook or testing standard | not-run | possible mobile packaging runbook | pending |
 
 ## No-Candidate Reason
 
-尚未判定。只有人工审查接受本任务没有可复用候选时，才填写这里。
+不适用：本任务存在一个可复用候选，等待人工审查决定是否沉淀。
 
 ## Promotion Notes
 

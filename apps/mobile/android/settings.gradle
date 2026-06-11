@@ -1,9 +1,5 @@
 pluginManagement {
   repositories {
-    maven { url = uri("https://maven.aliyun.com/repository/google") }
-    maven { url = uri("https://maven.aliyun.com/repository/central") }
-    maven { url = uri("https://maven.aliyun.com/repository/public") }
-    maven { url = uri("https://maven.aliyun.com/repository/gradle-plugin") }
     google()
     mavenCentral()
     gradlePluginPortal()
@@ -34,18 +30,11 @@ plugins {
 
 gradle.beforeProject { project ->
   project.buildscript.repositories {
-    maven { url = uri("https://maven.aliyun.com/repository/google") }
-    maven { url = uri("https://maven.aliyun.com/repository/central") }
-    maven { url = uri("https://maven.aliyun.com/repository/public") }
-    maven { url = uri("https://maven.aliyun.com/repository/gradle-plugin") }
     google()
     mavenCentral()
     gradlePluginPortal()
   }
   project.repositories {
-    maven { url = uri("https://maven.aliyun.com/repository/google") }
-    maven { url = uri("https://maven.aliyun.com/repository/central") }
-    maven { url = uri("https://maven.aliyun.com/repository/public") }
     google()
     mavenCentral()
   }

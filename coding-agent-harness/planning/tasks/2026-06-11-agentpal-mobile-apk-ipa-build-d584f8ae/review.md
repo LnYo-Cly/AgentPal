@@ -4,14 +4,14 @@
 
 | Reviewer | Type | Scope |
 | --- | --- | --- |
-| [name] | self / subagent / external / human | [审查范围] |
+| Codex coordinator | self | Android release build fixes, APK artifact checks, iOS IPA feasibility |
 
 ## 审查范围
 
-- 审查类型：adversarial / security / regression / architecture / release / other
-- 范围内：[文件、模块、行为、运行目标]
-- 范围外：[明确不审查的内容；如无写“无”]
-- 来源材料：[task plan、diff、commit、PR、测试输出、运行证据]
+- 审查类型：adversarial / release
+- 范围内：`apps/mobile` Android Gradle config、Expo app config、Android `MainApplication.kt`、EAS preview profile、APK artifact verification。
+- 范围外：正式 keystore 创建、应用商店发布、用户 EAS/Apple 登录、真机 UI 测试。
+- 来源材料：task plan、diff、Gradle build output、APK verification commands、EAS CLI status、Harness check。
 
 ## Agent Review Submission（Agent 提交审查）
 
@@ -19,91 +19,96 @@
 
 | Field | Value |
 | --- | --- |
-| Submission ID | [由 task-review 生成] |
-| Submitted At | [timestamp] |
-| Submitted By | [agent 或 coordinator 身份] |
+| Submission ID | pending task-review |
+| Submitted At | pending task-review |
+| Submitted By | coordinator |
 | Task Key | 2026-06-11-agentpal-mobile-apk-ipa-build-d584f8ae |
-| Materials Checklist Hash | [由 task-review 生成；只作信息记录，不作为手工门禁] |
-| Evidence Summary | [测试、diff、运行和审查材料证据] |
-| Open Findings Count | [数字] |
-| Scanner Version | [生成时的 scanner 版本] |
+| Materials Checklist Hash | pending task-review |
+| Evidence Summary | Android APK built and verified; iOS blocked by EAS not logged in / Apple signing requirements |
+| Open Findings Count | 0 blocking / 4 residual risks |
+| Scanner Version | harness CLI |
 
 ### Material Checklist（材料清单）
 
 | Material | Required? | Status | Evidence |
 | --- | --- | --- | --- |
-| Brief | yes / no | present / missing / incomplete | [路径或原因] |
-| Task plan | yes / no | present / missing / incomplete | [路径或原因] |
-| Progress and evidence | yes / no | present / missing / incomplete | [路径或原因] |
-| Visual map | yes / no | present / missing / incomplete | [路径或原因] |
-| Lesson candidate decision | yes / no | present / missing / incomplete | [路径或原因] |
-| Walkthrough or closeout link | yes / no | present / missing / incomplete | [路径或原因] |
-
-Scanner 会根据必需文件、章节、证据和这个严格提交块派生 `materialsReady`。如果材料未齐，任务应进入缺材料队列，而不是人工审查确认队列。
-如果存在开放的 P0/P1/P2 阻塞发现，任务应进入阻塞队列，而不是人工审查确认队列。
+| Brief | yes | present | `brief.md` |
+| Task plan | yes | present | `task_plan.md` |
+| Progress and evidence | yes | present | `progress.md` |
+| Visual map | yes | present | `visual_map.md` |
+| Lesson candidate decision | yes | present | `lesson_candidates.md` |
+| Walkthrough or closeout link | yes | present | `walkthrough.md` |
 
 ## 信心挑战（Confidence Challenge）
 
 直接回答：你是否对当前计划、实现和策略有 100% 信心？
 
-- Verdict：yes / no
+- Verdict：no
 - 如果不是 100%，剩余漏洞或证据缺口：
-  - [风险 / 漏洞 / 未验证假设；如无写“无”]
-- Fix loop count：[已经执行几轮 review -> fix -> evidence -> review]
-- 当前结论：[为什么现在可以继续、暂停或收口]
+  - 没有连接 Android 真机，未做安装启动 smoke。
+  - APK 使用 debug signing，只能作为 preview/testing 包。
+  - IPA 需要 EAS/Apple 登录和签名凭据，本轮无法自动完成。
+  - APK 只包含 `arm64-v8a`，不是全 ABI universal package。
+- Fix loop count：4
+- 当前结论：Android preview APK 的构建和静态产物验证已经足够收口；IPA 和真机安装属于外部账号/设备条件阻塞，不应继续猜测。
 
 ## 重要发现（Material Findings，表头供 checker 解析）
 
 | ID | Severity | Finding | Evidence Checked | Required Action | Open | Disposition | Blocks Release | Follow-up |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 
-不要保留示例 finding。若没有重要发现，只保留表头，并补全下面的无重要发现声明。
-
-允许的 `Severity`：`P0`, `P1`, `P2`, `P3`。
-允许的 `Open`：`yes`, `no`。
-允许的 `Disposition`：`open`, `mitigated`, `closed`, `deferred`, `accepted-risk`, `not-reproducible`, `out-of-scope`。
-允许的 `Blocks Release`：`yes`, `no`。
-
 ## 非阻塞备注（Non-Material Notes）
 
-- [不阻塞本轮目标但值得记录的问题；如无写“无”]
+- Android release Gradle build prints deprecation warnings about Gradle 10 compatibility; not blocking current Expo SDK 54 preview APK.
+- `apksigner` reports v2 signature only and Android Debug certificate; expected for current debug signing config.
+- Build from deep Windows path can hit CMake/Ninja 260 character paths; short path mapping or CI/EAS avoids it.
 
 ## 已检查证据（Evidence Checked）
 
 | Evidence ID | Type | Path | Summary |
 | --- | --- | --- | --- |
-| E-001 | command / diff / fixture / screenshot / review / report | PUBLIC:path 或 PRIVATE:path 或 TARGET:path 或 EXTERNAL:path 或 URL:https://example.com | [检查了什么，结论是什么] |
+| E-001 | command | TARGET:apps/mobile | `npm --prefix apps/mobile run typecheck` passed. |
+| E-002 | command | TARGET:apps/mobile/android | `gradlew.bat assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon --stacktrace` passed from short path. |
+| E-003 | fixture | TARGET:apps/mobile/dist/AgentPal-android-0.1.0-arm64-preview.apk | APK exists, 40,001,377 bytes, SHA256 B0E00C5E2A33B23BCDE434CB2352727CB78225D459BF5FE0F66F124A641B369D. |
+| E-004 | command | TARGET:apps/mobile/dist/AgentPal-android-0.1.0-arm64-preview.apk | `apksigner verify --verbose --print-certs` passed with v2 signature. |
+| E-005 | command | TARGET:apps/mobile/dist/AgentPal-android-0.1.0-arm64-preview.apk | `zipalign -c -p 4` passed. |
+| E-006 | command | TARGET:apps/mobile/dist/AgentPal-android-0.1.0-arm64-preview.apk | `aapt2 dump badging` confirmed `dev.agentpal.mobile`, `0.1.0`, minSdk 24, targetSdk 36, `arm64-v8a`. |
+| E-007 | command | TARGET:apps/mobile | `npx eas-cli --version` returned `eas-cli/20.1.0`; `npx eas-cli whoami` returned `Not logged in`. |
+| E-008 | command | TARGET:. | `git diff --check` passed; `harness check --profile target-project .` passed. |
 
 ## 无重要发现声明
 
-[如果没有重要发现，明确写：本轮已检查上述证据，未发现阻塞目标的重要发现。]
+本轮已检查上述证据，未发现阻塞 Android preview APK 交付的重要发现。iOS IPA 和真机安装是外部账号/设备条件，不是当前 diff 内可修复问题。
 
 ## 残余风险
 
 | Risk | Owner | Accepted? | Follow-up |
 | --- | --- | --- | --- |
-| [风险] | [负责人] | yes / no | [后续路径或“无”] |
+| iOS IPA 未产出 | user | no | 登录 EAS 并配置 Apple signing 后运行 `npx eas-cli build --platform ios --profile preview`。 |
+| Android 未做真机安装启动 | user/coordinator | yes for artifact delivery | 连接设备后运行 `adb install -r apps/mobile/dist/AgentPal-android-0.1.0-arm64-preview.apk`。 |
+| APK 使用 debug keystore | coordinator | yes for preview | 正式发布前创建 release keystore / Play App Signing 配置。 |
+| APK 仅 arm64-v8a | coordinator | yes for preview | 如需模拟器/旧机型覆盖，执行全 ABI 或 EAS Android build。 |
 
 ## Lifecycle Queue Routing（生命周期队列路由）
 
 | Queue | Applies? | Reason | Exit condition |
 | --- | --- | --- | --- |
-| Review | yes / no | 已提交审查材料包，且可等待人工确认。 | 人工确认或退回。 |
-| Missing Materials | yes / no | 必需文件、章节、证据或 review submission 缺失 / 不完整。 | Agent 补齐材料并重新提交审查。 |
-| Blocked | yes / no | 存在 open blocking finding、非法状态转换、审计失败或需要人工 waiver。 | blocker 被修复、关闭或明确豁免。 |
-| Lessons | yes / no | Lesson candidate 需要拒绝、留在任务内、dry-run promotion 或创建沉淀任务。 | 人工决定候选路由；除非明确批准，promotion 仍是单独维护任务。 |
-| Confirmed / Finalized | yes / no | 已有人工确认；可能仍待结项或治理收口。 | Closeout、ledger 和 lesson routing 都完成。 |
-| Soft-deleted / Superseded | yes / no | 任务有 tombstone、superseded-by 或 archive 状态；duplicate / abandoned 等语义写在 `Reason`。 | reopen 或作为只读审计历史保留。 |
+| Review | yes | 已准备 agent review packet，可等待人工确认。 | 人工确认或退回。 |
+| Missing Materials | no | 必需任务材料已补齐。 | n/a |
+| Blocked | no | 无 open blocking finding；IPA 是外部凭据条件，不阻塞 Android APK 交付。 | n/a |
+| Lessons | yes | 存在可复用的 Windows RN/Expo 构建路径候选。 | 人工决定候选路由。 |
+| Confirmed / Finalized | no | 尚未人工确认。 | 人工确认后 closeout。 |
+| Soft-deleted / Superseded | no | 任务仍 active。 | n/a |
 
 ## 后续路由（Follow-Up Routing）
 
-- 任务计划：[是否需要更新，路径或“无”]
-- Progress：[对应 `progress.md` 条目]
-- 发现记录：[是否需要写入 `findings.md`]
-- Regression SSoT：[新增 / 调整 / 无]
-- Lessons：[checked-created: L-YYYY-MM-DD-NNN / checked-candidate: LC-YYYYMMDD-NNN / queued-promotion: LC-YYYYMMDD-NNN / checked-none: 一句话原因]
-- 收口记录：[收口时引用路径]
+- 任务计划：已更新 `task_plan.md`
+- Progress：见 `progress.md`
+- 发现记录：已更新 `findings.md`
+- Regression SSoT：无
+- Lessons：checked-candidate: LC-20260611-001
+- 收口记录：见 `walkthrough.md`
 
 ## 最终信心依据（Final Confidence Basis）
 
-[说明最终信心来自哪些证据、审查层级和已关闭发现。发布前最终审查不能只依赖 self-only。]
+最终信心来自真实 Android release Gradle build、APK 签名/对齐/包元数据验证、TypeScript 检查和 Harness check。发布级信心仍需要正式签名、真机安装启动和 EAS/Apple iOS 构建证据。
