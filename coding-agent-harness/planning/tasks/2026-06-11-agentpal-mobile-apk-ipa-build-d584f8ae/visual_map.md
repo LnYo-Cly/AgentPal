@@ -23,10 +23,10 @@ flowchart LR
 
 | Phase ID | Kind | Depends On | State | Completion | Output | Required Evidence | Exit Command | Actor | Evidence Status | Blocking Risk | Owner / Handoff |
 | --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- |
-| INIT-01 | init | none | done | 100 | 任务计划和执行策略已确认 | `task_plan.md`; `execution_strategy.md` | `harness task-start 2026-06-11-agentpal-mobile-apk-ipa-build-d584f8ae` | agent | present | none | coordinator |
-| EXEC-01 | execution | INIT-01 | done | 100 | 有边界的实现、文档切片和验证证据 | diff、commands、worker handoff 或 artifact path | `harness task-phase 2026-06-11-agentpal-mobile-apk-ipa-build-d584f8ae EXEC-01 --state done --completion 100 --evidence present` | agent | present | [risk] | [owner] |
-| GATE-01 | gate | EXEC-01 | done | 100 | Agent Review Submission | `review.md`、progress update、lesson routing | `harness task-review 2026-06-11-agentpal-mobile-apk-ipa-build-d584f8ae --message "<summary>"` | agent | present | [risk] | coordinator |
-| GATE-02 | gate | GATE-01 | planned | 0 | Human Review Confirmation | review packet 和人工确认 | `harness review-confirm 2026-06-11-agentpal-mobile-apk-ipa-build-d584f8ae --confirm 2026-06-11-agentpal-mobile-apk-ipa-build-d584f8ae` | human | missing | Agent 不能代办人工确认 | human |
+| INIT-01 | init | none | done | 100 | 移动端 APK/IPA 打包范围、策略和证据计划已确认 | `task_plan.md`; `execution_strategy.md` | `harness task-start 2026-06-11-agentpal-mobile-apk-ipa-build-d584f8ae` | agent | present | none | coordinator |
+| EXEC-01 | execution | INIT-01 | done | 100 | Android preview APK 构建修复、EAS preview 配置和产物验证已完成 | `progress.md` E-001..E-012; commit `3b7feb8`; APK artifact path | `harness task-phase 2026-06-11-agentpal-mobile-apk-ipa-build-d584f8ae EXEC-01 --state done --completion 100 --evidence present` | agent | present | iOS IPA 需要 EAS 登录和 Apple signing credentials | coordinator |
+| GATE-01 | gate | EXEC-01 | done | 100 | Agent review packet 已提交，Android preview APK 无阻塞发现 | `review.md`; `lesson_candidates.md`; `walkthrough.md` | `harness task-review 2026-06-11-agentpal-mobile-apk-ipa-build-d584f8ae --message "<summary>"` | agent | present | 仅剩人工确认 gate | coordinator |
+| GATE-02 | gate | GATE-01 | planned | 0 | 等待人工审查确认 | review packet 和人工确认 | `harness review-confirm 2026-06-11-agentpal-mobile-apk-ipa-build-d584f8ae --confirm 2026-06-11-agentpal-mobile-apk-ipa-build-d584f8ae` | human | missing | Agent 不能代办人工确认 | human |
 
 允许的 `State`：`planned`, `in_progress`, `review`, `blocked`, `done`, `skipped`。
 

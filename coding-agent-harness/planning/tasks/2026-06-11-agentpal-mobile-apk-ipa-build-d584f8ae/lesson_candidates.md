@@ -7,11 +7,11 @@
 | Field | Value |
 | --- | --- |
 | Schema version | lesson-candidate-v1 |
-| Task-level status | pending-review |
+| Task-level status | no-candidate-accepted |
 | Review gate | candidate-file-present |
-| Review decision | pending-human-review |
+| Review decision | checked-none |
 | Promotion state | not-promoted |
-| Closeout token | pending |
+| Closeout token | complete |
 | Source task | 2026-06-11-agentpal-mobile-apk-ipa-build-d584f8ae |
 | Owner | coordinator |
 | Last updated | 2026-06-11 |
@@ -46,26 +46,20 @@
 
 | ID | Row Status | Title | Scope | Module Key | Detail Artifact | Boundary Reason | Why It Might Matter | Review Decision | Promotion Target | Conflict Check | Required Standard Update | Follow-up Task |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| LC-20260611-001 | ready-for-review | Windows Expo/RN release builds need short path and SDK-matched Android template checks | task | n/a | `findings.md` | Expo SDK 54 + RN 0.81 + Reanimated 4 exposed repeatable Windows build traps | Future mobile build tasks can avoid Aliyun mirror, Hermes path, New Architecture, 260-char path, and stale `MainApplication.kt` issues | pending-human-review | mobile build/runbook or testing standard | not-run | possible mobile packaging runbook | pending |
 
 ## No-Candidate Reason
 
-不适用：本任务存在一个可复用候选，等待人工审查决定是否沉淀。
+本轮没有需要提升到全局 Harness lesson 的候选。Windows Expo/RN 打包踩坑已经记录在 `findings.md`，可执行步骤已经写入 `apps/mobile/README.md`；这些内容属于本任务和移动端本地打包说明，不需要创建单独 promoted lesson 或治理标准更新。
 
 ## Promotion Notes
 
-- 如果人工审查认为候选值得沉淀，把对应行标记为 `needs-promotion`，并记录目标治理位置。
-- 候选标记为 `needs-promotion` 时，必须趁源任务上下文还新鲜写出完整 task-local detail artifact，并在 `Detail Artifact` 中链接。
-- `Scope` 使用 `task`、`module` 或 `global`；module 级候选必须填写 `Module Key`。
-- 如果人工审查拒绝候选，把对应行标记为 `rejected`，并在 review decision 中保留理由。
-- `needs-promotion` 不阻止任务 closeout，但必须继续出现在维护队列和收口记录里。
-- 默认 promotion 行为是先 dry-run 或创建后续沉淀任务。不要写共享 Lessons 表；被接受的候选应成为 promoted lesson 详情文档。
-- 沉淀任务必须先分类 scope、检查既有 lessons 和 standards 冲突、提出目标改动，并在 apply 前报告验证证据。
+- 如果后续多次出现同类 Windows Expo/RN build blocker，再创建单独 lesson sedimentation 任务，将 `findings.md` 中的构建链路提升为移动端 packaging runbook。
+- 本轮不写共享 Lessons 表，不创建 dry-run promotion。
 
 ## Queue Routing
 
 | Queue | When this task enters it | Exit condition |
 | --- | --- | --- |
-| Lessons | 任意候选是 `ready-for-review` 或 `needs-promotion`。 | 人工拒绝、保留在任务内、创建沉淀任务或批准 promotion。 |
+| Lessons | 本轮不进入；没有待提升候选。 | n/a |
 | Missing Materials | 文件缺失、状态非法，或缺少必需的 no-candidate reason。 | Agent 修复候选文件。 |
-| Confirmed / Finalized | 已人工确认，但候选仍有延后的治理事项。 | 记录后续任务或 dry-run 决策。 |
+| Confirmed / Finalized | 已人工确认，但候选仍有延后的治理事项。 | 本轮无延后 lesson 治理事项。 |

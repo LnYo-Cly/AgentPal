@@ -72,6 +72,13 @@
 - 证据：command:TARGET:.:git diff --check passed
 - 证据：command:TARGET:.:harness check --profile target-project . passed with dirty-state warning before commit
 
+### [2026-06-11 21:12] - Harness material repair
+
+- 做了什么：修复 `visual_map.md` 的模板占位，并将 lesson candidate 决策收敛为 `no-candidate-accepted`，因为本轮构建经验已写入任务 findings 和 mobile README，不需要提升为全局 Harness lesson。
+- 验证结果：待重新运行 `harness check --profile target-project .` 和 `harness task-review`。
+- 下一步：重新提交 review packet。
+- 证据：diff:TARGET:coding-agent-harness/planning/tasks/2026-06-11-agentpal-mobile-apk-ipa-build-d584f8ae:Repaired visual map and lesson candidate routing
+
 ## 残余
 
 - iOS IPA 未产出：Owner=user；需要 `npx eas-cli login`、Expo project/account setup、Apple Developer 账号和 iOS signing credentials 后才能运行 EAS iOS build。

@@ -36,7 +36,7 @@
 | Task plan | yes | present | `task_plan.md` |
 | Progress and evidence | yes | present | `progress.md` |
 | Visual map | yes | present | `visual_map.md` |
-| Lesson candidate decision | yes | present | `lesson_candidates.md` |
+| Lesson candidate decision | yes | present | `lesson_candidates.md` records checked-none / no-candidate-accepted |
 | Walkthrough or closeout link | yes | present | `walkthrough.md` |
 
 ## 信心挑战（Confidence Challenge）
@@ -96,7 +96,7 @@
 | Review | yes | 已准备 agent review packet，可等待人工确认。 | 人工确认或退回。 |
 | Missing Materials | no | 必需任务材料已补齐。 | n/a |
 | Blocked | no | 无 open blocking finding；IPA 是外部凭据条件，不阻塞 Android APK 交付。 | n/a |
-| Lessons | yes | 存在可复用的 Windows RN/Expo 构建路径候选。 | 人工决定候选路由。 |
+| Lessons | no | 构建踩坑已写入任务 findings 和 mobile README，本轮不提升全局 lesson。 | n/a |
 | Confirmed / Finalized | no | 尚未人工确认。 | 人工确认后 closeout。 |
 | Soft-deleted / Superseded | no | 任务仍 active。 | n/a |
 
@@ -106,7 +106,7 @@
 - Progress：见 `progress.md`
 - 发现记录：已更新 `findings.md`
 - Regression SSoT：无
-- Lessons：checked-candidate: LC-20260611-001
+- Lessons：checked-none: 构建经验已保留在任务 findings 和 `apps/mobile/README.md`，不需要 promotion
 - 收口记录：见 `walkthrough.md`
 
 ## 最终信心依据（Final Confidence Basis）
