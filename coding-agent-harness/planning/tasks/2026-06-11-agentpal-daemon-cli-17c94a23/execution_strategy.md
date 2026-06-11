@@ -18,28 +18,28 @@
 
 | Question | Decision | Reason | Next Action |
 | --- | --- | --- | --- |
-| Should a reviewer subagent be used? | yes / no | [为什么需要或不需要 reviewer] | 如果 yes，直接调用只读 reviewer，不需要额外申请。 |
-| Would a worker subagent materially help? | no / ask-user / already-authorized | [并行切片、独立实现、专项调查，或说明为什么不需要] | 如果 ask-user，直接问：“这个任务适合拆给 worker subagent 并行处理。是否授权我派一个 worker subagent，只修改 [scope]，只在 [worktree/branch] 内执行，我负责协调和最终审查？” |
+| Should a reviewer subagent be used? | yes | 这个切片涉及后台进程、状态文件和用户可见 CLI，适合做只读 adversarial review。 | 直接在实现后提交 review packet。 |
+| Would a worker subagent materially help? | no | 任务边界很窄，且共享文件和 CLI 入口需要同一协调者顺序修改；并行收益不高。 | 不申请 worker。 |
 
 ## User Authorization Decision
 
 如果上方 worker 决策是 `ask-user`，implementation 必须暂停，直到这里记录用户答案。
-已解决状态只能是 `authorized`、`denied` 或 `not-needed`。选择 `ask-user` 后不得继续保持 `pending`。
+已解决状态只能是 `authorized`, `denied` 或 `not-needed`。选择 `ask-user` 后不得继续保持 `pending`。
 
 | Gate | State | Decided By | Decided At | Scope | Worktree / Branch | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| worker subagent | pending | pending | pending | pending | pending | 只有直接问过用户后才能填写。 |
+| worker subagent | not-needed | coordinator | 2026-06-11 15:50 | n/a | n/a | 任务未拆分并行切片。 |
 
 ## 决策表
 
 | 决策 | 选择 | 说明 |
 | --- | --- | --- |
-| 主执行者 | coordinator | coordinator 负责编排顺序、冲突判断和最终收口。 |
-| Subagent 模式 | none / reviewer-only / worker-worktree | 选择能满足任务的最小协作模式。 |
-| 审查模型 | self-check / predefined verifier / adversarial review | 说明为什么该审查层级足够。 |
-| Worktree 策略 | same checkout / dedicated worktree | 会改代码的 subagent 必须使用独立 worktree，并提交 handoff commit。 |
-| 冲突控制 | coordinator owns shared files | subagent 不得直接编辑 coordinator 管理的全局表或共享文件，除非获得明确锁。 |
-| 证据深度 | L0 / L1 / L2 / L3 | 按变更风险匹配证据深度。 |
+| 主执行者 | coordinator | 由 coordinator 顺序修改 CLI、文档和 task package，避免共享状态漂移。 |
+| Subagent 模式 | reviewer-only | 只需要一轮只读审查，不拆 worker。 |
+| 审查模型 | adversarial review | 后台进程和状态文件容易在边界上出错，需要对抗性自检。 |
+| Worktree 策略 | same checkout | 单切片顺序完成，不值得额外 worktree 成本。 |
+| 冲突控制 | coordinator owns shared files | 任务文件、README 和 CLI 入口由 coordinator 统一写。 |
+| 证据深度 | L2 | 需要本地 smoke + 后台进程验证，而不只是静态检查。 |
 
 ## 子代理 / Worker 合同
 
@@ -47,16 +47,16 @@
 
 | 角色 | 输入包 | 写入范围 | 交接要求 | 负责人 |
 | --- | --- | --- | --- | --- |
-| reviewer / worker / n/a | C-001 | read-only / path list / n/a | report / commit SHA / n/a | coordinator |
+| reviewer | C-001..C-005 | read-only | review.md 里的发现和证据引用 | coordinator |
 
 ## 证据计划
 
 | 证据层级 | 计划命令或检查 | 记录位置 | 完成条件 |
 | --- | --- | --- | --- |
-| L0 | [静态检查 / 小范围自检] | `progress.md` | [通过标准] |
-| L1 | [单元测试 / targeted check] | `progress.md` 或 `artifacts/INDEX.md` | [通过标准] |
-| L2 | [集成 / 浏览器 / 真实数据冒烟] | `artifacts/INDEX.md` | [通过标准] |
-| L3 | [发布前 / 生产等价验证 / 外部审查] | `review.md` 与 walkthrough | [通过标准] |
+| L0 | CLI help / task package 自检 | `progress.md` | 任务包字段完整，help 路由可见。 |
+| L1 | targeted smoke | `progress.md` | `pair`、`daemon start|status|stop|logs` 路径至少做一次本地冒烟。 |
+| L2 | detached process verification | `progress.md` + `review.md` | 证明关闭父终端后 daemon 仍在，且可以用 status/stop 回收。 |
+| L3 | n/a | n/a | 本任务不做发布前等价验证。 |
 
 ## 暂停 / 升级条件
 

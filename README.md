@@ -6,6 +6,7 @@ AgentPal is a pocket control surface for coding agents running on your own machi
 
 ```bash
 npx agentpal@latest pair
+npx agentpal@latest daemon start
 ```
 
 AgentPal is not a remote desktop, not a phone terminal, and not another AI chat box. Your computer remains the place where code is read, edited, tested, and committed. Your phone becomes the place where you keep the work visible and steer it when attention is needed.
@@ -30,13 +31,22 @@ Run this from the project directory on the computer where Codex is available:
 npx agentpal@latest pair
 ```
 
-The command starts the AgentPal host, creates a Cloud Relay pairing, and prints a pairing URL plus terminal QR code for the mobile app.
+The command starts the AgentPal host in the foreground, creates a Cloud Relay pairing, and prints a pairing URL plus terminal QR code for the mobile app. Keep that terminal open while you are testing the foreground connection.
+
+After the phone has paired once, start the same workspace Host in the background:
+
+```bash
+npx agentpal@latest daemon start
+```
+
+The daemon keeps running after the terminal that launched it closes. It is not a startup service; stop it explicitly with `agentpal daemon stop` when you are done.
 
 You can also install the CLI globally:
 
 ```bash
 npm install -g agentpal
 agentpal pair
+agentpal daemon start
 ```
 
 To pair a different workspace:
@@ -55,6 +65,7 @@ AgentPal `0.1.x` is the first public release line of the desktop/CLI side:
 - local Codex host bridge;
 - QR/link pairing payloads;
 - workspace-aware host startup;
+- workspace background daemon commands;
 - local relay command for development and advanced setups.
 
 The mobile app and broader agent adapters are still evolving. This release is intended to make the public pairing path installable and testable.
@@ -78,12 +89,21 @@ agentpal pair --workspace .
 agentpal pair --workspace . --qr-file
 agentpal pair --workspace . --relay-url ws://127.0.0.1:8790/ws
 
+agentpal daemon start
+agentpal daemon status
+agentpal daemon logs
+agentpal daemon stop
+
 agentpal relay --host 0.0.0.0 --port 8790
 agentpal host codex connect --workspace .
 ```
 
 `agentpal pair` uses the current directory as the default workspace and the public Cloud Relay unless you pass `--relay-url` or set `AGENTPAL_RELAY_URL`.
 By default it prints the QR directly in the terminal. Pass `--qr-file` if you also want an SVG file written to your temp directory.
+
+`agentpal daemon start` uses the same workspace profile as `agentpal pair`, including the persisted Host ID. That means a phone paired with `agentpal pair` can reconnect when the background Host starts later.
+
+Daemon state and logs live under `~/.agentpal/workspaces/<workspace-key>/`. Use `agentpal daemon status --json` for machine-readable state and `agentpal daemon logs --tail 200` for recent logs.
 
 ## Requirements
 

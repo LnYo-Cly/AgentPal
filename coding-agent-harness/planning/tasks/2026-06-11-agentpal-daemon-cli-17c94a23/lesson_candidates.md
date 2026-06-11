@@ -7,11 +7,11 @@
 | Field | Value |
 | --- | --- |
 | Schema version | lesson-candidate-v1 |
-| Task-level status | pending-review |
+| Task-level status | no-candidate-accepted |
 | Review gate | candidate-file-present |
-| Review decision | pending-human-review |
+| Review decision | agent-checked-no-candidate |
 | Promotion state | not-promoted |
-| Closeout token | pending |
+| Closeout token | checked-none:auto-no-candidate |
 | Source task | 2026-06-11-agentpal-daemon-cli-17c94a23 |
 | Owner | coordinator |
 | Last updated | 2026-06-11 |
@@ -49,7 +49,7 @@
 
 ## No-Candidate Reason
 
-尚未判定。只有人工审查接受本任务没有可复用候选时，才填写这里。
+本任务是 AgentPal CLI 后台常驻能力的一次性产品实现，没有产生新的跨任务 Harness 治理规则。进程生命周期、profile/state 管理和验证证据已记录在本任务内，不需要 promotion 到共享 lessons。
 
 ## Promotion Notes
 
